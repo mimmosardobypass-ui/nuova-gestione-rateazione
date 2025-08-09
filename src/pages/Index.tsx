@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 type Row = {
-  id: string;
+  id: number;
   number?: string;
-  created_at?: string;
+  created_at?: string | null;
 };
 
 export default function Index() {
