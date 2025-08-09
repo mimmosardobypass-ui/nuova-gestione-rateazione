@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-// NB: se ti dà errore sull'alias, cambia "integrations" in "integrazioni"
+// Se qui ti dà errore sull'alias, vedi le note sotto
 import { supabase } from "@/integrations/supabase/client";
 
 type Row = {
@@ -17,9 +17,8 @@ export default function Index() {
     const run = async () => {
       setStatus("loading");
 
-      // prova a leggere qualche riga dalla tabella "rateations"
       const { data, error } = await supabase
-        .from("rateations")
+        .from("rateations") // <-- nome tabella come in Supabase
         .select("id, number, created_at")
         .limit(3);
 
@@ -48,11 +47,11 @@ export default function Index() {
 
         {status === "ok" && (
           <>
-            <p className="mb-2">✅ Connessione OK</p>
-            <p className="mb-4">
-              Ho letto {rows.length} riga/e dalla tabella <code>rateations</code>.
+            <p className="mb-2">Connessione OK ✅</p>
+            <p className="text-sm">
+              Ho letto {rows.length} righe dalla tabella <code>rateations</code>.
             </p>
-            <pre className="text-xs bg-muted p-3 rounded">
+            <pre className="text-xs bg-muted p-3 rounded mt-2">
               {JSON.stringify(rows, null, 2)}
             </pre>
           </>
