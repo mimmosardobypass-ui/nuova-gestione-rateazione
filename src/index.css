@@ -37,22 +37,23 @@ All colors MUST be HSL.
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+    --radius-xl: 1rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Brand & motion tokens */
+    --brand: 258 85% 60%;
+    --brand-foreground: 210 40% 98%;
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand) / 0.25), hsl(var(--primary) / 0.25));
+    --shadow-elegant: 0 10px 30px -12px hsl(var(--brand) / 0.35), 0 6px 16px -8px hsl(var(--foreground) / 0.06);
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -102,4 +103,26 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Component utilities tied to design tokens */
+@layer components {
+  .card-elevated {
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elegant);
+  }
+  .btn-cta {
+    transition: var(--transition-smooth);
+  }
+  .bg-hero {
+    background-image: var(--gradient-primary);
+    background-size: 200% 200%;
+    animation: gradient-move 15s ease infinite;
+  }
+}
+
+@keyframes gradient-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
