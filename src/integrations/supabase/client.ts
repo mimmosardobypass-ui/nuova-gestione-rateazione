@@ -1,61 +1,9 @@
-import { useEffect, useState } from "react";
-// NB: se ti dà errore sull'alias, cambia "integrazioni" in "integrations"
-import { supabase } from "@/integrazioni/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
-type Row = {
-  id: number;            // <-- number, come in Supabase
-  number?: string;       // <-- opzionale
-  created_at?: string | null; // <-- può essere null
-};
+// IMPORTANT: Lovable non usa .env. Inserisci qui URL e ANON KEY pubblica.
+// TODO: sostituisci con i valori reali del tuo progetto Supabase
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
 
-export default function Index() {
-  const [status, setStatus] = useState<"loading" | "ok" | "err">("loading");
-  const [rows, setRows] = useState<Row[]>([]);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    const run = async () => {
-      setStatus("loading");
-
-      // prova a leggere qualche riga dalla tabella "rateations"
-      const { data, error } = await supabase
-        .from("rateations")
-        .select("id, number, created_at")
-        .limit(3);
-
-      if (error) {
-        setStatus("err");
-        setMessage(error.message);
-      } else {
-        setStatus("ok");
-        setRows(data ?? []);
-      }
-    };
-
-    run();
-  }, []);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="max-w-xl w-full">
-        <h1 className="text-2xl font-bold mb-4">Test connessione a Supabase</h1>
-
-        {status === "loading" && <p>Sto contattando Supabase…</p>}
-
-        {status === "err" && (
-          <p className="text-red-500">Errore: {message}</p>
-        )}
-
-        {status === "ok" && (
-          <>
-            <p className="mb-2">Connessione OK ✅</p>
-            <p className="mb-2">Prime righe (max 3) dalla tabella <code>rateations</code>:</p>
-            <pre className="text-sm bg-muted p-3 rounded">
-              {JSON.stringify(rows, null, 2)}
-            </pre>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);

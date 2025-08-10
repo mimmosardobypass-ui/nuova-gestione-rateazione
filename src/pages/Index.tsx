@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 // Se qui ti dà errore sull'alias, vedi le note sott
-import { supabase } from "@/integrazioni/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 type Row = {
   id: number;
   number?: string;
