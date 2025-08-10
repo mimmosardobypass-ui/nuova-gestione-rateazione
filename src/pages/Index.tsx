@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-// ATTENZIONE: usa proprio questo path con "integrazioni"
-import { supabase } from "@/integrazioni/supabase/client";
+// Nota: usa il path corretto "integrations"
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Index() {
   const [status, setStatus] = useState<"loading" | "ok" | "err">("loading");
