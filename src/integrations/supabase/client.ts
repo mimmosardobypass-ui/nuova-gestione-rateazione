@@ -1,9 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "./types";
 
-// IMPORTANT: Lovable non usa .env. Inserisci qui URL e ANON KEY pubblica.
-// TODO: sostituisci con i valori reali del tuo progetto Supabase
-const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+// URL del progetto Supabase
+const SUPABASE_URL = "https://ebcjwtjebzvabedboybv.supabase.co";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Chiave pubblica anon (anon key)
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViY2p3dGplYnphdmVkYm95YnY
+iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyMzEwNDA4NiwiZXhwIjoxNzU0NjYwMDg2fQ.tzLWDBTnvv1AvwoZRBUTs__CwmXVGX4poCJq_a8B57U";
+
+// Creazione del client Supabase
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
