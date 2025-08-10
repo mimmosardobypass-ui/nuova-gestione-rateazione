@@ -1,23 +1,20 @@
 import { useEffect, useState } from "react";
-// Se qui ti dà errore sull'alias, vedi le note sott
-import { supabase } from "@/integrations/supabase/client";
-type Row = {
-  id: number;
-  number?: string;
-  created_at?: string | null;
-};
+// ATTENZIONE: usa proprio questo path con "integrazioni"
+import { supabase } from "@/integrazioni/supabase/client";
 
 export default function Index() {
   const [status, setStatus] = useState<"loading" | "ok" | "err">("loading");
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const run = async () => {
+    (async () => {
       setStatus("loading");
 
+      // PROVA: leggo max 3 righe dalla tabella "rateations"
+      // Se il nome fosse diverso nel tuo DB, cambia qui (es. "installments")
       const { data, error } = await supabase
-        .from("rateations") // <-- nome tabella come in Supabase
+        .from("rateations")
         .select("id, number, created_at")
         .limit(3);
 
@@ -28,9 +25,7 @@ export default function Index() {
         setStatus("ok");
         setRows(data ?? []);
       }
-    };
-
-    run();
+    })();
   }, []);
 
   return (
@@ -45,7 +40,7 @@ export default function Index() {
         )}
 
         {status === "ok" && (
-          <>
+          <div>
             <p className="mb-2">Connessione OK ✅</p>
             <p className="text-sm">
               Ho letto {rows.length} righe dalla tabella <code>rateations</code>.
@@ -53,7 +48,7 @@ export default function Index() {
             <pre className="text-xs bg-muted p-3 rounded mt-2">
               {JSON.stringify(rows, null, 2)}
             </pre>
-          </>
+          </div>
         )}
       </div>
     </div>
