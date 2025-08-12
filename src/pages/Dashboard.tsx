@@ -1,9 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { setSEO } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, CalendarDays, Download, LineChart, Plus, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  Download,
+  LineChart,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -14,15 +21,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 
-const monthlyData = [
-  { month: "Gen", dovuto: 3200, pagato: 2800 },
-  { month: "Feb", dovuto: 2900, pagato: 2100 },
-  { month: "Mar", dovuto: 4100, pagato: 3600 },
-  { month: "Apr", dovuto: 3800, pagato: 3700 },
-  { month: "Mag", dovuto: 4200, pagato: 3900 },
-  { month: "Giu", dovuto: 4600, pagato: 4100 },
-];
+type Installment = {
+  id: number;
+  amount: number | null;
+  is_paid: boolean;
+  due_date: string | null;   // ISO date (YYYY-MM-DD) o null
+  created_at: string;        // ISO datetime
+};
 
 const Stat = ({ label, value, hint }: { label: string; value: string; hint?: string }) => (
   <Card className="card-elevated">
@@ -37,6 +44,7 @@ const Stat = ({ label, value, hint }: { label: string; value: string; hint?: str
 );
 
 export default function Dashboard() {
+  // SEO
   useEffect(() => {
     setSEO(
       "Dashboard – Gestione Rateazioni",
@@ -44,15 +52,89 @@ export default function Dashboard() {
     );
   }, []);
 
+  // Stato dati reali
+  const [rows, setRows] = useState<Installment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Fetch da Supabase
+  useEffect(() => {
+    const run = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("installments")
+        .select("id, amount, is_paid, due_date, created_at")
+        .order("due_date", { ascending: true });
+
+      if (error) setError(error.message);
+      else setRows((data || []) as Installment[]);
+      setLoading(false);
+    };
+
+    run();
+  }, []);
+
+  // Calcoli
+  const totalDue = useMemo(
+    () => rows.reduce((s, r) => s + Number(r.amount || 0), 0),
+    [rows]
+  );
+
+  const totalPaid = useMemo(
+    () =>
+      rows
+        .filter((r) => r.is_paid)
+        .reduce((s, r) => s + Number(r.amount || 0), 0),
+    [rows]
+  );
+
+  const totalResiduo = Math.max(totalDue - totalPaid, 0);
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const totalOverdue = useMemo(
+    () =>
+      rows
+        .filter((r) => !r.is_paid && r.due_date && r.due_date < todayISO)
+        .reduce((s, r) => s + Number(r.amount || 0), 0),
+    [rows]
+  );
+
+  const paidCount = rows.filter((r) => r.is_paid).length;
+  const totalCount = rows.length;
+
+  // Dati per grafico mensile (Gen..Dic)
+  const monthlyData = useMemo(() => {
+    const months = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+    const base = months.map((m) => ({ month: m, dovuto: 0, pagato: 0 }));
+
+    rows.forEach((r) => {
+      // se manca la due_date uso created_at così il record finisce comunque in un mese
+      const d = new Date(r.due_date || r.created_at);
+      const idx = d.getMonth(); // 0..11
+      base[idx].dovuto += Number(r.amount || 0);
+      if (r.is_paid) base[idx].pagato += Number(r.amount || 0);
+    });
+
+    return base;
+  }, [rows]);
+
+  const euro = (n: number) => `€ ${n.toLocaleString("it-IT")}`;
+
   return (
     <main className="min-h-screen">
+      {/* HERO */}
       <section className="bg-hero">
         <div className="container mx-auto px-4 py-10 md:py-14">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Gestione Rateazioni</h1>
-              <p className="text-muted-foreground mt-1">Dashboard riepilogativa e strumenti di analisi</p>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Gestione Rateazioni
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Dashboard riepilogativa e strumenti di analisi
+              </p>
             </div>
+
             <div className="flex items-center gap-2">
               <Button variant="secondary" className="btn-cta" aria-label="Confronto annuale">
                 <LineChart className="mr-2 h-4 w-4" /> Confronto annuale
@@ -73,6 +155,7 @@ export default function Dashboard() {
               </a>
             </div>
           </div>
+
           <div className="mt-4">
             <Badge variant="secondary" className="rounded-full">
               <Sparkles className="h-3 w-3 mr-1" /> Design moderno pronto per Supabase
@@ -81,15 +164,23 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* KPI */}
       <section className="container mx-auto px-4 py-8 md:py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <Stat label="Totale dovuto" value="€ 22.300" />
-          <Stat label="Totale pagato" value="€ 19.500" />
-          <Stat label="Totale residuo" value="€ 2.800" />
-          <Stat label="In ritardo" value="€ 1.200" />
-          <Stat label="Rate pagate/da pagare" value="56 / 14" />
-        </div>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Sto caricando…</p>
+        ) : error ? (
+          <p className="text-sm text-red-500">Errore: {error}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <Stat label="Totale dovuto" value={euro(totalDue)} />
+            <Stat label="Totale pagato" value={euro(totalPaid)} />
+            <Stat label="Totale residuo" value={euro(totalResiduo)} />
+            <Stat label="In ritardo" value={euro(totalOverdue)} />
+            <Stat label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
+          </div>
+        )}
 
+        {/* Grafico */}
         <Card className="card-elevated mt-6">
           <CardHeader>
             <CardTitle>Andamento mensile</CardTitle>
