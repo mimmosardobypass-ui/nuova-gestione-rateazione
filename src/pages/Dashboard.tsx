@@ -21,7 +21,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrazioni/supabase/client";
 
 type Installment = {
   id: number;
