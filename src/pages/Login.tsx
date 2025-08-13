@@ -13,7 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { user, signIn, signUp } = useAuth();
+  const { session, signIn, signUp } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -22,8 +22,8 @@ export default function Login() {
   }, []);
 
   // Redirect if already logged in
-  if (user) {
-    const from = location.state?.from?.pathname || "/rateazioni";
+  if (session) {
+    const from = (location.state as any)?.from || "/rateazioni";
     return <Navigate to={from} replace />;
   }
 
@@ -72,7 +72,7 @@ export default function Login() {
           });
         } else {
           // Redirect after successful login
-          const from = location.state?.from?.pathname || "/rateazioni";
+          const from = (location.state as any)?.from || "/rateazioni";
           navigate(from, { replace: true });
         }
       }

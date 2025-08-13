@@ -48,7 +48,7 @@ export default function Rateations() {
               window.location.replace("/rateazioni");
               loadData();
               setRefreshKey(prev => prev + 1);
-            }} 
+            }}
           />
         </div>
       </div>
