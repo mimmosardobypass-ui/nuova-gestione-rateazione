@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Pencil, Trash } from "lucide-react";
 import { RateationRowDetails } from "./RateationRowDetails";
+import { EditRateationModal } from "./EditRateationModal";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnline } from "@/hooks/use-online";
@@ -29,6 +30,7 @@ export function RateationsTable() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const online = useOnline();
+  const [editId, setEditId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => setExpandedId(prev => (prev === id ? null : id));
 
@@ -175,7 +177,7 @@ export function RateationsTable() {
                   <Button variant="ghost" size="sm" aria-label="Dettagli" onClick={() => toggleExpand(r.id)}>
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" aria-label="Modifica" onClick={() => toast({ title: "Modifica", description: "WIP" })}>
+                  <Button variant="ghost" size="sm" aria-label="Modifica" onClick={() => setEditId(r.id)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="sm" aria-label="Elimina" onClick={() => handleDelete(r.id)}>
@@ -201,6 +203,17 @@ export function RateationsTable() {
           )}
         </TableBody>
       </Table>
+      <EditRateationModal
+        open={!!editId}
+        rateationId={editId}
+        onOpenChange={(v) => {
+          if (!v) setEditId(null)
+        }}
+        onSaved={() => {
+          setEditId(null)
+          loadData()
+        }}
+      />
     </div>
   );
 }
