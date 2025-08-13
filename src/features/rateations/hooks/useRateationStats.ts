@@ -19,10 +19,15 @@ export function useRateationStats() {
     paid_count: 0,
     total_count: 0
   });
+  const [previousStats, setPreviousStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    // Keep previous stats visible during reload for short caching
+    if (stats.total_due > 0) {
+      setPreviousStats(stats);
+    }
     setLoading(true); 
     setError(null);
     
@@ -51,7 +56,9 @@ export function useRateationStats() {
           .select("amount, is_paid, due_date")
           .in("rateation_id", rateationIds);
 
-        const today = new Date().toISOString().slice(0, 10);
+        // Use normalized Date objects for timezone-safe comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of day
         
         for (const inst of (installments ?? [])) {
           const amount = Number(inst.amount || 0);
@@ -62,8 +69,12 @@ export function useRateationStats() {
             paidCount++;
           }
           
-          if (!inst.is_paid && inst.due_date && String(inst.due_date) < today) {
-            late += amount;
+          if (!inst.is_paid && inst.due_date) {
+            const dueDate = new Date(inst.due_date);
+            dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
+            if (dueDate < today) {
+              late += amount;
+            }
           }
         }
       }
@@ -79,7 +90,7 @@ export function useRateationStats() {
         total_count: totalCount
       });
     } catch (e: any) {
-      console.error("[useRateationStats] error:", e);
+      console.error("[KPI]", e);
       setError(e.message || "Errore nel caricamento statistiche");
       setStats({ 
         total_due: 0, 
@@ -91,8 +102,9 @@ export function useRateationStats() {
       });
     } finally {
       setLoading(false);
+      setPreviousStats(null); // Clear previous stats after loading
     }
-  }, []);
+  }, [stats]);
 
   useEffect(() => { 
     load(); 

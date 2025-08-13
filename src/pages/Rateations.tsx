@@ -103,12 +103,13 @@ export default function Rateations() {
                 loading={loading}
                 error={error}
                 online={online}
-                onDelete={handleDelete}
+                onDelete={(id) => handleDelete(id, reloadStats)}
                 onRefresh={() => {
                   loadData();
                   reloadStats();
                   setRefreshKey(prev => prev + 1);
                 }}
+                onDataChanged={reloadStats}
               />
             </TabsContent>
           </Tabs>

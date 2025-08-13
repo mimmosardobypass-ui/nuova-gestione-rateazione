@@ -1,14 +1,12 @@
 import React from "react";
-
-const euro = (n: number) =>
-  n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+import { formatEuro } from "@/lib/formatters";
 
 function Kpi({ label, value, loading }: { label: string; value: number; loading: boolean }) {
   return (
     <div className="rounded-lg border p-4">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-2 text-xl font-semibold">
-        {loading ? "—" : euro(value)}
+        {loading ? "—" : formatEuro(value)}
       </div>
     </div>
   );

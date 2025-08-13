@@ -26,13 +26,18 @@ export const useRateations = () => {
 
       const processed = rateations.map(r => {
         const rateForThisRateation = installments.filter(i => i.rateation_id === r.id);
-        const today = new Date().toISOString().slice(0, 10);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         const rateTotali = rateForThisRateation.length;
         const ratePagate = rateForThisRateation.filter(i => i.is_paid).length;
         const rateNonPagate = rateTotali - ratePagate;
         const rateInRitardo = rateForThisRateation.filter(
-          i => !i.is_paid && i.due_date < today
+          i => !i.is_paid && i.due_date && (() => {
+            const dueDate = new Date(i.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate < today;
+          })()
         ).length;
 
         const importoPagato = rateForThisRateation
@@ -40,7 +45,11 @@ export const useRateations = () => {
           .reduce((sum, i) => sum + (i.amount || 0), 0);
 
         const importoRitardo = rateForThisRateation
-          .filter(i => !i.is_paid && i.due_date < today)
+          .filter(i => !i.is_paid && i.due_date && (() => {
+            const dueDate = new Date(i.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate < today;
+          })())
           .reduce((sum, i) => sum + (i.amount || 0), 0);
 
         const importoTotale = r.total_amount || 0;
@@ -77,7 +86,7 @@ export const useRateations = () => {
     }
   }, [online]);
 
-  const handleDelete = useCallback(async (id: string) => {
+  const handleDelete = useCallback(async (id: string, onStatsReload?: () => void) => {
     if (!online) {
       toast({
         title: "Offline",
@@ -98,6 +107,7 @@ export const useRateations = () => {
         description: "Rateazione eliminata con successo",
       });
       await loadData(); // Reload data
+      onStatsReload?.(); // Reload stats
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nell'eliminazione";
       toast({

@@ -5,6 +5,7 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import { RateationRowDetails } from "./RateationRowDetails";
 import { EditRateationModal } from "./EditRateationModal";
 import type { RateationRow } from "../types";
+import { formatEuro } from "@/lib/formatters";
 
 interface RateationsTableProps {
   rows: RateationRow[];
@@ -13,9 +14,10 @@ interface RateationsTableProps {
   online: boolean;
   onDelete: (id: string) => void;
   onRefresh: () => void;
+  onDataChanged?: () => void;
 }
 
-export function RateationsTable({ rows, loading, error, online, onDelete, onRefresh }: RateationsTableProps) {
+export function RateationsTable({ rows, loading, error, online, onDelete, onRefresh, onDataChanged }: RateationsTableProps) {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [editId, setEditId] = React.useState<string | null>(null);
 
@@ -23,7 +25,7 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const euro = (amount: number) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(amount);
+  
 
   if (loading) {
     return <div className="text-center py-8">Caricamento rateazioni...</div>;
@@ -66,12 +68,12 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
                 <TableCell>{row.numero}</TableCell>
                 <TableCell>{row.tipo}</TableCell>
                 <TableCell>{row.contribuente || "N/A"}</TableCell>
-                <TableCell>{euro(row.importoTotale)}</TableCell>
-                <TableCell>{euro(row.importoPagato)}</TableCell>
+                <TableCell>{formatEuro(row.importoTotale)}</TableCell>
+                <TableCell>{formatEuro(row.importoPagato)}</TableCell>
                 <TableCell className={row.importoRitardo > 0 ? "text-red-600 font-medium" : ""}>
-                  {euro(row.importoRitardo)}
+                  {formatEuro(row.importoRitardo)}
                 </TableCell>
-                <TableCell>{euro(row.residuo)}</TableCell>
+                <TableCell>{formatEuro(row.residuo)}</TableCell>
                 <TableCell>
                   {row.rateTotali}/{row.ratePagate}/{row.rateNonPagate}/
                   <span className={row.rateInRitardo > 0 ? "text-red-600 font-medium" : ""}>
@@ -112,7 +114,7 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
               {expandedId === row.id && (
                 <TableRow>
                   <TableCell colSpan={9} className="p-0">
-                    <RateationRowDetails row={row} />
+                    <RateationRowDetails row={row} onDataChanged={onDataChanged} />
                   </TableCell>
                 </TableRow>
               )}
@@ -125,7 +127,10 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
         open={editId !== null}
         rateationId={editId}
         onOpenChange={(open) => !open && setEditId(null)}
-        onSaved={onRefresh}
+        onSaved={() => { 
+          onRefresh(); 
+          onDataChanged?.(); 
+        }}
       />
     </>
   );

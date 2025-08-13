@@ -7,8 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import { RateationRow, InstallmentUI } from "../types";
 import { AttachmentsPanel } from "./AttachmentsPanel";
 import { markInstallmentPaid, postponeInstallment, fetchInstallments } from "../api/installments";
+import { formatEuro } from "@/lib/formatters";
 
-export function RateationRowDetails({ row }: { row: RateationRow }) {
+export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow; onDataChanged?: () => void }) {
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,18 +34,25 @@ export function RateationRowDetails({ row }: { row: RateationRow }) {
     loadInstallments();
   }, [row.id]);
 
-  const todayISO = new Date().toISOString().slice(0, 10);
-  const euro = (amount: number) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(amount);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const withStatus = useMemo(() => {
     return items.map((it) => {
-      const late = !it.is_paid && it.due_date !== null && it.due_date < todayISO;
+      const late = !it.is_paid && it.due_date !== null && (() => {
+        const dueDate = new Date(it.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
+      })();
       return {
         ...it,
         status: it.is_paid ? "Pagata" : late ? "In ritardo" : "Da pagare",
       };
     });
-  }, [items, todayISO]);
+  }, [items, today]);
 
   const markPaid = async (seq: number) => {
     if (!online) {
@@ -56,6 +64,7 @@ export function RateationRowDetails({ row }: { row: RateationRow }) {
       await markInstallmentPaid(row.id, seq, true, new Date().toISOString().slice(0, 10));
       toast({ title: "Pagamento registrato", description: "Rata marcata come pagata" });
       await loadInstallments();
+      onDataChanged?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nel marcare come pagata";
       toast({ title: "Errore", description: message, variant: "destructive" });
@@ -75,6 +84,7 @@ export function RateationRowDetails({ row }: { row: RateationRow }) {
       await postponeInstallment(row.id, seq, newDue);
       toast({ title: "Rata posticipata", description: `Nuova scadenza: ${newDue}` });
       await loadInstallments();
+      onDataChanged?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nel posticipare";
       toast({ title: "Errore", description: message, variant: "destructive" });
@@ -97,7 +107,7 @@ export function RateationRowDetails({ row }: { row: RateationRow }) {
                 <Badge variant="secondary"># {it.seq}</Badge>
                 <div>
                   <div className="font-medium">Scadenza: {it.due_date ?? "-"}</div>
-                  <div className="text-sm text-muted-foreground">Importo: {euro(it.amount)}</div>
+                  <div className="text-sm text-muted-foreground">Importo: {formatEuro(it.amount)}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
