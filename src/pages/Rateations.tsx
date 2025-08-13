@@ -5,6 +5,7 @@ import { setSEO } from "@/lib/seo";
 import { useLocation } from "react-router-dom";
 import { useRateations } from "@/features/rateations/hooks/useRateations";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
+import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { RateationsTable } from "@/features/rateations/components/RateationsTable";
 import { NewRateationDialog } from "@/features/rateations/components/NewRateationDialog";
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
@@ -17,6 +18,11 @@ export default function Rateations() {
   const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online, loadData, handleDelete } = useRateations();
   const { stats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
+  
+  const { debouncedReload, debouncedReloadStats } = useDebouncedReload({
+    loadData,
+    reloadStats
+  });
   
   // Key per far re-render la tabella dopo creazione
   const [refreshKey, setRefreshKey] = React.useState(0);
@@ -66,8 +72,7 @@ export default function Rateations() {
             initialOpen={openOnMount} 
             onCreated={() => {
               window.location.replace("/rateazioni");
-              loadData();
-              reloadStats();
+              debouncedReload();
               setRefreshKey(prev => prev + 1);
             }}
           />
@@ -103,13 +108,12 @@ export default function Rateations() {
                 loading={loading}
                 error={error}
                 online={online}
-                onDelete={(id) => handleDelete(id, reloadStats)}
+                onDelete={(id) => handleDelete(id, debouncedReloadStats)}
                 onRefresh={() => {
-                  loadData();
-                  reloadStats();
+                  debouncedReload();
                   setRefreshKey(prev => prev + 1);
                 }}
-                onDataChanged={reloadStats}
+                onDataChanged={debouncedReloadStats}
               />
             </TabsContent>
           </Tabs>

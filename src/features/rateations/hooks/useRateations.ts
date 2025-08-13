@@ -86,7 +86,7 @@ export const useRateations = () => {
     }
   }, [online]);
 
-  const handleDelete = useCallback(async (id: string, onStatsReload?: () => void) => {
+  const handleDelete = useCallback(async (id: string, debouncedReloadStats?: () => void) => {
     if (!online) {
       toast({
         title: "Offline",
@@ -107,7 +107,7 @@ export const useRateations = () => {
         description: "Rateazione eliminata con successo",
       });
       await loadData(); // Reload data
-      onStatsReload?.(); // Reload stats
+      debouncedReloadStats?.(); // Reload stats
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nell'eliminazione";
       toast({
