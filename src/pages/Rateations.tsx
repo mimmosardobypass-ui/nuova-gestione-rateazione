@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { RateationsTable } from "@/components/rateations/RateationsTable";
@@ -11,6 +12,26 @@ import { NewRateationDialog } from "@/components/rateations/NewRateationDialog";
 
 export default function Rateations() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [tipo, setTipo] = useState("");
+  const [stato, setStato] = useState("");
+  const [mese, setMese] = useState("");
+  const [anno, setAnno] = useState("");
+
+  const handleMeseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMese(e.target.value);
+  };
+
+  const handleAnnoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAnno(e.target.value);
+  };
+
+  const openComparazione = () => {
+    // TODO: Implement comparazione annuale
+  };
+
+  const openStats = () => {
+    // TODO: Implement statistiche avanzate
+  };
 
   useEffect(() => {
     setSEO(
@@ -35,28 +56,72 @@ export default function Rateations() {
               <TabsTrigger value="completate">Completate</TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-4">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <Select>
-                  <SelectTrigger aria-label="Filtro tipo"><SelectValue placeholder="Tipo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="f24">F24</SelectItem>
-                    <SelectItem value="pagopa">PagoPA</SelectItem>
-                    <SelectItem value="quater">Quater</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select>
-                  <SelectTrigger aria-label="Filtro stato"><SelectValue placeholder="Stato" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="attiva">Attiva</SelectItem>
-                    <SelectItem value="completata">Completata</SelectItem>
-                    <SelectItem value="ritardo">In ritardo</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input placeholder="Mese (MM)" aria-label="Filtro mese" />
-                <Input placeholder="Anno (YYYY)" aria-label="Filtro anno" />
-                <div className="ml-auto flex flex-wrap items-center gap-2">
-                  <Button variant="outline">Comparazione annuale</Button>
-                  <Button variant="outline">Statistiche avanzate</Button>
+              <div className="flex flex-wrap items-end gap-3 mb-4">
+                {/* Griglia filtri */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 flex-1 min-w-[280px]">
+                  {/* Tipo */}
+                  <div className="min-w-[200px]">
+                    <Label className="text-xs">Tipo</Label>
+                    <Select value={tipo} onValueChange={setTipo}>
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Seleziona tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="f24">F24</SelectItem>
+                        <SelectItem value="pagopa">PagoPA</SelectItem>
+                        <SelectItem value="quater">Quater</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Stato */}
+                  <div className="min-w-[200px]">
+                    <Label className="text-xs">Stato</Label>
+                    <Select value={stato} onValueChange={setStato}>
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Seleziona stato" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tutte">Tutte</SelectItem>
+                        <SelectItem value="attive">Attive</SelectItem>
+                        <SelectItem value="complete">Complete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Mese */}
+                  <div className="min-w-[160px]">
+                    <Label className="text-xs">Mese (MM)</Label>
+                    <Input 
+                      className="h-9" 
+                      inputMode="numeric" 
+                      placeholder="MM" 
+                      value={mese} 
+                      onChange={handleMeseChange} 
+                    />
+                  </div>
+
+                  {/* Anno */}
+                  <div className="min-w-[160px]">
+                    <Label className="text-xs">Anno (YYYY)</Label>
+                    <Input 
+                      className="h-9" 
+                      inputMode="numeric" 
+                      placeholder="YYYY" 
+                      value={anno} 
+                      onChange={handleAnnoChange} 
+                    />
+                  </div>
+                </div>
+
+                {/* Azioni a destra */}
+                <div className="ml-auto flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={openComparazione}>
+                    Comparazione annuale
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={openStats}>
+                    Statistiche avanzate
+                  </Button>
                 </div>
               </div>
               <RateationsTable key={refreshKey} />
