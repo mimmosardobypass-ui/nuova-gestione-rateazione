@@ -159,6 +159,33 @@ export type Database = {
         }
         Relationships: []
       }
+      v_rateations: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: number | null
+          number: number | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          description?: never
+          due_date?: string | null
+          id?: number | null
+          number?: number | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          description?: never
+          due_date?: string | null
+          id?: number | null
+          number?: number | null
+        }
+        Relationships: []
+      }
       v_rateations_summary: {
         Row: {
           amount_late: number | null

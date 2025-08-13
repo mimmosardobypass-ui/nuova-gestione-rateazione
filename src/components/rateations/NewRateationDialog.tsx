@@ -10,6 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useOnline } from "@/hooks/use-online";
 
 export function NewRateationDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; onCreated?: () => void }) {
   const [tab, setTab] = React.useState("auto");
@@ -24,10 +26,83 @@ export function NewRateationDialog({ open, onOpenChange, onCreated }: { open: bo
   const [tipo, setTipo] = React.useState<string | undefined>(undefined);
   const [contribuente, setContribuente] = React.useState("");
 
+  const [types, setTypes] = React.useState<{ id: number; name: string }[]>([]);
+  const online = useOnline();
+
   const total = numRate * amountPerRate;
 
-  const saveAuto = () => {
-    toast({ title: "Rateazione creata (mock)", description: `Totale € ${total.toLocaleString()}` });
+  const loadTypes = async () => {
+    console.log("[NewRateationDialog] Loading rateation types...");
+    const { data, error } = await supabase.from("rateation_types").select("id, name").order("name", { ascending: true });
+    if (error) {
+      console.error(error);
+      toast({ title: "Errore", description: "Impossibile caricare i tipi.", variant: "destructive" });
+      return;
+    }
+    setTypes((data || []).map(d => ({ id: Number(d.id), name: String(d.name) })));
+  };
+
+  React.useEffect(() => {
+    if (open) loadTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const addNewType = async () => {
+    if (!online) {
+      toast({ title: "Offline", description: "Sei offline: impossibile creare un nuovo tipo.", variant: "destructive" });
+      return;
+    }
+    const name = window.prompt("Nome nuovo tipo:");
+    if (!name) return;
+    const { data, error } = await supabase.from("rateation_types").insert({ name }).select("id").single();
+    if (error) {
+      console.error(error);
+      toast({ title: "Errore", description: "Impossibile creare il tipo.", variant: "destructive" });
+      return;
+    }
+    await loadTypes();
+    setTipo(String(data?.id));
+    toast({ title: "Tipo creato" });
+  };
+
+  const saveAuto = async () => {
+    if (!online) {
+      toast({ title: "Offline", description: "Sei offline: impossibile salvare.", variant: "destructive" });
+      return;
+    }
+    if (!tipo) {
+      toast({ title: "Seleziona un tipo", description: "È necessario selezionare un tipo prima di salvare.", variant: "destructive" });
+      return;
+    }
+    const p_type_id = Number(tipo);
+    const p_number = numero && numero.trim().length > 0 ? numero.trim() : `R-${new Date().toISOString().slice(0,10)}-${Math.floor(Math.random()*1000)}`;
+    const p_taxpayer_name = contribuente || null;
+    const p_start_due_date = (firstDue ?? new Date()).toISOString().slice(0, 10);
+    const p_frequency = "monthly";
+    const p_num_installments = Number(numRate);
+    const p_amount_per_installment = Number(amountPerRate);
+
+    console.log("[NewRateationDialog] Creating rateation via RPC fn_create_rateation_auto", {
+      p_number, p_type_id, p_taxpayer_name, p_start_due_date, p_frequency, p_num_installments, p_amount_per_installment
+    });
+
+    const { data, error } = await supabase.rpc("fn_create_rateation_auto", {
+      p_number,
+      p_type_id,
+      p_taxpayer_name,
+      p_start_due_date,
+      p_frequency,
+      p_num_installments,
+      p_amount_per_installment,
+    });
+
+    if (error) {
+      console.error(error);
+      toast({ title: "Errore", description: "Impossibile creare la rateazione.", variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Rateazione creata", description: `ID ${data}` });
     onOpenChange(false);
     onCreated?.();
   };
@@ -55,12 +130,12 @@ export function NewRateationDialog({ open, onOpenChange, onCreated }: { open: bo
                     <SelectValue placeholder="Seleziona tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="f24">F24</SelectItem>
-                    <SelectItem value="pagopa">PagoPA</SelectItem>
-                    <SelectItem value="quater">Quater</SelectItem>
+                    {types.map(t => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" aria-label="Nuovo tipo">
+                <Button variant="outline" aria-label="Nuovo tipo" onClick={addNewType} disabled={!online}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -111,9 +186,9 @@ export function NewRateationDialog({ open, onOpenChange, onCreated }: { open: bo
         </div>
         <DialogFooter>
           {tab === "auto" ? (
-            <Button onClick={saveAuto}>Salva (Automatico)</Button>
+            <Button onClick={saveAuto} disabled={!online}>Salva (Automatico)</Button>
           ) : (
-            <Button onClick={() => { toast({ title: "Creato (mock)", description: "Manuale" }); onOpenChange(false); onCreated?.(); }}>Salva (Manuale)</Button>
+            <Button onClick={() => { toast({ title: "Creato (mock)", description: "Manuale" }); onOpenChange(false); onCreated?.(); }} disabled={!online}>Salva (Manuale)</Button>
           )}
         </DialogFooter>
       </DialogContent>

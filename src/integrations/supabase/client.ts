@@ -1,3 +1,4 @@
+
 // src/integrations/supabase/client.ts
 import { createClient } from "@supabase/supabase-js";
 
@@ -12,7 +13,7 @@ export const SUPABASE_URL = "https://ebcjwtjebzvabedboybv.supabase.co";
  * (dalla UI: Project Settings → API → Project API keys → anon public → Copy)
  */
 export const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViY2p3dGplYnp2YWJlZGJveWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2OTUyMTMsImV4cCI6MjA3MDI3MTIxM30.46bn0XIN8CwMPkVwj0vBxmGoCPQF3fVby8NSj92Rl4Y ";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViY2p3dGplYnp2YWJlZGJveWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2OTUyMTMsImV4cCI6MjA3MDI3MTIxM30.46bn0XIN8CwMPkVwj0vBxmGoCPQF3fVby8NSj92Rl4Y";
 
 /**
  * Client Supabase
