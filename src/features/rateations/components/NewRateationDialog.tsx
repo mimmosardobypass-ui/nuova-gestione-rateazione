@@ -214,7 +214,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
                         )}
                       </SelectContent>
                     </Select>
-                    <Button className="h-9" variant="outline" onClick={addNewType}>+</Button>
+                     <Button className="h-9" variant="outline" onClick={() => addNewType(setTipo)}>+</Button>
                   </div>
                 </div>
                 <div className="md:col-span-2">
@@ -300,7 +300,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
                         )}
                       </SelectContent>
                     </Select>
-                    <Button className="h-9" variant="outline" onClick={addNewType}>+</Button>
+                    <Button className="h-9" variant="outline" onClick={() => addNewType(setTipo)}>+</Button>
                   </div>
                 </div>
                 <div className="md:col-span-2">

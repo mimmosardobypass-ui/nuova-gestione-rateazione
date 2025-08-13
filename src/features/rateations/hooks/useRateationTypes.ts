@@ -27,11 +27,12 @@ export const useRateationTypes = () => {
     }
   }, []);
 
-  const addNewType = useCallback(async () => {
+  const addNewType = useCallback(async (onTypeCreated?: (typeId: string) => void) => {
     const name = window.prompt("Nome nuovo tipo:");
     if (!name?.trim()) return;
     
     try {
+      console.log("Creating new rateation type:", name.trim());
       const { data, error } = await supabase
         .from("rateation_types")
         .insert({ name: name.trim() })
@@ -48,16 +49,24 @@ export const useRateationTypes = () => {
         return;
       }
       
+      console.log("Created rateation type:", data);
       const newType = { id: Number(data.id), name: String(data.name) };
       setTypes(prev => [...prev, newType]);
+      
       toast({
         title: "Tipo creato",
         description: `Tipo "${name}" creato con successo`,
       });
+      
+      // Auto-select the newly created type
+      if (onTypeCreated) {
+        onTypeCreated(String(data.id));
+      }
+      
       return newType;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nell'aggiunta del tipo";
-      console.error("Unexpected error:", err);
+      console.error("Unexpected error creating rateation type:", err);
       toast({
         title: "Errore",
         description: message,

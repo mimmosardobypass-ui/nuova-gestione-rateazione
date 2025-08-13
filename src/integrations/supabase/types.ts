@@ -76,7 +76,7 @@ export type Database = {
           id: number
           is_active: boolean | null
           name: string
-          owner_uid: string
+          owner_uid: string | null
         }
         Insert: {
           color?: string | null
@@ -85,7 +85,7 @@ export type Database = {
           id?: number
           is_active?: boolean | null
           name: string
-          owner_uid: string
+          owner_uid?: string | null
         }
         Update: {
           color?: string | null
@@ -94,7 +94,7 @@ export type Database = {
           id?: number
           is_active?: boolean | null
           name?: string
-          owner_uid?: string
+          owner_uid?: string | null
         }
         Relationships: []
       }
