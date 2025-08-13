@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { setSEO } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,10 @@ import { RateationsTable } from "@/components/rateations/RateationsTable";
 import { NewRateationDialog } from "@/components/rateations/NewRateationDialog";
 
 export default function Rateations() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const openOnMount = params.get("new") === "1";
+  
   const [refreshKey, setRefreshKey] = useState(0);
   const [tipo, setTipo] = useState("");
   const [stato, setStato] = useState("");
@@ -44,7 +49,15 @@ export default function Rateations() {
     <main className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
-        <NewRateationDialog onCreated={() => setRefreshKey(prev => prev + 1)} />
+        <NewRateationDialog 
+          initialOpen={openOnMount} 
+          onCreated={() => {
+            setRefreshKey(prev => prev + 1);
+            if (openOnMount) {
+              window.history.replaceState({}, '', '/rateazioni');
+            }
+          }} 
+        />
       </div>
 
       <Card className="card-elevated mt-6">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { setSEO } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,8 @@ const Stat = ({ label, value, hint }: { label: string; value: string; hint?: str
 );
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  
   // SEO
   useEffect(() => {
     setSEO(
@@ -149,11 +152,13 @@ export default function Dashboard() {
               <Button variant="outline" className="btn-cta" aria-label="Esporta">
                 <Download className="mr-2 h-4 w-4" /> Esporta
               </Button>
-              <a href="/rateazioni" aria-label="Nuova rateazione">
-                <Button className="btn-cta">
-                  <Plus className="mr-2 h-4 w-4" /> Nuova rateazione
-                </Button>
-              </a>
+              <Button 
+                className="btn-cta" 
+                onClick={() => navigate("/rateazioni?new=1")}
+                aria-label="Nuova rateazione"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Nuova rateazione
+              </Button>
             </div>
           </div>
 
