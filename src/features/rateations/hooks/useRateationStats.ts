@@ -79,6 +79,7 @@ export function useRateationStats() {
         total_count: totalCount
       });
     } catch (e: any) {
+      console.error("[useRateationStats] error:", e);
       setError(e.message || "Errore nel caricamento statistiche");
       setStats({ 
         total_due: 0, 

@@ -10,27 +10,13 @@ import { NewRateationDialog } from "@/features/rateations/components/NewRateatio
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
 import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
-import { Skeleton } from "@/components/ui/skeleton";
+import { KpiCards } from "@/features/rateations/components/KpiCards";
 
-const StatCard = ({ label, value, loading }: { label: string; value: string; loading: boolean }) => (
-  <Card className="card-elevated">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {loading ? (
-        <Skeleton className="h-8 w-24" />
-      ) : (
-        <div className="text-2xl font-semibold tracking-tight">{value}</div>
-      )}
-    </CardContent>
-  </Card>
-);
 
 export default function Rateations() {
   const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online, loadData, handleDelete } = useRateations();
-  const { stats, loading: statsLoading, reload: reloadStats } = useRateationStats();
+  const { stats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   
   // Key per far re-render la tabella dopo creazione
   const [refreshKey, setRefreshKey] = React.useState(0);
@@ -61,9 +47,6 @@ export default function Rateations() {
     // TODO: Implement statistiche avanzate
   };
 
-  const euro = (n: number) =>
-    n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
-
   // Show loading screen while auth is initializing
   if (authLoading) {
     return (
@@ -92,28 +75,13 @@ export default function Rateations() {
       </div>
 
       {/* KPI Cards - Always visible */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard 
-          label="Totale dovuto" 
-          value={euro(stats.total_due)} 
-          loading={statsLoading} 
-        />
-        <StatCard 
-          label="Totale pagato" 
-          value={euro(stats.total_paid)} 
-          loading={statsLoading} 
-        />
-        <StatCard 
-          label="Totale residuo" 
-          value={euro(stats.total_residual)} 
-          loading={statsLoading} 
-        />
-        <StatCard 
-          label="In ritardo" 
-          value={euro(stats.total_late)} 
-          loading={statsLoading} 
-        />
-      </section>
+      <KpiCards loading={statsLoading} stats={stats} />
+
+      {statsError && (
+        <div className="mb-4 text-sm text-destructive">
+          Errore nel caricamento statistiche: {statsError}
+        </div>
+      )}
 
       <Card className="card-elevated">
         <CardContent className="pt-6">
