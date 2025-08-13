@@ -5,9 +5,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight, Eye, Pencil, Trash2 } from "lucide-react";
 import { EditRateationModal } from "./EditRateationModal";
 
@@ -102,6 +99,8 @@ export function RateationsTablePro({
                         variant="ghost"
                         onClick={() => toggle(r.id)}
                         className="p-1 h-6 w-6"
+                        aria-expanded={opened}
+                        aria-controls={`row-details-${r.id}`}
                       >
                         {opened ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </Button>
@@ -152,21 +151,24 @@ export function RateationsTablePro({
                     </TableCell>
                   </TableRow>
 
-                  {/* Riga espandibile */}
-                  <Collapsible open={opened}>
-                    <CollapsibleContent>
-                      {opened && (
-                        <TableRow>
-                          <TableCell colSpan={13} className="p-0 bg-muted/30">
-                            <RateationRowDetailsPro 
-                              rateationId={r.id} 
-                              onDataChanged={onDataChanged}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
+                  {/* Riga di dettaglio espandibile */}
+                  {opened && (
+                    <TableRow>
+                      <TableCell colSpan={13} className="p-0">
+                        <div 
+                          id={`row-details-${r.id}`}
+                          role="region"
+                          aria-label="Dettaglio rateazione"
+                          className="mx-2 my-2 rounded-lg border bg-muted/20 overflow-hidden"
+                        >
+                          <RateationRowDetailsPro 
+                            rateationId={r.id} 
+                            onDataChanged={onDataChanged}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </React.Fragment>
               );
             })}
