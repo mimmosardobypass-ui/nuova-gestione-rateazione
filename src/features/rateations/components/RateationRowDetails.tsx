@@ -131,7 +131,7 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
                   installment={it}
                   onReload={loadInstallments}
                   onStatsReload={onDataChanged}
-                  allowUnpay={true}
+                  disabled={!online}
                 />
                 <div className="flex gap-2">
                   <Button 

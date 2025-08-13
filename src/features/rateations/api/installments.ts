@@ -18,7 +18,7 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
 // LOVABLE:END fetchInstallments
 
 // LOVABLE:START markInstallmentPaid
-export const markInstallmentPaid = async (
+export const markInstallmentPaidWithDate = async (
   rateationId: string, 
   seq: number, 
   paidAtDate: string // Required date in YYYY-MM-DD format
@@ -31,6 +31,23 @@ export const markInstallmentPaid = async (
     p_rateation_id: parseInt(rateationId),
     p_seq: seq,
     p_paid_at: paidAtDate,
+  });
+
+  if (error) throw error;
+};
+
+// Keep legacy function for backward compatibility
+export const markInstallmentPaid = async (
+  rateationId: string, 
+  seq: number, 
+  paid: boolean, 
+  paidAt?: string
+): Promise<void> => {
+  const { error } = await supabase.rpc("fn_set_installment_paid", {
+    p_rateation_id: parseInt(rateationId),
+    p_seq: seq,
+    p_paid: paid,
+    p_paid_at: paidAt || null,
   });
 
   if (error) throw error;

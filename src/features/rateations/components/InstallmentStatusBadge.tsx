@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -11,48 +10,46 @@ interface InstallmentStatusBadgeProps {
 export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgeProps) {
   const getStatusInfo = () => {
     if (installment.is_paid) {
+      const paidDate = installment.paid_at ? format(new Date(installment.paid_at), "dd/MM/yyyy", { locale: it }) : "N/A";
       return {
         variant: "secondary" as const,
         text: "Pagata",
-        subtitle: installment.paid_at ? 
-          `Pagata il ${format(new Date(installment.paid_at), "dd/MM/yyyy", { locale: it })}` : 
-          "Pagata"
+        subtitle: `Pagata il ${paidDate}`
       };
     }
 
-    if (installment.status === "late") {
-      const lateDays = installment.late_days || 0;
-      return {
-        variant: "destructive" as const,
-        text: "In ritardo",
-        subtitle: lateDays > 0 ? `${lateDays} giorni di ritardo` : "In ritardo"
-      };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (installment.due_date) {
+      const dueDate = new Date(installment.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      if (dueDate < today) {
+        const daysDiff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          variant: "destructive" as const,
+          text: "In ritardo",
+          subtitle: `${daysDiff} giorni di ritardo`
+        };
+      }
     }
 
+    const dueText = installment.due_date ? format(new Date(installment.due_date), "dd/MM/yyyy", { locale: it }) : "N/A";
     return {
       variant: "outline" as const,
       text: "Da pagare",
-      subtitle: installment.due_date ? 
-        `Scade il ${format(new Date(installment.due_date), "dd/MM/yyyy", { locale: it })}` : 
-        "Da pagare"
+      subtitle: `Scade il ${dueText}`
     };
   };
 
-  const statusInfo = getStatusInfo();
+  const { variant, text, subtitle } = getStatusInfo();
 
   return (
-    <div className="flex flex-col items-start gap-1">
-      <Badge variant={statusInfo.variant}>
-        {statusInfo.text}
-      </Badge>
-      {installment.postponed && (
-        <Badge variant="outline" className="text-xs">
-          Rimandata
-        </Badge>
-      )}
-      <div className="text-xs text-muted-foreground">
-        {statusInfo.subtitle}
-      </div>
+    <div className="flex flex-col items-end gap-1">
+      <Badge variant={variant}>{text}</Badge>
+      {installment.postponed && <Badge variant="outline" className="text-xs">Rimandata</Badge>}
+      <div className="text-xs text-muted-foreground text-right">{subtitle}</div>
     </div>
   );
 }

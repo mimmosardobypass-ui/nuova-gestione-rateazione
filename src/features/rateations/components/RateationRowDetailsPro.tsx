@@ -1,6 +1,6 @@
 import * as React from "react";
 import { formatEuro } from "@/lib/formatters";
-import { fetchInstallments, markInstallmentPaid, postponeInstallment, deleteInstallment } from "../api/installments";
+import { fetchInstallments, markInstallmentPaidWithDate, postponeInstallment, deleteInstallment } from "../api/installments";
 import { StatusBadge, getInstallmentStatus, Installment } from "./Status";
 import { AttachmentsPanel } from "./AttachmentsPanel";
 import {
@@ -64,7 +64,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     
     try {
       const todayISO = new Date().toISOString().slice(0, 10);
-      await markInstallmentPaid(rateationId, seq, todayISO);
+      await markInstallmentPaidWithDate(rateationId, seq, todayISO);
       await load();
       onDataChanged?.();
       toast({

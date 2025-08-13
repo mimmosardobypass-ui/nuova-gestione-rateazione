@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from "react";
-import { Calendar, CalendarIcon } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { markInstallmentPaid, unmarkInstallmentPaid } from "../api/installments";
+import { toast } from "@/hooks/use-toast";
+import { markInstallmentPaidWithDate, unmarkInstallmentPaid } from "../api/installments";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentPaymentActionsProps {
@@ -15,7 +15,7 @@ interface InstallmentPaymentActionsProps {
   installment: InstallmentUI;
   onReload: () => void;
   onStatsReload?: () => void;
-  allowUnpay?: boolean;
+  disabled?: boolean;
 }
 
 export function InstallmentPaymentActions({
@@ -23,39 +23,39 @@ export function InstallmentPaymentActions({
   installment,
   onReload,
   onStatsReload,
-  allowUnpay = true,
+  disabled = false,
 }: InstallmentPaymentActionsProps) {
-  const todayISO = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
-  }, []);
-
-  const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    if (installment.paid_at) {
-      return new Date(installment.paid_at);
-    }
-    return new Date();
-  });
-  
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unpaying, setUnpaying] = useState(false);
 
+  // Default date: if already paid use paid_at, otherwise today
+  const todayDate = useMemo(() => new Date(), []);
+  const currentPaymentDate = useMemo(() => {
+    if (installment.paid_at) {
+      return new Date(installment.paid_at);
+    }
+    return todayDate;
+  }, [installment.paid_at, todayDate]);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(currentPaymentDate);
+
   const handleMarkPaid = async () => {
+    if (!selectedDate) return;
+
     try {
       setSaving(true);
-      const paidAtISO = selectedDate.toISOString().slice(0, 10);
-      await markInstallmentPaid(rateationId, installment.seq, paidAtISO);
+      const dateStr = selectedDate.toISOString().slice(0, 10);
+      await markInstallmentPaidWithDate(rateationId, installment.seq, dateStr);
       
       toast({
         title: installment.is_paid ? "Pagamento aggiornato" : "Pagamento registrato",
-        description: `Rata #${installment.seq} ${installment.is_paid ? "aggiornata" : "pagata"} in data ${format(selectedDate, "dd/MM/yyyy", { locale: it })}.`,
+        description: `Rata #${installment.seq} ${installment.is_paid ? "aggiornata" : "pagata"} in data ${format(selectedDate, "dd/MM/yyyy")}.`,
       });
       
+      setIsOpen(false);
       onReload();
       onStatsReload?.();
-      setOpen(false);
     } catch (error: any) {
       toast({
         title: "Errore",
@@ -68,8 +68,6 @@ export function InstallmentPaymentActions({
   };
 
   const handleUnmarkPaid = async () => {
-    if (!allowUnpay || !installment.is_paid) return;
-    
     if (!confirm("Confermi di voler annullare il pagamento di questa rata?")) return;
 
     try {
@@ -82,7 +80,7 @@ export function InstallmentPaymentActions({
       });
       
       // Reset date to today for next payment
-      setSelectedDate(new Date());
+      setSelectedDate(todayDate);
       onReload();
       onStatsReload?.();
     } catch (error: any) {
@@ -98,76 +96,52 @@ export function InstallmentPaymentActions({
 
   return (
     <div className="flex items-center gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant={installment.is_paid ? "secondary" : "default"}
+            variant="outline"
             size="sm"
+            disabled={disabled || saving || unpaying}
             className={cn(
-              "justify-start text-left font-normal",
+              "justify-start text-left font-normal min-w-[120px]",
               !selectedDate && "text-muted-foreground"
             )}
-            title={installment.is_paid ? 
-              "Modifica data di pagamento (puoi anche retrodatare)" : 
-              "Seleziona data di pagamento (puoi anche retrodatare)"
-            }
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {installment.is_paid ? 
-              `Aggiorna (${format(selectedDate, "dd/MM/yyyy", { locale: it })})` :
-              `Paga (${format(selectedDate, "dd/MM/yyyy", { locale: it })})`
-            }
+            {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Seleziona data"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <div className="p-3">
-            <div className="mb-3">
-              <p className="text-sm font-medium">
-                {installment.is_paid ? "Modifica data pagamento" : "Seleziona data pagamento"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Puoi inserire una data passata per registrare il pagamento con retrodatazione
-              </p>
-            </div>
-            <CalendarComponent
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-              locale={it}
-            />
-            <div className="flex gap-2 mt-3">
-              <Button
-                onClick={handleMarkPaid}
-                disabled={saving}
-                size="sm"
-                className="flex-1"
-              >
-                {saving ? "Salvataggio..." : installment.is_paid ? "Aggiorna" : "Conferma pagamento"}
-              </Button>
-              <Button
-                onClick={() => setOpen(false)}
-                variant="outline"
-                size="sm"
-              >
-                Annulla
-              </Button>
-            </div>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => date && setSelectedDate(date)}
+            initialFocus
+            locale={it}
+            className={cn("p-3 pointer-events-auto")}
+          />
+          <div className="p-3 pt-0 border-t">
+            <Button 
+              onClick={handleMarkPaid} 
+              disabled={saving || !selectedDate}
+              className="w-full"
+              size="sm"
+            >
+              {saving ? "Salvataggio..." : installment.is_paid ? "Aggiorna data" : "Segna pagata"}
+            </Button>
           </div>
         </PopoverContent>
       </Popover>
 
-      {allowUnpay && installment.is_paid && (
+      {installment.is_paid && (
         <Button
-          onClick={handleUnmarkPaid}
-          disabled={unpaying}
           variant="outline"
           size="sm"
+          onClick={handleUnmarkPaid}
+          disabled={disabled || saving || unpaying}
           className="text-destructive hover:text-destructive"
-          title="Annulla pagamento"
         >
-          {unpaying ? "Annullamento..." : "Annulla pagamento"}
+          {unpaying ? "Annullando..." : "Annulla"}
         </Button>
       )}
     </div>
