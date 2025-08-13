@@ -185,6 +185,7 @@ export function NewRateationDialog({ open, onOpenChange, onCreated }: { open: bo
           </Tabs>
         </div>
         <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Annulla</Button>
           {tab === "auto" ? (
             <Button onClick={saveAuto} disabled={!online}>Salva (Automatico)</Button>
           ) : (
