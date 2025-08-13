@@ -7,6 +7,7 @@ import { useRateations } from "@/features/rateations/hooks/useRateations";
 import { RateationsTable } from "@/features/rateations/components/RateationsTable";
 import { NewRateationDialog } from "@/features/rateations/components/NewRateationDialog";
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
+import { UserMenu } from "@/components/UserMenu";
 
 export default function Rateations() {
   const { rows, loading, error, online, loadData, handleDelete } = useRateations();
@@ -37,16 +38,19 @@ export default function Rateations() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
-        <NewRateationDialog 
-          initialOpen={openOnMount} 
-          onCreated={() => {
-            window.location.replace("/rateazioni");
-            loadData();
-            setRefreshKey(prev => prev + 1);
-          }} 
-        />
+        <div className="flex items-center gap-2">
+          <UserMenu />
+          <NewRateationDialog 
+            initialOpen={openOnMount} 
+            onCreated={() => {
+              window.location.replace("/rateazioni");
+              loadData();
+              setRefreshKey(prev => prev + 1);
+            }} 
+          />
+        </div>
       </div>
 
       <Card className="card-elevated mt-6">
