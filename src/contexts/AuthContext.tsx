@@ -35,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let initialized = false;
 
     // Funzione per gestire il bootstrap della sessione
     const initializeAuth = async () => {
@@ -44,10 +45,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         setUser(session?.user ?? null);
+        initialized = true;
         setLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (!mounted) return;
+        initialized = true;
         setLoading(false);
       }
     };
@@ -58,7 +61,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        
+        // Only set loading to false if we've completed initialization
+        // This prevents premature false negatives during app startup
+        if (initialized) {
+          setLoading(false);
+        }
       }
     );
 
