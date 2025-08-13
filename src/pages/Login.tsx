@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { setSEO } from "@/lib/seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { user, signIn, signUp } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setSEO("Login – Gestione Rateazioni", "Accedi per gestire le rateazioni e gli allegati.");
@@ -62,11 +63,18 @@ export default function Login() {
             variant: "destructive",
           });
         }
-      } else if (isSignUp) {
-        toast({
-          title: "Registrazione completata",
-          description: "Controlla la tua email per confermare l'account.",
-        });
+      } else {
+        // Login/signup successful
+        if (isSignUp) {
+          toast({
+            title: "Registrazione completata",
+            description: "Controlla la tua email per confermare l'account.",
+          });
+        } else {
+          // Redirect after successful login
+          const from = location.state?.from?.pathname || "/rateazioni";
+          navigate(from, { replace: true });
+        }
       }
     } catch (err) {
       toast({
