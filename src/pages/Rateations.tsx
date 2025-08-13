@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { setSEO } from "@/lib/seo";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRateations } from "@/features/rateations/hooks/useRateations";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 
 
 export default function Rateations() {
+  const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
@@ -49,16 +50,20 @@ export default function Rateations() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const openOnMount = params.get("new") === "1";
-  const [showBackButton, setShowBackButton] = React.useState(false);
+  const [showHomeBack, setShowHomeBack] = React.useState(false);
 
-  // Mostra il pulsante back quando il query param è presente ma il modale non è aperto
-  React.useEffect(() => {
-    setShowBackButton(openOnMount);
-  }, [openOnMount]);
+  const cleanupNewParam = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState({}, "", url.toString());
+  };
 
-  const handleBackToRateations = () => {
-    window.history.replaceState({}, '', '/rateazioni');
-    setShowBackButton(false);
+  const handleCancelled = () => {
+    cleanupNewParam();
+    // Redirect diretto alla home (Dashboard)
+    navigate("/", { replace: true });
+    // Fallback opzionale: mostrare il bottone invece del redirect
+    // setShowHomeBack(true);
   };
 
   const openComparazione = () => {
@@ -91,21 +96,24 @@ export default function Rateations() {
               debouncedReload();
               setRefreshKey(prev => prev + 1);
             }}
-            onCancelled={handleBackToRateations}
+            onCancelled={handleCancelled}
           />
         </div>
       </div>
 
-      {/* Back to Rateazioni button when coming from ?new=1 but modal closed */}
-      {showBackButton && (
+      {/* Fallback opzionale: bottone visibile dopo annullo */}
+      {showHomeBack && (
         <div className="mb-4">
           <Button 
             variant="outline" 
-            onClick={handleBackToRateations}
+            onClick={() => { 
+              cleanupNewParam(); 
+              navigate("/", { replace: true }); 
+            }}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Torna alle rateazioni
+            Torna alla home
           </Button>
         </div>
       )}
