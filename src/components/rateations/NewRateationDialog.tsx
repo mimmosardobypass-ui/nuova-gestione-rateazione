@@ -84,67 +84,74 @@ export function NewRateationDialog({ onCreated }: { onCreated?: () => void }) {
       <DialogTrigger asChild>
         <Button>Nuova rateazione</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[640px] z-[1000] p-0">
-        <div className="flex flex-col max-h-[80vh]">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Nuova rateazione</DialogTitle>
-          </DialogHeader>
+      <DialogContent className="md:max-w-[820px] sm:max-w-[720px] p-0 md:overflow-visible">
+        <DialogHeader className="p-5 border-b">
+          <DialogTitle className="text-xl">Nuova rateazione</DialogTitle>
+        </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="p-5 md:max-h-none md:overflow-visible max-h-[75vh] overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Numero */}
+            <div className="col-span-1 md:col-span-2">
+              <Label className="text-xs">Numero (opz.)</Label>
+              <Input className="h-9" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Es. R-2025-003" />
+            </div>
+
+            {/* Tipo + Nuovo tipo allineati */}
+            <div className="col-span-1">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={tipo} onValueChange={setTipo}>
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Seleziona tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {types.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-1 flex items-end">
+              <Button variant="outline" className="h-9" onClick={addNewType} disabled={!online}>
+                Nuovo tipo
+              </Button>
+            </div>
+
+            {/* Contribuente */}
+            <div className="col-span-1 md:col-span-2">
+              <Label className="text-xs">Contribuente (opz.)</Label>
+              <Input className="h-9" value={contribuente} onChange={(e) => setContribuente(e.target.value)} placeholder="Es. Mario Rossi" />
+            </div>
+
+            {/* Parametri rata: sempre in una riga su md+ */}
             <div>
-              <Label>Numero (opz.)</Label>
-              <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Es. R-2025-003" />
+              <Label className="text-xs">Numero rate</Label>
+              <Input className="h-9" type="number" min={1} value={numRate} onChange={(e) => setNumRate(parseInt(e.target.value || "0"))} />
             </div>
-
             <div>
-              <Label>Tipo</Label>
-              <div className="flex items-center gap-2">
-                <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger><SelectValue placeholder="Seleziona tipo" /></SelectTrigger>
-                  <SelectContent>
-                    {types.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" onClick={addNewType} disabled={!online}>Nuovo tipo</Button>
-              </div>
+              <Label className="text-xs">Importo per rata</Label>
+              <Input className="h-9" type="number" step="0.01" min={0} value={amountPerRate} onChange={(e) => setAmountPerRate(parseFloat(e.target.value || "0"))} />
             </div>
-
             <div>
-              <Label>Contribuente (opz.)</Label>
-              <Input value={contribuente} onChange={(e) => setContribuente(e.target.value)} placeholder="Es. Mario Rossi" />
+              <Label className="text-xs">Prima scadenza</Label>
+              <Input className="h-9" type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} />
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <Label>Numero rate</Label>
-                <Input type="number" min={1} value={numRate} onChange={(e) => setNumRate(parseInt(e.target.value || "0"))} />
-              </div>
-              <div>
-                <Label>Importo per rata</Label>
-                <Input type="number" step="0.01" min={0} value={amountPerRate} onChange={(e) => setAmountPerRate(parseFloat(e.target.value || "0"))} />
-              </div>
-              <div>
-                <Label>Prima scadenza</Label>
-                <Input type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="text-sm text-muted-foreground">
+            {/* Totale calcolato, testo discreto */}
+            <div className="md:col-span-2 text-sm text-muted-foreground">
               Totale calcolato: <b>{(numRate * amountPerRate).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}</b>
             </div>
           </div>
-
-          <DialogFooter className="sticky bottom-0 bg-background p-4 border-t">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Annulla
-            </Button>
-            <Button onClick={saveAuto} disabled={!online}>
-              Salva (Automatico)
-            </Button>
-          </DialogFooter>
         </div>
+
+        <DialogFooter className="p-5 border-t">
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Annulla
+          </Button>
+          <Button onClick={saveAuto} disabled={!online}>
+            Salva (Automatico)
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
