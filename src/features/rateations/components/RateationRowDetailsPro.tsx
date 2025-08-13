@@ -1,8 +1,9 @@
 import * as React from "react";
 import { formatEuro } from "@/lib/formatters";
-import { fetchInstallments, markInstallmentPaidWithDate, postponeInstallment, deleteInstallment } from "../api/installments";
+import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { StatusBadge, getInstallmentStatus, Installment } from "./Status";
 import { AttachmentsPanel } from "./AttachmentsPanel";
+import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
 import {
   Table,
   TableBody,
@@ -47,40 +48,6 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     load(); 
   }, [load]);
 
-  const handleMarkPaid = async (seq: number) => {
-    if (!online) {
-      toast({
-        title: "Offline",
-        description: "Connettiti a internet per modificare lo stato delle rate",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const key = `paid-${seq}`;
-    if (processing[key]) return;
-
-    setProcessing(prev => ({ ...prev, [key]: true }));
-    
-    try {
-      const todayISO = new Date().toISOString().slice(0, 10);
-      await markInstallmentPaidWithDate(rateationId, seq, todayISO);
-      await load();
-      onDataChanged?.();
-      toast({
-        title: "Successo",
-        description: "Rata segnata come pagata"
-      });
-    } catch (error: any) {
-      toast({
-        title: "Errore",
-        description: error.message || "Errore nell'aggiornamento",
-        variant: "destructive"
-      });
-    } finally {
-      setProcessing(prev => ({ ...prev, [key]: false }));
-    }
-  };
 
   const handlePostpone = async (seq: number) => {
     if (!online) {
@@ -237,18 +204,21 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                       {it.paid_at ? new Date(it.paid_at).toLocaleDateString("it-IT") : "—"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        {!it.is_paid && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleMarkPaid(it.seq)}
-                            disabled={processing[`paid-${it.seq}`]}
-                            className="h-7 px-2 text-xs"
-                          >
-                            {processing[`paid-${it.seq}`] ? "..." : "Pagata"}
-                          </Button>
-                        )}
+                      <div className="flex gap-1 justify-end items-center">
+                        <InstallmentPaymentActions
+                          rateationId={rateationId}
+                          installment={{
+                            seq: it.seq,
+                            amount: it.amount || 0,
+                            due_date: it.due_date || "",
+                            is_paid: it.is_paid,
+                            paid_at: it.paid_at,
+                            postponed: it.postponed || false
+                          }}
+                          onReload={load}
+                          onStatsReload={onDataChanged}
+                          disabled={!online}
+                        />
                         {!it.is_paid && (
                           <Button 
                             size="sm" 
