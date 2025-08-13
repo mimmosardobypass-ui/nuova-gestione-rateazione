@@ -3,6 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { fetchRateations, deleteRateation } from "../api/rateations";
+import { fetchRateationsSummaryEnhanced, type RateationSummaryEnhanced } from "../api/enhanced";
 
 export const useRateations = () => {
   const [rows, setRows] = useState<RateationRow[]>([]);
@@ -21,61 +22,29 @@ export const useRateations = () => {
     setError(null);
 
     try {
-      const { rateations, installments, types } = await fetchRateations(controller.signal);
+      // Use the enhanced summary view with improved calculations
+      const data = await fetchRateationsSummaryEnhanced(controller.signal);
 
       if (controller.signal.aborted) return;
 
-      const typesMap = Object.fromEntries(types.map(t => [t.id, t.name]));
-
-      const processed = rateations.map(r => {
-        const rateForThisRateation = installments.filter(i => i.rateation_id === r.id);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const rateTotali = rateForThisRateation.length;
-        const ratePagate = rateForThisRateation.filter(i => i.is_paid).length;
-        const rateNonPagate = rateTotali - ratePagate;
-        const rateInRitardo = rateForThisRateation.filter(
-          i => !i.is_paid && i.due_date && (() => {
-            const dueDate = new Date(i.due_date);
-            dueDate.setHours(0, 0, 0, 0);
-            return dueDate < today;
-          })()
-        ).length;
-
-        const importoPagato = rateForThisRateation
-          .filter(i => i.is_paid)
-          .reduce((sum, i) => sum + (i.amount || 0), 0);
-
-        const importoRitardo = rateForThisRateation
-          .filter(i => !i.is_paid && i.due_date && (() => {
-            const dueDate = new Date(i.due_date);
-            dueDate.setHours(0, 0, 0, 0);
-            return dueDate < today;
-          })())
-          .reduce((sum, i) => sum + (i.amount || 0), 0);
-
-        const importoTotale = r.total_amount || 0;
-        const residuo = importoTotale - importoPagato;
-
-        return {
-          id: String(r.id),
-          numero: r.number || "",
-          tipo: typesMap[r.type_id] || "N/A",
-          contribuente: r.taxpayer_name,
-          importoTotale,
-          importoPagato,
-          importoRitardo,
-          residuo,
-          rateTotali,
-          ratePagate,
-          rateNonPagate,
-          rateInRitardo,
-        };
-      });
+      // Transform the data to match the expected RateationRow format
+      const processedRows: RateationRow[] = data.map(row => ({
+        id: row.id?.toString() || "",
+        numero: row.number || "",
+        tipo: row.type_name || "",
+        contribuente: row.taxpayer_name || "",
+        importoTotale: row.total_amount || 0,
+        importoPagato: row.amount_paid || 0,
+        importoRitardo: row.amount_overdue || 0,
+        residuo: row.amount_residual || 0,
+        rateTotali: row.installments_total || 0,
+        ratePagate: row.installments_paid || 0,
+        rateNonPagate: row.installments_unpaid || 0,
+        rateInRitardo: row.installments_overdue || 0,
+      }));
 
       if (controller.signal.aborted) return;
-      setRows(processed);
+      setRows(processedRows);
     } catch (err) {
       if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
         console.debug('[ABORT] useRateations loadData');

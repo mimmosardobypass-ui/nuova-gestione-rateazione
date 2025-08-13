@@ -17,38 +17,50 @@ export type Database = {
       installments: {
         Row: {
           amount: number
+          canceled_at: string | null
           created_at: string | null
           due_date: string
           id: number
           is_paid: boolean | null
+          notes: string | null
           owner_uid: string
           paid_at: string | null
+          payment_method: string | null
           postponed: boolean | null
           rateation_id: number
+          receipt_url: string | null
           seq: number
         }
         Insert: {
           amount: number
+          canceled_at?: string | null
           created_at?: string | null
           due_date: string
           id?: number
           is_paid?: boolean | null
+          notes?: string | null
           owner_uid: string
           paid_at?: string | null
+          payment_method?: string | null
           postponed?: boolean | null
           rateation_id: number
+          receipt_url?: string | null
           seq: number
         }
         Update: {
           amount?: number
+          canceled_at?: string | null
           created_at?: string | null
           due_date?: string
           id?: number
           is_paid?: boolean | null
+          notes?: string | null
           owner_uid?: string
           paid_at?: string | null
+          payment_method?: string | null
           postponed?: boolean | null
           rateation_id?: number
+          receipt_url?: string | null
           seq?: number
         }
         Relationships: [
@@ -65,6 +77,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_summary"
             referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -150,6 +169,82 @@ export type Database = {
       }
     }
     Views: {
+      v_installments_status: {
+        Row: {
+          amount: number | null
+          canceled_at: string | null
+          days_late: number | null
+          due_date: string | null
+          id: number | null
+          is_paid: boolean | null
+          notes: string | null
+          owner_uid: string | null
+          paid_at: string | null
+          payment_method: string | null
+          postponed: boolean | null
+          rateation_id: number | null
+          receipt_url: string | null
+          seq: number | null
+          status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          canceled_at?: string | null
+          days_late?: never
+          due_date?: string | null
+          id?: number | null
+          is_paid?: boolean | null
+          notes?: string | null
+          owner_uid?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          postponed?: boolean | null
+          rateation_id?: number | null
+          receipt_url?: string | null
+          seq?: number | null
+          status?: never
+        }
+        Update: {
+          amount?: number | null
+          canceled_at?: string | null
+          days_late?: never
+          due_date?: string | null
+          id?: number | null
+          is_paid?: boolean | null
+          notes?: string | null
+          owner_uid?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          postponed?: boolean | null
+          rateation_id?: number | null
+          receipt_url?: string | null
+          seq?: number | null
+          status?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_monthly_totals: {
         Row: {
           amount_due: number | null
@@ -203,6 +298,34 @@ export type Database = {
           type_name: string | null
         }
         Relationships: []
+      }
+      v_rateations_summary_enhanced: {
+        Row: {
+          amount_overdue: number | null
+          amount_paid: number | null
+          amount_residual: number | null
+          id: number | null
+          installments_overdue: number | null
+          installments_paid: number | null
+          installments_total: number | null
+          installments_unpaid: number | null
+          number: string | null
+          owner_uid: string | null
+          rateation_status: string | null
+          taxpayer_name: string | null
+          total_amount: number | null
+          type_id: number | null
+          type_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rateations_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "rateation_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

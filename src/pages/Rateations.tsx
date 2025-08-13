@@ -6,7 +6,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useRateations } from "@/features/rateations/hooks/useRateations";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
-import { RateationsTable } from "@/features/rateations/components/RateationsTable";
+import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
+import type { RateationRowPro } from "@/features/rateations/components/RateationsTablePro";
 import { NewRateationDialog } from "@/features/rateations/components/NewRateationDialog";
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
 import { UserMenu } from "@/components/UserMenu";
@@ -145,9 +146,13 @@ export default function Rateations() {
                 onStats={openStats}
               />
 
-              <RateationsTable 
+              <RateationsTablePro 
                 key={refreshKey}
-                rows={rows}
+                rows={rows.map(row => ({
+                  ...row,
+                  importoRitardo: row.importoRitardo || 0,
+                  rateInRitardo: row.rateInRitardo || 0
+                } as RateationRowPro))}
                 loading={loading}
                 error={error}
                 online={online}
