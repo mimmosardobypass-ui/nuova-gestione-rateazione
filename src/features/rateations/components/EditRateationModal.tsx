@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useRateationTypes } from "../hooks/useRateationTypes";
+import { fetchSingleRateation, updateRateation } from "../api/rateations";
 import { useOnline } from "@/hooks/use-online";
+import { supabase } from "@/integrations/supabase/client";
 
 type Props = {
   open: boolean;
