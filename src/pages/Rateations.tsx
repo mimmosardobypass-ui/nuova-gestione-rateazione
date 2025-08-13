@@ -10,7 +10,7 @@ import { RateationsTable } from "@/components/rateations/RateationsTable";
 import { NewRateationDialog } from "@/components/rateations/NewRateationDialog";
 
 export default function Rateations() {
-  const [openNew, setOpenNew] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setSEO(
@@ -23,9 +23,7 @@ export default function Rateations() {
     <main className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
-        <Button onClick={() => setOpenNew(true)} aria-label="Nuova rateazione">
-          <Plus className="mr-2 h-4 w-4" /> Nuova rateazione
-        </Button>
+        <NewRateationDialog onCreated={() => setRefreshKey(prev => prev + 1)} />
       </div>
 
       <Card className="card-elevated mt-6">
@@ -61,13 +59,13 @@ export default function Rateations() {
                   <Button variant="outline">Statistiche avanzate</Button>
                 </div>
               </div>
-              <RateationsTable />
+              <RateationsTable key={refreshKey} />
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
 
-      <NewRateationDialog open={openNew} onOpenChange={setOpenNew} onCreated={() => setOpenNew(false)} />
+      
     </main>
   );
 }
