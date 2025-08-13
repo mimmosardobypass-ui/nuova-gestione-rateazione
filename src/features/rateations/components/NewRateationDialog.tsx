@@ -23,22 +23,35 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   const online = useOnline();
   const { types, loadTypes, addNewType } = useRateationTypes();
 
+  // LOVABLE:START formState
   // Auto rateation state
   const [numero, setNumero] = React.useState("");
   const [tipo, setTipo] = React.useState("");
   const [contribuente, setContribuente] = React.useState("");
-  const [numRate, setNumRate] = React.useState(6);
-  const [amountPerRate, setAmountPerRate] = React.useState(400);
-  const [firstDue, setFirstDue] = React.useState(() => {
-    const today = new Date();
-    today.setMonth(today.getMonth() + 1);
-    return today.toISOString().slice(0, 10);
-  });
+  const [numRate, setNumRate] = React.useState<number | undefined>(undefined);
+  const [amountPerRate, setAmountPerRate] = React.useState<number | undefined>(undefined);
+  const [firstDue, setFirstDue] = React.useState("");
 
   // Manual rateation state
-  const [manualCount, setManualCount] = React.useState<number>(6);
-  const [manualTotal, setManualTotal] = React.useState<string>("2400");
+  const [manualCount, setManualCount] = React.useState<number | undefined>(undefined);
+  const [manualTotal, setManualTotal] = React.useState<string>("");
   const [manualRows, setManualRows] = React.useState<ManualRow[]>([]);
+  // LOVABLE:END formState
+
+  // LOVABLE:START resetForm
+  const resetForm = () => {
+    setNumero("");
+    setTipo("");
+    setContribuente("");
+    setNumRate(undefined);
+    setAmountPerRate(undefined);
+    setFirstDue("");
+    setManualCount(undefined);
+    setManualTotal("");
+    setManualRows([]);
+    setTab("auto");
+  };
+  // LOVABLE:END resetForm
 
   React.useEffect(() => {
     setOpen(initialOpen);
@@ -46,19 +59,25 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
 
   React.useEffect(() => {
     if (open) {
+      resetForm();
       loadTypes();
     }
   }, [open, loadTypes]);
 
+  // LOVABLE:START manualRows
   React.useEffect(() => {
+    if (!manualCount || manualCount <= 0) {
+      setManualRows([]);
+      return;
+    }
     const today = new Date();
-    const rows = Array.from({ length: Math.max(1, manualCount) }, (_, i) => {
+    const rows = Array.from({ length: manualCount }, (_, i) => {
       const d = new Date(today.getFullYear(), today.getMonth() + i, today.getDate());
-      const iso = d.toISOString().slice(0, 10);
-      return { amount: "", due: iso };
+      return { amount: "", due: d.toISOString().slice(0, 10) };
     });
     setManualRows(rows);
   }, [manualCount]);
+  // LOVABLE:END manualRows
 
   const distributeFromTotal = () => {
     const total = Number((manualTotal || "0").replace(",", "."));
@@ -76,7 +95,10 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   // LOVABLE:START saveAuto
   const saveAuto = async () => {
     if (!online) return toast({ title: "Offline", description: "Impossibile salvare.", variant: "destructive" });
-    if (!tipo) return toast({ title: "Seleziona un tipo", description: "Seleziona un tipo prima di salvare.", variant: "destructive" });
+    if (!tipo) return toast({ title: "Tipo richiesto", description: "Seleziona un tipo prima di salvare.", variant: "destructive" });
+    if (!numRate) return toast({ title: "Numero rate richiesto", description: "Inserisci il numero di rate.", variant: "destructive" });
+    if (!amountPerRate) return toast({ title: "Importo richiesto", description: "Inserisci l'importo per rata.", variant: "destructive" });
+    if (!firstDue) return toast({ title: "Data richiesta", description: "Inserisci la prima scadenza.", variant: "destructive" });
 
     const p_number = numero?.trim() || `R-${new Date().toISOString().slice(0, 10)}-${Math.floor(Math.random() * 1000)}`;
 
@@ -104,10 +126,15 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   // LOVABLE:START saveManual
   const saveManual = async () => {
     if (!online) return toast({ title: "Offline", description: "Impossibile salvare.", variant: "destructive" });
-    if (!tipo) return toast({ title: "Seleziona un tipo", description: "Seleziona un tipo prima di salvare.", variant: "destructive" });
+    if (!tipo) return toast({ title: "Tipo richiesto", description: "Seleziona un tipo prima di salvare.", variant: "destructive" });
     
-    if (!manualRows.length || manualRows.some(r => !r.due || Number.isNaN(Number(r.amount)))) {
-      return toast({ title: "Dati non validi", description: "Controlla importi e date.", variant: "destructive" });
+    if (!manualRows.length) {
+      return toast({ title: "Rate richieste", description: "Aggiungi almeno una rata.", variant: "destructive" });
+    }
+    
+    const invalidRows = manualRows.filter(r => !r.due || !r.amount || Number.isNaN(Number(r.amount)));
+    if (invalidRows.length > 0) {
+      return toast({ title: "Dati non validi", description: "Controlla che tutte le rate abbiano importo e data validi.", variant: "destructive" });
     }
 
     const payload = manualRows.map((r, idx) => ({ 
@@ -161,12 +188,17 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <Label className="text-xs">Numero</Label>
-                  <Input className="h-9" value={numero} onChange={(e) => setNumero(e.target.value)} />
+                  <Input 
+                    className="h-9" 
+                    value={numero} 
+                    onChange={(e) => setNumero(e.target.value)} 
+                    placeholder="Lascia vuoto per generazione automatica"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Tipo</Label>
                   <div className="flex gap-2">
-                    <Select value={tipo} onValueChange={setTipo}>
+                    <Select value={tipo || undefined} onValueChange={setTipo}>
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="Seleziona tipo" />
                       </SelectTrigger>
@@ -181,21 +213,54 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
                 </div>
                 <div className="md:col-span-2">
                   <Label className="text-xs">Contribuente</Label>
-                  <Input className="h-9" value={contribuente} onChange={(e) => setContribuente(e.target.value)} />
+                  <Input 
+                    className="h-9" 
+                    value={contribuente} 
+                    onChange={(e) => setContribuente(e.target.value)} 
+                    placeholder="Nome del contribuente (opzionale)"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Numero rate</Label>
-                  <Input className="h-9" type="number" min={1} value={numRate} onChange={(e) => setNumRate(parseInt(e.target.value || "1"))} />
+                  <Input 
+                    className="h-9" 
+                    type="number" 
+                    min={1} 
+                    value={numRate ?? ""} 
+                    onChange={(e) => setNumRate(e.target.value ? parseInt(e.target.value, 10) : undefined)} 
+                    placeholder="Es. 6"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Importo per rata</Label>
-                  <Input className="h-9" type="number" step="0.01" min={0} value={amountPerRate} onChange={(e) => setAmountPerRate(parseFloat(e.target.value || "0"))} />
+                  <Input 
+                    className="h-9" 
+                    type="number" 
+                    step="0.01" 
+                    min={0} 
+                    value={amountPerRate ?? ""} 
+                    onChange={(e) => setAmountPerRate(e.target.value ? parseFloat(e.target.value) : undefined)} 
+                    placeholder="Es. 400"
+                  />
                 </div>
                 <div className="md:col-span-2">
                   <Label className="text-xs">Prima scadenza</Label>
-                  <Input className="h-9" type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} />
+                  <Input 
+                    className="h-9" 
+                    type="date" 
+                    value={firstDue || ""} 
+                    onChange={(e) => setFirstDue(e.target.value)} 
+                  />
                 </div>
               </div>
+              
+              {/* LOVABLE:START calculatedTotal */}
+              {numRate != null && amountPerRate != null ? (
+                <div className="text-sm text-muted-foreground mb-4">
+                  Totale calcolato: <b>{(numRate * amountPerRate).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}</b>
+                </div>
+              ) : null}
+              {/* LOVABLE:END calculatedTotal */}
               {/* LOVABLE:END formFields */}
             </TabsContent>
 
@@ -203,12 +268,17 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <Label className="text-xs">Numero</Label>
-                  <Input className="h-9" value={numero} onChange={(e) => setNumero(e.target.value)} />
+                  <Input 
+                    className="h-9" 
+                    value={numero} 
+                    onChange={(e) => setNumero(e.target.value)} 
+                    placeholder="Lascia vuoto per generazione automatica"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Tipo</Label>
                   <div className="flex gap-2">
-                    <Select value={tipo} onValueChange={setTipo}>
+                    <Select value={tipo || undefined} onValueChange={setTipo}>
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="Seleziona tipo" />
                       </SelectTrigger>
@@ -223,21 +293,39 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
                 </div>
                 <div className="md:col-span-2">
                   <Label className="text-xs">Contribuente</Label>
-                  <Input className="h-9" value={contribuente} onChange={(e) => setContribuente(e.target.value)} />
+                  <Input 
+                    className="h-9" 
+                    value={contribuente} 
+                    onChange={(e) => setContribuente(e.target.value)} 
+                    placeholder="Nome del contribuente (opzionale)"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 <div>
                   <Label className="text-xs">Numero rate</Label>
-                  <Input className="h-9" type="number" min={1} value={manualCount}
-                         onChange={(e) => setManualCount(parseInt(e.target.value || "1"))} />
+                  <Input 
+                    className="h-9" 
+                    type="number" 
+                    min={1} 
+                    value={manualCount ?? ""} 
+                    onChange={(e) => setManualCount(e.target.value ? parseInt(e.target.value, 10) : undefined)} 
+                    placeholder="Numero rate"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Totale (opz.)</Label>
                   <div className="flex gap-2">
-                    <Input className="h-9" type="number" step="0.01" min={0}
-                           value={manualTotal} onChange={(e) => setManualTotal(e.target.value)} />
+                    <Input 
+                      className="h-9" 
+                      type="number" 
+                      step="0.01" 
+                      min={0}
+                      value={manualTotal} 
+                      onChange={(e) => setManualTotal(e.target.value)} 
+                      placeholder="Totale (opz.)"
+                    />
                     <Button type="button" className="h-9" variant="outline" onClick={distributeFromTotal}>
                       Riparti dal totale
                     </Button>
