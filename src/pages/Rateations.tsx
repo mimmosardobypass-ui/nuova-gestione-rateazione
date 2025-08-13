@@ -35,7 +35,7 @@ export default function Rateations() {
               <TabsTrigger value="completate">Completate</TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Select>
                   <SelectTrigger aria-label="Filtro tipo"><SelectValue placeholder="Tipo" /></SelectTrigger>
                   <SelectContent>
@@ -54,8 +54,8 @@ export default function Rateations() {
                 </Select>
                 <Input placeholder="Mese (MM)" aria-label="Filtro mese" />
                 <Input placeholder="Anno (YYYY)" aria-label="Filtro anno" />
-                <div className="flex gap-2">
-                  <Button variant="secondary">Comparazione annuale</Button>
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  <Button variant="outline">Comparazione annuale</Button>
                   <Button variant="outline">Statistiche avanzate</Button>
                 </div>
               </div>

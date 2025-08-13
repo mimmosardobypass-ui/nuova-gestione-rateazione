@@ -84,65 +84,67 @@ export function NewRateationDialog({ onCreated }: { onCreated?: () => void }) {
       <DialogTrigger asChild>
         <Button>Nuova rateazione</Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nuova rateazione</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[640px] z-[1000] p-0">
+        <div className="flex flex-col max-h-[80vh]">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle>Nuova rateazione</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-3">
-          <div>
-            <Label>Numero (opz.)</Label>
-            <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Es. R-2025-003" />
-          </div>
-
-          <div>
-            <Label>Tipo</Label>
-            <div className="flex items-center gap-2">
-              <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger><SelectValue placeholder="Seleziona tipo" /></SelectTrigger>
-                <SelectContent>
-                  {types.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={addNewType} disabled={!online}>Nuovo tipo</Button>
-            </div>
-          </div>
-
-          <div>
-            <Label>Contribuente (opz.)</Label>
-            <Input value={contribuente} onChange={(e) => setContribuente(e.target.value)} placeholder="Es. Mario Rossi" />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div>
-              <Label>Numero rate</Label>
-              <Input type="number" min={1} value={numRate} onChange={(e) => setNumRate(parseInt(e.target.value || "0"))} />
+              <Label>Numero (opz.)</Label>
+              <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Es. R-2025-003" />
             </div>
+
             <div>
-              <Label>Importo per rata</Label>
-              <Input type="number" step="0.01" min={0} value={amountPerRate} onChange={(e) => setAmountPerRate(parseFloat(e.target.value || "0"))} />
+              <Label>Tipo</Label>
+              <div className="flex items-center gap-2">
+                <Select value={tipo} onValueChange={setTipo}>
+                  <SelectTrigger><SelectValue placeholder="Seleziona tipo" /></SelectTrigger>
+                  <SelectContent>
+                    {types.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={addNewType} disabled={!online}>Nuovo tipo</Button>
+              </div>
             </div>
+
             <div>
-              <Label>Prima scadenza</Label>
-              <Input type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} />
+              <Label>Contribuente (opz.)</Label>
+              <Input value={contribuente} onChange={(e) => setContribuente(e.target.value)} placeholder="Es. Mario Rossi" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label>Numero rate</Label>
+                <Input type="number" min={1} value={numRate} onChange={(e) => setNumRate(parseInt(e.target.value || "0"))} />
+              </div>
+              <div>
+                <Label>Importo per rata</Label>
+                <Input type="number" step="0.01" min={0} value={amountPerRate} onChange={(e) => setAmountPerRate(parseFloat(e.target.value || "0"))} />
+              </div>
+              <div>
+                <Label>Prima scadenza</Label>
+                <Input type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Totale calcolato: <b>{(numRate * amountPerRate).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}</b>
             </div>
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            Totale calcolato: <b>{(numRate * amountPerRate).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}</b>
-          </div>
+          <DialogFooter className="sticky bottom-0 bg-background p-4 border-t">
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Annulla
+            </Button>
+            <Button onClick={saveAuto} disabled={!online}>
+              Salva (Automatico)
+            </Button>
+          </DialogFooter>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Annulla
-          </Button>
-          <Button onClick={saveAuto} disabled={!online}>
-            Salva (Automatico)
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
