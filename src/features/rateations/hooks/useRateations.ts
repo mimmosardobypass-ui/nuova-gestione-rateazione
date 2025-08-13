@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
@@ -16,11 +16,14 @@ export const useRateations = () => {
       return;
     }
 
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
 
     try {
-      const { rateations, installments, types } = await fetchRateations();
+      const { rateations, installments, types } = await fetchRateations(controller.signal);
+
+      if (controller.signal.aborted) return;
 
       const typesMap = Object.fromEntries(types.map(t => [t.id, t.name]));
 
@@ -71,8 +74,13 @@ export const useRateations = () => {
         };
       });
 
+      if (controller.signal.aborted) return;
       setRows(processed);
     } catch (err) {
+      if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
+        console.debug('[ABORT] useRateations loadData');
+        return;
+      }
       const message = err instanceof Error ? err.message : "Errore sconosciuto";
       setError(message);
       setRows([]); // Always set empty array on error, never demo data
@@ -82,8 +90,12 @@ export const useRateations = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
+
+    return () => controller.abort();
   }, [online]);
 
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -131,6 +143,13 @@ export const useRateations = () => {
       setDeleting(null);
     }
   }, [online, loadData, deleting]);
+
+  useEffect(() => {
+    const cleanup = loadData();
+    return () => {
+      if (cleanup instanceof Function) cleanup();
+    };
+  }, [loadData]);
 
   return {
     rows,

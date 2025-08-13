@@ -2,13 +2,16 @@ import { supabase } from "@/integrations/supabase/client";
 import type { InstallmentUI } from "../types";
 
 // LOVABLE:START fetchInstallments
-export const fetchInstallments = async (rateationId: string): Promise<InstallmentUI[]> => {
+export const fetchInstallments = async (rateationId: string, signal?: AbortSignal): Promise<InstallmentUI[]> => {
+  if (signal?.aborted) throw new Error('AbortError');
+  
   const { data, error } = await supabase
     .from("installments")
     .select("*")
     .eq("rateation_id", rateationId)
     .order("seq");
 
+  if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
   return data || [];
 };

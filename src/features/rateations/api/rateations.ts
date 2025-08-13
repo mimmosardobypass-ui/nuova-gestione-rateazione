@@ -2,23 +2,28 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CreateRateationAutoParams, CreateRateationManualParams, RateationType } from "../types";
 
 // LOVABLE:START fetchRateations
-export const fetchRateations = async () => {
+export const fetchRateations = async (signal?: AbortSignal) => {
+  if (signal?.aborted) throw new Error('AbortError');
+  
   const { data: rateations, error: rateationsError } = await supabase
     .from("rateations")
     .select("*");
 
+  if (signal?.aborted) throw new Error('AbortError');
   if (rateationsError) throw rateationsError;
 
   const { data: installments, error: installmentsError } = await supabase
     .from("installments")
     .select("*");
 
+  if (signal?.aborted) throw new Error('AbortError');
   if (installmentsError) throw installmentsError;
 
   const { data: types, error: typesError } = await supabase
     .from("rateation_types")
     .select("*");
 
+  if (signal?.aborted) throw new Error('AbortError');
   if (typesError) throw typesError;
 
   return { rateations, installments, types };
@@ -26,12 +31,15 @@ export const fetchRateations = async () => {
 // LOVABLE:END fetchRateations
 
 // LOVABLE:START fetchRateationTypes
-export const fetchRateationTypes = async (): Promise<RateationType[]> => {
+export const fetchRateationTypes = async (signal?: AbortSignal): Promise<RateationType[]> => {
+  if (signal?.aborted) throw new Error('AbortError');
+  
   const { data, error } = await supabase
     .from("rateation_types")
     .select("id, name")
     .order("name");
 
+  if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
   return data || [];
 };
@@ -89,13 +97,16 @@ export const deleteRateation = async (id: string): Promise<void> => {
 // LOVABLE:END deleteRateation
 
 // LOVABLE:START fetchSingleRateation
-export const fetchSingleRateation = async (id: string) => {
+export const fetchSingleRateation = async (id: string, signal?: AbortSignal) => {
+  if (signal?.aborted) throw new Error('AbortError');
+  
   const { data, error } = await supabase
     .from("rateations")
     .select("*")
     .eq("id", id)
     .single();
 
+  if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
   return data;
 };

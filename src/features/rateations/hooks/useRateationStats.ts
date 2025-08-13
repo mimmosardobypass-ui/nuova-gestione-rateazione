@@ -28,6 +28,8 @@ export function useRateationStats() {
     if (stats.total_due > 0) {
       setPreviousStats(stats);
     }
+    
+    const controller = new AbortController();
     setLoading(true); 
     setError(null);
     
@@ -36,11 +38,15 @@ export function useRateationStats() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
+      if (controller.signal.aborted) return;
+
       // Fetch all rateations for the user
       const { data: rateations } = await supabase
         .from("rateations")
         .select("id, total_amount")
         .eq("owner_uid", user.id);
+
+      if (controller.signal.aborted) return;
 
       const rateationIds = (rateations ?? []).map(x => x.id);
       
@@ -55,6 +61,8 @@ export function useRateationStats() {
           .from("installments")
           .select("amount, is_paid, due_date")
           .in("rateation_id", rateationIds);
+
+        if (controller.signal.aborted) return;
 
         // Use normalized Date objects for timezone-safe comparison
         const today = new Date();
@@ -81,6 +89,8 @@ export function useRateationStats() {
       
       const total = (rateations ?? []).reduce((sum, r) => sum + Number(r.total_amount || 0), 0);
       
+      if (controller.signal.aborted) return;
+      
       setStats({ 
         total_due: total, 
         total_paid: paid, 
@@ -90,6 +100,10 @@ export function useRateationStats() {
         total_count: totalCount
       });
     } catch (e: any) {
+      if (controller.signal.aborted || (e instanceof Error && e.message === 'AbortError')) {
+        console.debug('[ABORT] useRateationStats load');
+        return;
+      }
       console.error("[KPI]", e);
       setError(e.message || "Errore nel caricamento statistiche");
       setStats({ 
@@ -101,13 +115,20 @@ export function useRateationStats() {
         total_count: 0
       });
     } finally {
-      setLoading(false);
-      setPreviousStats(null); // Clear previous stats after loading
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setPreviousStats(null); // Clear previous stats after loading
+      }
     }
+    
+    return () => controller.abort();
   }, []);
 
-  useEffect(() => { 
-    load(); 
+  useEffect(() => {
+    const cleanup = load();
+    return () => {
+      if (cleanup instanceof Function) cleanup();
+    };
   }, [load]);
 
   return { stats, previousStats, loading, error, reload: load };

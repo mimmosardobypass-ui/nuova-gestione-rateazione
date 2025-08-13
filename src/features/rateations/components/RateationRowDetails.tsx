@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { RateationRow, InstallmentUI } from "../types";
 import { AttachmentsPanel } from "./AttachmentsPanel";
 import { markInstallmentPaid, postponeInstallment, fetchInstallments } from "../api/installments";
@@ -17,24 +17,41 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
   const [postponing, setPostponing] = useState<number | null>(null);
   const online = useOnline();
 
-  const loadInstallments = async () => {
+  const loadInstallments = useCallback(async () => {
+    if (!row?.id || !online) return;
+    
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
+    
     try {
-      const data = await fetchInstallments(row.id);
-      setItems(data);
+      const data = await fetchInstallments(row.id, controller.signal);
+      
+      if (controller.signal.aborted) return;
+      setItems(data || []);
     } catch (err) {
+      if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
+        console.debug('[ABORT] RateationRowDetails loadInstallments');
+        return;
+      }
       const message = err instanceof Error ? err.message : "Errore nel caricamento";
       setError(message);
       console.error("Error loading installments:", err);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+    
+    return () => controller.abort();
+  }, [row?.id, online]);
 
   useEffect(() => {
-    loadInstallments();
-  }, [row.id]);
+    const cleanup = loadInstallments();
+    return () => {
+      if (cleanup instanceof Function) cleanup();
+    };
+  }, [loadInstallments]);
 
   const today = useMemo(() => {
     const d = new Date();

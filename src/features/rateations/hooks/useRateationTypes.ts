@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import type { RateationType } from "../types";
 import { fetchRateationTypes } from "../api/rateations";
@@ -9,11 +9,19 @@ export const useRateationTypes = () => {
   const [loading, setLoading] = useState(false);
 
   const loadTypes = useCallback(async () => {
+    const controller = new AbortController();
     setLoading(true);
+    
     try {
-      const data = await fetchRateationTypes();
+      const data = await fetchRateationTypes(controller.signal);
+      
+      if (controller.signal.aborted) return;
       setTypes(data);
     } catch (err) {
+      if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
+        console.debug('[ABORT] useRateationTypes loadTypes');
+        return;
+      }
       const message = err instanceof Error ? err.message : "Errore nel caricamento tipi";
       console.error("Error loading rateation types:", err);
       toast({
@@ -23,8 +31,12 @@ export const useRateationTypes = () => {
       });
       setTypes([]); // Evita stato indefinito
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
+    
+    return () => controller.abort();
   }, []);
 
   const addNewType = useCallback(async (onTypeCreated?: (typeId: string) => void) => {
@@ -74,6 +86,13 @@ export const useRateationTypes = () => {
       });
     }
   }, []);
+
+  useEffect(() => {
+    const cleanup = loadTypes();
+    return () => {
+      if (cleanup instanceof Function) cleanup();
+    };
+  }, [loadTypes]);
 
   return {
     types,

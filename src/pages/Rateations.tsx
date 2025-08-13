@@ -84,8 +84,9 @@ export default function Rateations() {
 
       {/* KPI Cards - Always visible */}
       <KpiCards 
-        loading={statsLoading && !previousStats} 
-        stats={statsLoading && previousStats ? previousStats : stats} 
+        loading={statsLoading} 
+        stats={stats} 
+        previousStats={previousStats}
       />
 
       {statsError && (
