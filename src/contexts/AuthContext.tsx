@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  authReady: boolean;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  authReady: false,
   signUp: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
   signOut: async () => {},
@@ -32,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -46,11 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         initialized = true;
+        setAuthReady(true);
         setLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (!mounted) return;
         initialized = true;
+        setAuthReady(true);
         setLoading(false);
       }
     };
@@ -65,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Only set loading to false if we've completed initialization
         // This prevents premature false negatives during app startup
         if (initialized) {
+          setAuthReady(true);
           setLoading(false);
         }
       }
@@ -109,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    authReady,
     signUp,
     signIn,
     signOut,

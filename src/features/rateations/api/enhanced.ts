@@ -20,9 +20,15 @@ export interface RateationSummaryEnhanced {
 export const fetchRateationsSummaryEnhanced = async (signal?: AbortSignal): Promise<RateationSummaryEnhanced[]> => {
   if (signal?.aborted) throw new Error('AbortError');
   
+  // Get authenticated user first
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!user) throw new Error('User not authenticated');
+  
   const { data, error } = await supabase
     .from("v_rateations_summary_enhanced")
     .select("*")
+    .eq("owner_uid", user.id)
     .order("id", { ascending: false });
 
   if (signal?.aborted) throw new Error('AbortError');

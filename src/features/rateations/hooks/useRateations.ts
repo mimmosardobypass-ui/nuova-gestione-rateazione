@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
+import { useAuth } from "@/contexts/AuthContext";
 import type { RateationRow } from "../types";
 import { fetchRateations, deleteRateation } from "../api/rateations";
 import { fetchRateationsSummaryEnhanced, type RateationSummaryEnhanced } from "../api/enhanced";
@@ -10,8 +11,15 @@ export const useRateations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const online = useOnline();
+  const { session, authReady } = useAuth();
 
   const loadData = useCallback(async () => {
+    // Wait for auth to be ready and user to be authenticated
+    if (!authReady || !session?.user) {
+      console.debug('[useRateations] Waiting for auth or user session');
+      return;
+    }
+
     if (!online) {
       setError("Offline - impossibile caricare i dati");
       return;
@@ -65,7 +73,7 @@ export const useRateations = () => {
     }
 
     return () => controller.abort();
-  }, [online]);
+  }, [online, authReady, session?.user?.id]);
 
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -125,6 +133,7 @@ export const useRateations = () => {
     loading,
     error,
     online,
+    authReady,
     loadData,
     handleDelete,
     deleting,

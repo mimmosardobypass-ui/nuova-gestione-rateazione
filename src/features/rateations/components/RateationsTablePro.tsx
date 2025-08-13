@@ -28,6 +28,7 @@ interface RateationsTableProProps {
   loading?: boolean;
   error?: string | null;
   online?: boolean;
+  authReady?: boolean;
   onDelete?: (id: string) => void;
   onRefresh?: () => void;
   onDataChanged?: () => void;
@@ -39,6 +40,7 @@ export function RateationsTablePro({
   loading, 
   error, 
   online, 
+  authReady = true, 
   onDelete, 
   onRefresh, 
   onDataChanged, 
@@ -49,7 +51,8 @@ export function RateationsTablePro({
 
   const toggle = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
-  if (loading) {
+  // Show loading if still loading OR if auth is not ready yet
+  if (loading || !authReady) {
     return <div className="p-6 text-center text-muted-foreground">Caricamento...</div>;
   }
 
