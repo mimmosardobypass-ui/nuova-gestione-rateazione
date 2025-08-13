@@ -21,6 +21,7 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
   const online = useOnline();
 
   const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const [types, setTypes] = React.useState<{ id: number; name: string }[]>([]);
 
   const [numero, setNumero] = React.useState("");
@@ -82,7 +83,12 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
       toast({ title: "Seleziona un tipo", description: "È necessario selezionare un tipo.", variant: "destructive" });
       return;
     }
-    setLoading(true);
+    if (saving) {
+      toast({ title: "Operazione in corso", description: "Attendi il completamento del salvataggio", variant: "destructive" });
+      return;
+    }
+    
+    setSaving(true);
     try {
       const payload: any = {
         number: numero || null,
@@ -112,11 +118,11 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
       console.error(e);
       toast({ title: "Errore", description: e?.message || "Impossibile salvare.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const disabled = !online || loading;
+  const disabled = !online || loading || saving;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,7 +169,9 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onSave} disabled={disabled}>Salva</Button>
+          <Button onClick={onSave} disabled={disabled}>
+            {saving ? "Salvando..." : "Salva"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

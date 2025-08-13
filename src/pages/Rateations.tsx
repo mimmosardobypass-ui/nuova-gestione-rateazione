@@ -16,13 +16,16 @@ import { KpiCards } from "@/features/rateations/components/KpiCards";
 
 export default function Rateations() {
   const { session, loading: authLoading } = useAuth();
-  const { rows, loading, error, online, loadData, handleDelete } = useRateations();
-  const { stats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
+  const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
+  const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   
-  const { debouncedReload, debouncedReloadStats } = useDebouncedReload({
+  const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
     loadData,
     reloadStats
   });
+
+  // Cleanup timeouts on unmount  
+  React.useEffect(() => cleanup, [cleanup]);
   
   // Key per far re-render la tabella dopo creazione
   const [refreshKey, setRefreshKey] = React.useState(0);
@@ -80,7 +83,10 @@ export default function Rateations() {
       </div>
 
       {/* KPI Cards - Always visible */}
-      <KpiCards loading={statsLoading} stats={stats} />
+      <KpiCards 
+        loading={statsLoading && !previousStats} 
+        stats={statsLoading && previousStats ? previousStats : stats} 
+      />
 
       {statsError && (
         <div className="mb-4 text-sm text-destructive">
@@ -109,6 +115,7 @@ export default function Rateations() {
                 error={error}
                 online={online}
                 onDelete={(id) => handleDelete(id, debouncedReloadStats)}
+                deleting={deleting}
                 onRefresh={() => {
                   debouncedReload();
                   setRefreshKey(prev => prev + 1);

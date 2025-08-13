@@ -13,6 +13,8 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [markingPaid, setMarkingPaid] = useState<number | null>(null);
+  const [postponing, setPostponing] = useState<number | null>(null);
   const online = useOnline();
 
   const loadInstallments = async () => {
@@ -60,6 +62,12 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
       return;
     }
 
+    if (markingPaid) {
+      toast({ title: "Operazione in corso", description: "Attendi il completamento", variant: "destructive" });
+      return;
+    }
+
+    setMarkingPaid(seq);
     try {
       await markInstallmentPaid(row.id, seq, true, new Date().toISOString().slice(0, 10));
       toast({ title: "Pagamento registrato", description: "Rata marcata come pagata" });
@@ -68,6 +76,8 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nel marcare come pagata";
       toast({ title: "Errore", description: message, variant: "destructive" });
+    } finally {
+      setMarkingPaid(null);
     }
   };
 
@@ -77,9 +87,15 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
       return;
     }
 
+    if (postponing) {
+      toast({ title: "Operazione in corso", description: "Attendi il completamento", variant: "destructive" });
+      return;
+    }
+
     const newDue = prompt("Nuova data di scadenza (YYYY-MM-DD):");
     if (!newDue) return;
 
+    setPostponing(seq);
     try {
       await postponeInstallment(row.id, seq, newDue);
       toast({ title: "Rata posticipata", description: `Nuova scadenza: ${newDue}` });
@@ -88,6 +104,8 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nel posticipare";
       toast({ title: "Errore", description: message, variant: "destructive" });
+    } finally {
+      setPostponing(null);
     }
   };
 
@@ -115,11 +133,21 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
                 {it.postponed && <Badge variant="outline">Rimandata</Badge>}
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="secondary" disabled={!online} onClick={() => markPaid(it.seq)}>
-                  Segna pagata
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  disabled={!online || markingPaid === it.seq || postponing === it.seq} 
+                  onClick={() => markPaid(it.seq)}
+                >
+                  {markingPaid === it.seq ? "..." : "Segna pagata"}
                 </Button>
-                <Button size="sm" variant="outline" disabled={!online} onClick={() => postpone(it.seq)}>
-                  Posticipa
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  disabled={!online || markingPaid === it.seq || postponing === it.seq} 
+                  onClick={() => postpone(it.seq)}
+                >
+                  {postponing === it.seq ? "..." : "Posticipa"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => toast({ title: "Elimina rata", description: "Consentita solo per manuali" })}>
                   Elimina

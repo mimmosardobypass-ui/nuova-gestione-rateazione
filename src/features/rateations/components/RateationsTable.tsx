@@ -15,9 +15,10 @@ interface RateationsTableProps {
   onDelete: (id: string) => void;
   onRefresh: () => void;
   onDataChanged?: () => void;
+  deleting?: string | null;
 }
 
-export function RateationsTable({ rows, loading, error, online, onDelete, onRefresh, onDataChanged }: RateationsTableProps) {
+export function RateationsTable({ rows, loading, error, online, onDelete, onRefresh, onDataChanged, deleting }: RateationsTableProps) {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [editId, setEditId] = React.useState<string | null>(null);
 
@@ -103,9 +104,10 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
                       variant="outline"
                       size="sm"
                       onClick={() => onDelete(row.id)}
+                      disabled={deleting === row.id}
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleting === row.id ? "..." : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </div>
                   {/* LOVABLE:END actions */}

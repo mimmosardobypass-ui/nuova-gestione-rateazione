@@ -86,6 +86,8 @@ export const useRateations = () => {
     }
   }, [online]);
 
+  const [deleting, setDeleting] = useState<string | null>(null);
+
   const handleDelete = useCallback(async (id: string, debouncedReloadStats?: () => void) => {
     if (!online) {
       toast({
@@ -96,10 +98,20 @@ export const useRateations = () => {
       return;
     }
 
+    if (deleting) {
+      toast({
+        title: "Operazione in corso",
+        description: "Attendi il completamento dell'eliminazione",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!confirm("Sei sicuro di voler eliminare questa rateazione e tutte le sue rate?")) {
       return;
     }
 
+    setDeleting(id);
     try {
       await deleteRateation(id);
       toast({
@@ -115,8 +127,10 @@ export const useRateations = () => {
         description: message,
         variant: "destructive",
       });
+    } finally {
+      setDeleting(null);
     }
-  }, [online, loadData]);
+  }, [online, loadData, deleting]);
 
   return {
     rows,
@@ -125,5 +139,6 @@ export const useRateations = () => {
     online,
     loadData,
     handleDelete,
+    deleting,
   };
 };

@@ -36,6 +36,10 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   const [manualCount, setManualCount] = React.useState<number | undefined>(undefined);
   const [manualTotal, setManualTotal] = React.useState<string>("");
   const [manualRows, setManualRows] = React.useState<ManualRow[]>([]);
+
+  // Saving states
+  const [savingAuto, setSavingAuto] = React.useState(false);
+  const [savingManual, setSavingManual] = React.useState(false);
   // LOVABLE:END formState
 
   // LOVABLE:START resetForm
@@ -99,9 +103,11 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
     if (!numRate) return toast({ title: "Numero rate richiesto", description: "Inserisci il numero di rate.", variant: "destructive" });
     if (!amountPerRate) return toast({ title: "Importo richiesto", description: "Inserisci l'importo per rata.", variant: "destructive" });
     if (!firstDue) return toast({ title: "Data richiesta", description: "Inserisci la prima scadenza.", variant: "destructive" });
+    if (savingAuto) return toast({ title: "Operazione in corso", description: "Attendi il completamento", variant: "destructive" });
 
     const p_number = numero?.trim() || `R-${new Date().toISOString().slice(0, 10)}-${Math.floor(Math.random() * 1000)}`;
 
+    setSavingAuto(true);
     try {
       const data = await createRateationAuto({
         p_number,
@@ -119,6 +125,8 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
     } catch (error) {
       const message = error instanceof Error ? error.message : "Errore sconosciuto";
       toast({ title: "Errore", description: message, variant: "destructive" });
+    } finally {
+      setSavingAuto(false);
     }
   };
   // LOVABLE:END saveAuto
@@ -127,6 +135,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   const saveManual = async () => {
     if (!online) return toast({ title: "Offline", description: "Impossibile salvare.", variant: "destructive" });
     if (!tipo) return toast({ title: "Tipo richiesto", description: "Seleziona un tipo prima di salvare.", variant: "destructive" });
+    if (savingManual) return toast({ title: "Operazione in corso", description: "Attendi il completamento", variant: "destructive" });
     
     if (!manualRows.length) {
       return toast({ title: "Rate richieste", description: "Aggiungi almeno una rata.", variant: "destructive" });
@@ -144,6 +153,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
     }));
     const p_number = numero?.trim() || `R-${new Date().toISOString().slice(0, 10)}-${Math.floor(Math.random() * 1000)}`;
 
+    setSavingManual(true);
     try {
       const data = await createRateationManual({
         p_number,
@@ -158,6 +168,8 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
     } catch (error) {
       const message = error instanceof Error ? error.message : "Errore sconosciuto";
       toast({ title: "Errore", description: message, variant: "destructive" });
+    } finally {
+      setSavingManual(false);
     }
   };
   // LOVABLE:END saveManual
@@ -378,9 +390,13 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
             Annulla
           </Button>
           {tab === "auto" ? (
-            <Button onClick={saveAuto} disabled={!online}>Salva (Automatico)</Button>
+            <Button onClick={saveAuto} disabled={!online || savingAuto}>
+              {savingAuto ? "Salvando..." : "Salva (Automatico)"}
+            </Button>
           ) : (
-            <Button onClick={saveManual} disabled={!online}>Salva (Manuale)</Button>
+            <Button onClick={saveManual} disabled={!online || savingManual}>
+              {savingManual ? "Salvando..." : "Salva (Manuale)"}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>

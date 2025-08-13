@@ -104,11 +104,11 @@ export function useRateationStats() {
       setLoading(false);
       setPreviousStats(null); // Clear previous stats after loading
     }
-  }, [stats]);
+  }, []);
 
   useEffect(() => { 
     load(); 
   }, [load]);
 
-  return { stats, loading, error, reload: load };
+  return { stats, previousStats, loading, error, reload: load };
 }

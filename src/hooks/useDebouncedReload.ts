@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 
 interface DebouncedReloadOptions {
   loadData: () => void;
@@ -47,6 +47,9 @@ export function useDebouncedReload({
       timeoutRef.current = null;
     }
   }, []);
+
+  // Auto-cleanup on unmount
+  useEffect(() => cleanup, [cleanup]);
 
   return {
     debouncedReload,
