@@ -26,7 +26,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   // LOVABLE:START formState
   // Auto rateation state
   const [numero, setNumero] = React.useState("");
-  const [tipo, setTipo] = React.useState("");
+  const [tipo, setTipo] = React.useState<string | undefined>(undefined);
   const [contribuente, setContribuente] = React.useState("");
   const [numRate, setNumRate] = React.useState<number | undefined>(undefined);
   const [amountPerRate, setAmountPerRate] = React.useState<number | undefined>(undefined);
@@ -41,7 +41,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   // LOVABLE:START resetForm
   const resetForm = () => {
     setNumero("");
-    setTipo("");
+    setTipo(undefined);
     setContribuente("");
     setNumRate(undefined);
     setAmountPerRate(undefined);
@@ -198,14 +198,20 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
                 <div>
                   <Label className="text-xs">Tipo</Label>
                   <div className="flex gap-2">
-                    <Select value={tipo || undefined} onValueChange={setTipo}>
+                    <Select value={tipo} onValueChange={setTipo}>
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="Seleziona tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {types.map((t) => (
-                          <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                        ))}
+                        {types.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-muted-foreground">
+                            Nessun tipo disponibile
+                          </div>
+                        ) : (
+                          types.map((t) => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <Button className="h-9" variant="outline" onClick={addNewType}>+</Button>
@@ -278,14 +284,20 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
                 <div>
                   <Label className="text-xs">Tipo</Label>
                   <div className="flex gap-2">
-                    <Select value={tipo || undefined} onValueChange={setTipo}>
+                    <Select value={tipo} onValueChange={setTipo}>
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="Seleziona tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {types.map((t) => (
-                          <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                        ))}
+                        {types.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-muted-foreground">
+                            Nessun tipo disponibile
+                          </div>
+                        ) : (
+                          types.map((t) => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <Button className="h-9" variant="outline" onClick={addNewType}>+</Button>
