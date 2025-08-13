@@ -12,6 +12,8 @@ import { RateationFilters } from "@/features/rateations/components/RateationFilt
 import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { KpiCards } from "@/features/rateations/components/KpiCards";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 
 export default function Rateations() {
@@ -47,6 +49,17 @@ export default function Rateations() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const openOnMount = params.get("new") === "1";
+  const [showBackButton, setShowBackButton] = React.useState(false);
+
+  // Mostra il pulsante back quando il query param è presente ma il modale non è aperto
+  React.useEffect(() => {
+    setShowBackButton(openOnMount);
+  }, [openOnMount]);
+
+  const handleBackToRateations = () => {
+    window.history.replaceState({}, '', '/rateazioni');
+    setShowBackButton(false);
+  };
 
   const openComparazione = () => {
     // TODO: Implement comparazione annuale
@@ -78,9 +91,24 @@ export default function Rateations() {
               debouncedReload();
               setRefreshKey(prev => prev + 1);
             }}
+            onCancelled={handleBackToRateations}
           />
         </div>
       </div>
+
+      {/* Back to Rateazioni button when coming from ?new=1 but modal closed */}
+      {showBackButton && (
+        <div className="mb-4">
+          <Button 
+            variant="outline" 
+            onClick={handleBackToRateations}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Torna alle rateazioni
+          </Button>
+        </div>
+      )}
 
       {/* KPI Cards - Always visible */}
       <KpiCards 

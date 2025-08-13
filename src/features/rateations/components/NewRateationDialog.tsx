@@ -14,10 +14,11 @@ import type { ManualRow } from "../types";
 
 interface NewRateationDialogProps {
   onCreated?: () => void;
+  onCancelled?: () => void;
   initialOpen?: boolean;
 }
 
-export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateationDialogProps) {
+export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false }: NewRateationDialogProps) {
   const [open, setOpen] = React.useState(initialOpen);
   const [tab, setTab] = React.useState<"auto" | "manual">("auto");
   const online = useOnline();
@@ -174,8 +175,16 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
   };
   // LOVABLE:END saveManual
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && open) {
+      // Dialog is being closed
+      onCancelled?.();
+    }
+    setOpen(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
@@ -386,7 +395,7 @@ export function NewRateationDialog({ onCreated, initialOpen = false }: NewRateat
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Annulla
           </Button>
           {tab === "auto" ? (
