@@ -165,6 +165,58 @@ export default function Rateations() {
                 onDataChanged={debouncedReloadStats}
               />
             </TabsContent>
+            
+            <TabsContent value="attive" className="space-y-4">
+              <RateationFilters 
+                onComparazione={openComparazione}
+                onStats={openStats}
+              />
+
+              <RateationsTablePro 
+                key={refreshKey}
+                rows={rows.filter(row => row.residuo > 0).map(row => ({
+                  ...row,
+                  importoRitardo: row.importoRitardo || 0,
+                  rateInRitardo: row.rateInRitardo || 0
+                } as RateationRowPro))}
+                loading={loading}
+                error={error}
+                online={online}
+                onDelete={(id) => handleDelete(id, debouncedReloadStats)}
+                deleting={deleting}
+                onRefresh={() => {
+                  debouncedReload();
+                  setRefreshKey(prev => prev + 1);
+                }}
+                onDataChanged={debouncedReloadStats}
+              />
+            </TabsContent>
+            
+            <TabsContent value="completate" className="space-y-4">
+              <RateationFilters 
+                onComparazione={openComparazione}
+                onStats={openStats}
+              />
+
+              <RateationsTablePro 
+                key={refreshKey}
+                rows={rows.filter(row => row.residuo === 0).map(row => ({
+                  ...row,
+                  importoRitardo: row.importoRitardo || 0,
+                  rateInRitardo: row.rateInRitardo || 0
+                } as RateationRowPro))}
+                loading={loading}
+                error={error}
+                online={online}
+                onDelete={(id) => handleDelete(id, debouncedReloadStats)}
+                deleting={deleting}
+                onRefresh={() => {
+                  debouncedReload();
+                  setRefreshKey(prev => prev + 1);
+                }}
+                onDataChanged={debouncedReloadStats}
+              />
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
