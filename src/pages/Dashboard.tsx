@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 type Installment = {
   id: number;
   amount: number | null;
-  is_paid: boolean;
+  is_paid: boolean | null;
   due_date: string | null;   // ISO date (YYYY-MM-DD) o null
   created_at: string;        // ISO datetime
 };
@@ -83,7 +83,7 @@ export default function Dashboard() {
   const totalPaid = useMemo(
     () =>
       rows
-        .filter((r) => r.is_paid)
+        .filter((r) => r.is_paid === true)
         .reduce((s, r) => s + Number(r.amount || 0), 0),
     [rows]
   );
@@ -94,12 +94,12 @@ export default function Dashboard() {
   const totalOverdue = useMemo(
     () =>
       rows
-        .filter((r) => !r.is_paid && r.due_date && r.due_date < todayISO)
+        .filter((r) => r.is_paid !== true && r.due_date && r.due_date < todayISO)
         .reduce((s, r) => s + Number(r.amount || 0), 0),
     [rows]
   );
 
-  const paidCount = rows.filter((r) => r.is_paid).length;
+  const paidCount = rows.filter((r) => r.is_paid === true).length;
   const totalCount = rows.length;
 
   // Dati per grafico mensile (Gen..Dic)
@@ -112,13 +112,14 @@ export default function Dashboard() {
       const d = new Date(r.due_date || r.created_at);
       const idx = d.getMonth(); // 0..11
       base[idx].dovuto += Number(r.amount || 0);
-      if (r.is_paid) base[idx].pagato += Number(r.amount || 0);
+      if (r.is_paid === true) base[idx].pagato += Number(r.amount || 0);
     });
 
     return base;
   }, [rows]);
 
-  const euro = (n: number) => `€ ${n.toLocaleString("it-IT")}`;
+  const euro = (n: number) =>
+    n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
 
   return (
     <main className="min-h-screen">
@@ -166,19 +167,20 @@ export default function Dashboard() {
 
       {/* KPI */}
       <section className="container mx-auto px-4 py-8 md:py-10">
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Sto caricando…</p>
-        ) : error ? (
-          <p className="text-sm text-red-500">Errore: {error}</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <Stat label="Totale dovuto" value={euro(totalDue)} />
-            <Stat label="Totale pagato" value={euro(totalPaid)} />
-            <Stat label="Totale residuo" value={euro(totalResiduo)} />
-            <Stat label="In ritardo" value={euro(totalOverdue)} />
-            <Stat label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
-          </div>
+        {loading && (
+          <p className="text-sm text-muted-foreground mb-4">Sto caricando…</p>
         )}
+        {error && (
+          <p className="text-sm text-red-500 mb-4">Errore: {error}</p>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <Stat label="Totale dovuto" value={euro(totalDue)} />
+          <Stat label="Totale pagato" value={euro(totalPaid)} />
+          <Stat label="Totale residuo" value={euro(totalResiduo)} />
+          <Stat label="In ritardo" value={euro(totalOverdue)} />
+          <Stat label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
+        </div>
 
         {/* Grafico */}
         <Card className="card-elevated mt-6">
