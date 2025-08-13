@@ -1,56 +1,101 @@
-import { useEffect, useState } from "react";
-// Nota: usa il path corretto "integrations"
+import { useEffect, useMemo, useState } from "react";
+// Usa lo stesso path che già funziona nel tuo progetto.
+// Se l'alias "@" non funziona, usa un percorso relativo corretto.
 import { supabase } from "@/integrations/supabase/client";
 
+// 👉 Cambia qui se la tua tabella ha un altro nome (es. "rateations")
+const TABLE = "installments";
+
+type Row = {
+  amount: number | null;
+  is_paid: boolean | null;
+  due_date: string | null;     // "YYYY-MM-DD" oppure null
+  created_at: string;          // datetime ISO
+};
+
 export default function Index() {
-  const [status, setStatus] = useState<"loading" | "ok" | "err">("loading");
-  const [rows, setRows] = useState<any[]>([]);
-  const [message, setMessage] = useState("");
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      setStatus("loading");
+      setLoading(true);
+      setError(null);
 
-      // PROVA: leggo max 3 righe dalla tabella "rateations"
-      // Se il nome fosse diverso nel tuo DB, cambia qui (es. "installments")
       const { data, error } = await supabase
-        .from("rateations")
-        .select("id, number, created_at")
-        .limit(3);
+        .from(TABLE)
+        .select("amount, is_paid, due_date, created_at")
+        .order("due_date", { ascending: true })
+        .limit(1000);
 
       if (error) {
-        setStatus("err");
-        setMessage(error.message);
+        setError(error.message);
+        setRows([]);
       } else {
-        setStatus("ok");
         setRows(data ?? []);
       }
+      setLoading(false);
     })();
   }, []);
 
+  // formatter € (mostra sempre 0,00 se n è 0)
+  const euro = (n: number) =>
+    n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+
+  // KPI (con fallback a 0 se non ci sono dati)
+  const totalDue = useMemo(
+    () => rows.reduce((s, r) => s + Number(r.amount || 0), 0),
+    [rows]
+  );
+
+  const totalPaid = useMemo(
+    () =>
+      rows
+        .filter((r) => !!r.is_paid)
+        .reduce((s, r) => s + Number(r.amount || 0), 0),
+    [rows]
+  );
+
+  const totalResiduo = Math.max(totalDue - totalPaid, 0);
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const totalOverdue = useMemo(
+    () =>
+      rows
+        .filter((r) => !r.is_paid && r.due_date && r.due_date < todayISO)
+        .reduce((s, r) => s + Number(r.amount || 0), 0),
+    [rows, todayISO]
+  );
+
+  const paidCount = rows.filter((r) => !!r.is_paid).length;
+  const totalCount = rows.length;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="max-w-xl w-full">
-        <h1 className="text-2xl font-bold mb-4">Test connessione a Supabase</h1>
+    <main className="min-h-screen p-6">
+      <h1 className="text-2xl font-bold mb-4">Dashboard – Gestione Rateazioni</h1>
 
-        {status === "loading" && <p>Sto contattando Supabase…</p>}
+      {loading && <p>Sto caricando…</p>}
+      {error && <p className="text-red-600">Errore: {error}</p>}
 
-        {status === "err" && (
-          <p className="text-red-500">Errore: {message}</p>
-        )}
+      {!loading && !error && (
+        <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <Kpi label="Totale dovuto" value={euro(totalDue)} />
+          <Kpi label="Totale pagato" value={euro(totalPaid)} />
+          <Kpi label="Totale residuo" value={euro(totalResiduo)} />
+          <Kpi label="In ritardo" value={euro(totalOverdue)} />
+          <Kpi label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
+        </section>
+      )}
+    </main>
+  );
+}
 
-        {status === "ok" && (
-          <div>
-            <p className="mb-2">Connessione OK ✅</p>
-            <p className="text-sm">
-              Ho letto {rows.length} righe dalla tabella <code>rateations</code>.
-            </p>
-            <pre className="text-xs bg-muted p-3 rounded mt-2">
-              {JSON.stringify(rows, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
+function Kpi({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border p-4 shadow-sm bg-white/5">
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="mt-2 text-3xl font-semibold">{value}</div>
     </div>
   );
 }
