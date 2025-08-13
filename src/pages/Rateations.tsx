@@ -8,8 +8,10 @@ import { RateationsTable } from "@/features/rateations/components/RateationsTabl
 import { NewRateationDialog } from "@/features/rateations/components/NewRateationDialog";
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
 import { UserMenu } from "@/components/UserMenu";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Rateations() {
+  const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online, loadData, handleDelete } = useRateations();
   
   // Key per far re-render la tabella dopo creazione
@@ -20,8 +22,13 @@ export default function Rateations() {
       "Rateazioni - Gestione Rate",
       "Gestisci le tue rateazioni e rate di pagamento"
     );
-    loadData();
-  }, [loadData]);
+  }, []);
+
+  React.useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
+    if (!session) return;    // Don't load data if not authenticated
+    loadData();              // Load data only when authenticated
+  }, [authLoading, session, loadData]);
 
   // Leggi il query param per aprire il modale
   const location = useLocation();

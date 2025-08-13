@@ -66,6 +66,7 @@ export const useRateations = () => {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore sconosciuto";
       setError(message);
+      setRows([]); // Always set empty array on error, never demo data
       toast({
         title: "Errore nel caricamento",
         description: message,

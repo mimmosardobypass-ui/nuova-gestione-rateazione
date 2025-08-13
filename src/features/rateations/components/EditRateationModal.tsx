@@ -147,7 +147,7 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
             </div>
             <div className="space-y-2">
               <Label htmlFor="contribuente">Contribuente</Label>
-              <Input id="contribuente" value={contribuente} onChange={(e) => setContribuente(e.target.value)} placeholder="Es. Mario Rossi" disabled={disabled} />
+              <Input id="contribuente" value={contribuente} onChange={(e) => setContribuente(e.target.value)} placeholder="Es. Nome Cognome" disabled={disabled} />
             </div>
           </div>
 
