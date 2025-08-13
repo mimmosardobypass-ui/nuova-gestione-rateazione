@@ -21,19 +21,35 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
 export const markInstallmentPaid = async (
   rateationId: string, 
   seq: number, 
-  paid: boolean, 
-  paidAt?: string
+  paidAtDate: string // Required date in YYYY-MM-DD format
 ): Promise<void> => {
-  const { error } = await supabase.rpc("fn_set_installment_paid", {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidAtDate)) {
+    throw new Error("Data pagamento non valida (formato atteso YYYY-MM-DD).");
+  }
+
+  const { error } = await supabase.rpc("mark_installment_paid", {
     p_rateation_id: parseInt(rateationId),
     p_seq: seq,
-    p_paid: paid,
-    p_paid_at: paidAt || null,
+    p_paid_at: paidAtDate,
   });
 
   if (error) throw error;
 };
 // LOVABLE:END markInstallmentPaid
+
+// LOVABLE:START unmarkInstallmentPaid
+export const unmarkInstallmentPaid = async (
+  rateationId: string, 
+  seq: number
+): Promise<void> => {
+  const { error } = await supabase.rpc("unmark_installment_paid", {
+    p_rateation_id: parseInt(rateationId),
+    p_seq: seq,
+  });
+
+  if (error) throw error;
+};
+// LOVABLE:END unmarkInstallmentPaid
 
 // LOVABLE:START postponeInstallment
 export const postponeInstallment = async (

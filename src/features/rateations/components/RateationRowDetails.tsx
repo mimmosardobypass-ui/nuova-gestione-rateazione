@@ -6,14 +6,15 @@ import { useOnline } from "@/hooks/use-online";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { RateationRow, InstallmentUI } from "../types";
 import { AttachmentsPanel } from "./AttachmentsPanel";
-import { markInstallmentPaid, postponeInstallment, fetchInstallments } from "../api/installments";
+import { postponeInstallment, fetchInstallments } from "../api/installments";
 import { formatEuro } from "@/lib/formatters";
+import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
+import { InstallmentStatusBadge } from "./InstallmentStatusBadge";
 
 export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow; onDataChanged?: () => void }) {
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [markingPaid, setMarkingPaid] = useState<number | null>(null);
   const [postponing, setPostponing] = useState<number | null>(null);
   const online = useOnline();
 
@@ -73,30 +74,6 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
     });
   }, [items, today]);
 
-  const markPaid = async (seq: number) => {
-    if (!online) {
-      toast({ title: "Offline", description: "Impossibile marcare come pagata offline.", variant: "destructive" });
-      return;
-    }
-
-    if (markingPaid) {
-      toast({ title: "Operazione in corso", description: "Attendi il completamento", variant: "destructive" });
-      return;
-    }
-
-    setMarkingPaid(seq);
-    try {
-      await markInstallmentPaid(row.id, seq, true, new Date().toISOString().slice(0, 10));
-      toast({ title: "Pagamento registrato", description: "Rata marcata come pagata" });
-      await loadInstallments();
-      onDataChanged?.();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Errore nel marcare come pagata";
-      toast({ title: "Errore", description: message, variant: "destructive" });
-    } finally {
-      setMarkingPaid(null);
-    }
-  };
 
   const postpone = async (seq: number) => {
     if (!online) {
@@ -137,7 +114,7 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
           {error && <p className="text-sm text-red-600">Errore: {error}</p>}
           {!loading && withStatus.length === 0 && <div className="border rounded-md p-3 text-sm">Nessuna rata.</div>}
           {withStatus.map((it) => (
-            <div key={it.seq} className="flex flex-wrap items-center justify-between gap-2 border rounded-md p-3">
+            <div key={it.seq} className="flex flex-wrap items-center justify-between gap-4 border rounded-md p-4">
               <div className="flex items-center gap-3">
                 <Badge variant="secondary"># {it.seq}</Badge>
                 <div>
@@ -145,30 +122,34 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
                   <div className="text-sm text-muted-foreground">Importo: {formatEuro(it.amount)}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge>{it.status}</Badge>
-                {it.postponed && <Badge variant="outline">Rimandata</Badge>}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  size="sm" 
-                  variant="secondary" 
-                  disabled={!online || markingPaid === it.seq || postponing === it.seq} 
-                  onClick={() => markPaid(it.seq)}
-                >
-                  {markingPaid === it.seq ? "..." : "Segna pagata"}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  disabled={!online || markingPaid === it.seq || postponing === it.seq} 
-                  onClick={() => postpone(it.seq)}
-                >
-                  {postponing === it.seq ? "..." : "Posticipa"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => toast({ title: "Elimina rata", description: "Consentita solo per manuali" })}>
-                  Elimina
-                </Button>
+              
+              <InstallmentStatusBadge installment={it} />
+              
+              <div className="flex flex-col gap-2 min-w-0">
+                <InstallmentPaymentActions
+                  rateationId={row.id}
+                  installment={it}
+                  onReload={loadInstallments}
+                  onStatsReload={onDataChanged}
+                  allowUnpay={true}
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    disabled={!online || postponing === it.seq} 
+                    onClick={() => postpone(it.seq)}
+                  >
+                    {postponing === it.seq ? "..." : "Posticipa"}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => toast({ title: "Elimina rata", description: "Consentita solo per manuali" })}
+                  >
+                    Elimina
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

@@ -63,7 +63,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     setProcessing(prev => ({ ...prev, [key]: true }));
     
     try {
-      await markInstallmentPaid(rateationId, seq, true);
+      const todayISO = new Date().toISOString().slice(0, 10);
+      await markInstallmentPaid(rateationId, seq, todayISO);
       await load();
       onDataChanged?.();
       toast({

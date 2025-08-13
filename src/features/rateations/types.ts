@@ -22,6 +22,9 @@ export interface InstallmentUI {
   is_paid: boolean;
   paid_at: string | null;
   postponed: boolean;
+  late_days?: number;
+  status?: string;
+  paid_recorded_at?: string | null;
 }
 
 export interface RateationType {

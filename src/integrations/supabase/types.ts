@@ -22,14 +22,17 @@ export type Database = {
           due_date: string
           id: number
           is_paid: boolean | null
+          late_days: number | null
           notes: string | null
           owner_uid: string
           paid_at: string | null
+          paid_recorded_at: string | null
           payment_method: string | null
           postponed: boolean | null
           rateation_id: number
           receipt_url: string | null
           seq: number
+          status: string | null
         }
         Insert: {
           amount: number
@@ -38,14 +41,17 @@ export type Database = {
           due_date: string
           id?: number
           is_paid?: boolean | null
+          late_days?: number | null
           notes?: string | null
           owner_uid: string
           paid_at?: string | null
+          paid_recorded_at?: string | null
           payment_method?: string | null
           postponed?: boolean | null
           rateation_id: number
           receipt_url?: string | null
           seq: number
+          status?: string | null
         }
         Update: {
           amount?: number
@@ -54,14 +60,17 @@ export type Database = {
           due_date?: string
           id?: number
           is_paid?: boolean | null
+          late_days?: number | null
           notes?: string | null
           owner_uid?: string
           paid_at?: string | null
+          paid_recorded_at?: string | null
           payment_method?: string | null
           postponed?: boolean | null
           rateation_id?: number
           receipt_url?: string | null
           seq?: number
+          status?: string | null
         }
         Relationships: [
           {
@@ -365,6 +374,14 @@ export type Database = {
           p_paid: boolean
           p_paid_at: string
         }
+        Returns: undefined
+      }
+      mark_installment_paid: {
+        Args: { p_rateation_id: number; p_seq: number; p_paid_at: string }
+        Returns: undefined
+      }
+      unmark_installment_paid: {
+        Args: { p_rateation_id: number; p_seq: number }
         Returns: undefined
       }
     }
