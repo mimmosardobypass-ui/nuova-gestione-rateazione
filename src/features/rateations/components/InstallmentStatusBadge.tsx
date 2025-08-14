@@ -11,10 +11,11 @@ export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgePr
   const getStatusInfo = () => {
     if (installment.is_paid) {
       const paidDate = installment.paid_at ? format(new Date(installment.paid_at), "dd/MM/yyyy", { locale: it }) : "N/A";
+      const lateDays = installment.late_days || 0;
       return {
         variant: "secondary" as const,
         text: "Pagata",
-        subtitle: `Pagata il ${paidDate}`
+        subtitle: lateDays > 0 ? `Pagata il ${paidDate} — ${lateDays} gg ritardo` : `Pagata il ${paidDate}`
       };
     }
 

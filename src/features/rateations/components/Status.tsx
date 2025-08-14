@@ -9,6 +9,7 @@ export type Installment = {
   paid_at?: string | null;
   canceled_at?: string | null;
   postponed?: boolean;
+  late_days?: number;
 };
 
 export type InstallmentStatus =

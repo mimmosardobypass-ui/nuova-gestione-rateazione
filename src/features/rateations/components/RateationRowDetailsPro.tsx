@@ -3,7 +3,7 @@ import { formatEuro } from "@/lib/formatters";
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { StatusBadge, getInstallmentStatus, Installment } from "./Status";
 import { AttachmentsPanel } from "./AttachmentsPanel";
-import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
+import { PaidAtEditor } from "./PaidAtEditor";
 import {
   Table,
   TableBody,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
+import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 
 interface RateationRowDetailsProProps {
   rateationId: string;
@@ -43,6 +44,11 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
       setLoading(false);
     }
   }, [rateationId]);
+
+  const { debouncedReload, debouncedReloadStats } = useDebouncedReload({
+    loadData: load,
+    reloadStats: () => onDataChanged?.()
+  });
 
   React.useEffect(() => { 
     load(); 
@@ -201,24 +207,19 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                     <TableCell className="text-right font-medium">{formatEuro(it.amount || 0)}</TableCell>
                     <TableCell><StatusBadge status={status} /></TableCell>
                     <TableCell>
-                      {it.paid_at ? new Date(it.paid_at).toLocaleDateString("it-IT") : "—"}
+                      <PaidAtEditor
+                        rateationId={rateationId}
+                        seq={it.seq}
+                        dueDate={it.due_date}
+                        paidAt={it.paid_at}
+                        isPaid={it.is_paid}
+                        lateDays={it.late_days}
+                        onSaved={() => { debouncedReload(); }}
+                        disabled={!online}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end items-center">
-                        <InstallmentPaymentActions
-                          rateationId={rateationId}
-                          installment={{
-                            seq: it.seq,
-                            amount: it.amount || 0,
-                            due_date: it.due_date || "",
-                            is_paid: it.is_paid,
-                            paid_at: it.paid_at,
-                            postponed: it.postponed || false
-                          }}
-                          onReload={load}
-                          onStatsReload={onDataChanged}
-                          disabled={!online}
-                        />
                         {!it.is_paid && (
                           <Button 
                             size="sm" 
