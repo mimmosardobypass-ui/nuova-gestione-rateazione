@@ -52,7 +52,7 @@ export const useRateations = () => {
         ms: Math.round(t1 - t0),
       });
       if (rateationIds.length === 0) {
-        console.debug("[useRateations] no rateations for user → setRows([])");
+        console.warn("[useRateations] nessuna rateazione trovata per l'utente. Verificare backfill owner_uid/RLS.");
         setRows([]);
         return;
       }

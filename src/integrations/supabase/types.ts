@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -340,27 +340,27 @@ export type Database = {
     Functions: {
       fn_create_rateation_auto: {
         Args: {
-          p_number: string
-          p_type_id: number
-          p_taxpayer_name: string
-          p_start_due_date: string
+          p_amount_per_installment: number
           p_frequency: string
           p_num_installments: number
-          p_amount_per_installment: number
+          p_number: string
+          p_start_due_date: string
+          p_taxpayer_name: string
+          p_type_id: number
         }
         Returns: number
       }
       fn_create_rateation_manual: {
         Args: {
-          p_number: string
-          p_type_id: number
-          p_taxpayer_name: string
           p_installments_json: Json
+          p_number: string
+          p_taxpayer_name: string
+          p_type_id: number
         }
         Returns: number
       }
       fn_postpone_installment: {
-        Args: { p_rateation_id: number; p_seq: number; p_new_due: string }
+        Args: { p_new_due: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
       }
       fn_recalc_rateation_status: {
@@ -369,15 +369,15 @@ export type Database = {
       }
       fn_set_installment_paid: {
         Args: {
-          p_rateation_id: number
-          p_seq: number
           p_paid: boolean
           p_paid_at: string
+          p_rateation_id: number
+          p_seq: number
         }
         Returns: undefined
       }
       mark_installment_paid: {
-        Args: { p_rateation_id: number; p_seq: number; p_paid_at: string }
+        Args: { p_paid_at: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
       }
       unmark_installment_paid: {
