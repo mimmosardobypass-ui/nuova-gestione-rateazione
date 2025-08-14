@@ -1,25 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
-import { useAuth } from "@/contexts/AuthContext";
 import type { RateationRow } from "../types";
-import { fetchRateations, deleteRateation } from "../api/rateations";
+import { deleteRateation } from "../api/rateations";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useRateations = () => {
   const [rows, setRows] = useState<RateationRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const online = useOnline();
-  const { session, authReady } = useAuth();
 
   const loadData = useCallback(async () => {
-    // Wait for auth to be ready and user to be authenticated
-    if (!authReady || !session?.user) {
-      console.debug('[useRateations] Waiting for auth or user session');
-      return;
-    }
-
     if (!online) {
       setError("Offline - impossibile caricare i dati");
       return;
@@ -30,9 +22,15 @@ export const useRateations = () => {
     setError(null);
 
     try {
-      // --- LOGICA PERSONALIZZATA CON RLS + ORDINAMENTO + TELEMETRIA ---
+      // Get current user first - same as useRateationStats
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      if (!user) {
+        console.warn("[useRateations] User not authenticated, skipping data load");
+        setLoading(false);
+        return;
+      }
+
+      console.debug("[useRateations] Loading data for user:", user.id);
 
       if (controller.signal.aborted) return;
 
@@ -164,7 +162,7 @@ export const useRateations = () => {
     }
 
     return () => controller.abort();
-  }, [online, authReady, session?.user?.id]);
+  }, [online]);
 
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -224,7 +222,6 @@ export const useRateations = () => {
     loading,
     error,
     online,
-    authReady,
     loadData,
     handleDelete,
     deleting,

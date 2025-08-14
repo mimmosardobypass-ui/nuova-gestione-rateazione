@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 export default function Rateations() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
-  const { rows, loading, error, online, authReady, loadData, handleDelete, deleting } = useRateations();
+  const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   
   const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
@@ -182,7 +182,6 @@ export default function Rateations() {
                 loading={loading}
                 error={error}
                 online={online}
-                authReady={authReady}
                 onDelete={(id) => handleDelete(id, debouncedReloadStats)}
                 deleting={deleting}
                 onRefresh={() => {
@@ -209,7 +208,6 @@ export default function Rateations() {
                 loading={loading}
                 error={error}
                 online={online}
-                authReady={authReady}
                 onDelete={(id) => handleDelete(id, debouncedReloadStats)}
                 deleting={deleting}
                 onRefresh={() => {
