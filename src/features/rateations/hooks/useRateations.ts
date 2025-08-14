@@ -129,12 +129,18 @@ export const useRateations = (): UseRateationsReturn => {
 
       // 1) Fetch rateations with owner_uid filter
       const t0 = performance.now?.() ?? Date.now();
+      console.debug("[useRateations] Fetching rateations for user:", userId);
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
         .select("id, number, type_id, taxpayer_name, created_at")
         .eq("owner_uid", userId);
       const t1 = performance.now?.() ?? Date.now();
-      if (rateationsError) throw rateationsError;
+      
+      console.debug("[useRateations] Raw rateations response:", { rateations, error: rateationsError });
+      if (rateationsError) {
+        console.error("[useRateations] Rateations fetch error:", rateationsError);
+        throw rateationsError;
+      }
 
       const rateationIds = (rateations || []).map(r => r.id);
       console.debug("[useRateations] rateations fetched:", {

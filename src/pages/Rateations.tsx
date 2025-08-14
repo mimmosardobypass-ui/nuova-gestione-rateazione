@@ -21,6 +21,7 @@ export default function Rateations() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
+  console.log("[Rateations] Hook data:", { rows: rows.length, loading, error, online });
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   
   const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
@@ -31,6 +32,11 @@ export default function Rateations() {
   // Cleanup timeouts on unmount  
   React.useEffect(() => cleanup, [cleanup]);
   
+  React.useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
+    if (!session) return;    // Don't load data if not authenticated
+    loadData();              // Load data only when authenticated
+  }, [authLoading, session, loadData]);
   // Key per far re-render la tabella dopo creazione
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -41,11 +47,6 @@ export default function Rateations() {
     );
   }, []);
 
-  React.useEffect(() => {
-    if (authLoading) return; // Wait for auth to finish loading
-    if (!session) return;    // Don't load data if not authenticated
-    loadData();              // Load data only when authenticated
-  }, [authLoading, session, loadData]);
 
   // Leggi il query param per aprire il modale
   const location = useLocation();
