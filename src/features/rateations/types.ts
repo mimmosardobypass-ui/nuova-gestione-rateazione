@@ -13,6 +13,7 @@ export interface RateationRow {
   ratePagate: number;
   rateNonPagate: number;
   rateInRitardo: number;
+  ratePaidLate: number; // NEW: rate pagate in ritardo
 }
 
 export interface InstallmentUI {

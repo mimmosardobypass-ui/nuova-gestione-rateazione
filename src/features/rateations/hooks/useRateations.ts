@@ -4,7 +4,7 @@ import { useOnline } from "@/hooks/use-online";
 import { useAuth } from "@/contexts/AuthContext";
 import type { RateationRow } from "../types";
 import { fetchRateations, deleteRateation } from "../api/rateations";
-import { fetchRateationsSummaryEnhanced, type RateationSummaryEnhanced } from "../api/enhanced";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useRateations = () => {
   const [rows, setRows] = useState<RateationRow[]>([]);
@@ -30,26 +30,95 @@ export const useRateations = () => {
     setError(null);
 
     try {
-      // Use the enhanced summary view with improved calculations
-      const data = await fetchRateationsSummaryEnhanced(controller.signal);
+      // Fetch data separately to implement custom late logic
 
       if (controller.signal.aborted) return;
 
-      // Transform the data to match the expected RateationRow format
-      const processedRows: RateationRow[] = data.map(row => ({
-        id: row.id?.toString() || "",
-        numero: row.number || "",
-        tipo: row.type_name || "",
-        contribuente: row.taxpayer_name || "",
-        importoTotale: row.total_amount || 0,
-        importoPagato: row.amount_paid || 0,
-        importoRitardo: row.amount_overdue || 0,
-        residuo: row.amount_residual || 0,
-        rateTotali: row.installments_total || 0,
-        ratePagate: row.installments_paid || 0,
-        rateNonPagate: row.installments_unpaid || 0,
-        rateInRitardo: row.installments_overdue || 0,
-      }));
+      // We need to fetch rateations and installments separately to implement custom logic
+      const { data: rateations, error: rateationsError } = await supabase
+        .from("rateations")
+        .select(`
+          id, number, type_id, taxpayer_name,
+          rateation_types (name)
+        `);
+
+      if (rateationsError) throw rateationsError;
+
+      const { data: installments, error: installmentsError } = await supabase
+        .from("installments")
+        .select("*");
+
+      if (installmentsError) throw installmentsError;
+
+      const { data: types, error: typesError } = await supabase
+        .from("rateation_types")
+        .select("*");
+
+      if (typesError) throw typesError;
+
+      const typesMap = types?.reduce((acc, type) => ({
+        ...acc,
+        [type.id]: type.name
+      }), {} as Record<number, string>) || {};
+
+      // Process each rateation with custom late logic
+      const processedRows: RateationRow[] = (rateations || []).map(r => {
+        const rateForThisRateation = (installments || []).filter(i => i.rateation_id === r.id);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const rateTotali = rateForThisRateation.length;
+        const ratePagate = rateForThisRateation.filter(i => i.is_paid).length;
+        const rateNonPagate = rateTotali - ratePagate;
+
+        // 1) Overdue correnti: scadute e NON pagate
+        const rateInRitardo = rateForThisRateation.filter(i => {
+          if (i.is_paid) return false;
+          if (!i.due_date) return false;
+          const due = new Date(i.due_date);
+          due.setHours(0, 0, 0, 0);
+          return due < today;
+        }).length;
+
+        // 2) Pagate in ritardo: pagate con paid_at > due_date (storico)
+        const ratePaidLate = rateForThisRateation.filter(i => {
+          if (!i.is_paid) return false;
+          if (!i.due_date || !i.paid_at) return false;
+          const due = new Date(i.due_date);
+          due.setHours(0, 0, 0, 0);
+          const paid = new Date(i.paid_at);
+          paid.setHours(0, 0, 0, 0);
+          return paid > due;
+        }).length;
+
+        // Calculate amounts
+        const importoTotale = rateForThisRateation.reduce((sum, i) => sum + (i.amount || 0), 0);
+        const importoPagato = rateForThisRateation.filter(i => i.is_paid).reduce((sum, i) => sum + (i.amount || 0), 0);
+        const importoRitardo = rateForThisRateation.filter(i => {
+          if (i.is_paid) return false;
+          if (!i.due_date) return false;
+          const due = new Date(i.due_date);
+          due.setHours(0, 0, 0, 0);
+          return due < today;
+        }).reduce((sum, i) => sum + (i.amount || 0), 0);
+        const residuo = importoTotale - importoPagato;
+
+        return {
+          id: String(r.id),
+          numero: r.number || "",
+          tipo: typesMap[r.type_id] || "N/A",
+          contribuente: r.taxpayer_name,
+          importoTotale,
+          importoPagato,
+          importoRitardo,
+          residuo,
+          rateTotali,
+          ratePagate,
+          rateNonPagate,
+          rateInRitardo,
+          ratePaidLate, // NEW
+        };
+      });
 
       if (controller.signal.aborted) return;
       setRows(processedRows);

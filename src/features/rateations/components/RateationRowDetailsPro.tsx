@@ -149,9 +149,22 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             <div className="font-semibold text-green-700">
               {items.filter(it => it.is_paid).length}
             </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              di cui in ritardo: <span className="font-medium">
+                {items.filter(it => {
+                  if (!it.is_paid) return false;
+                  if (!it.due_date || !it.paid_at) return false;
+                  const due = new Date(it.due_date);
+                  due.setHours(0, 0, 0, 0);
+                  const paid = new Date(it.paid_at);
+                  paid.setHours(0, 0, 0, 0);
+                  return paid > due;
+                }).length}
+              </span>
+            </div>
           </div>
           <div className="text-center p-2 bg-red-50 rounded-md">
-            <div className="text-xs text-muted-foreground">In ritardo</div>
+            <div className="text-xs text-muted-foreground">In ritardo (non pagate)</div>
             <div className="font-semibold text-red-700">
               {items.filter(it => {
                 const status = getInstallmentStatus(it);
