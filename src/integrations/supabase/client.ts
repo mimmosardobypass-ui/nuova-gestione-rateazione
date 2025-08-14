@@ -26,7 +26,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: window.localStorage,
   },
   global: {
-    fetch: (...args) => fetch(...args),
+    fetch: fetch,
   },
   realtime: {
     params: { eventsPerSecond: 10 },

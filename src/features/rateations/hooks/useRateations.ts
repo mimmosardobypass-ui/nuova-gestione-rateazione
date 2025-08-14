@@ -256,8 +256,6 @@ export const useRateations = (): UseRateationsReturn => {
         setLoading(false);
       }
     }
-
-    return () => controller.abort();
   }, [online, loadFromCache, saveToCache, clearCache]);
 
   const refresh = useCallback(async () => {
@@ -407,10 +405,7 @@ export const useRateations = (): UseRateationsReturn => {
 
   // Initial load
   useEffect(() => {
-    const cleanup = loadData();
-    return () => {
-      if (cleanup instanceof Function) cleanup();
-    };
+    loadData();
   }, [loadData]);
 
   return {

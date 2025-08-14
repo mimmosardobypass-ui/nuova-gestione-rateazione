@@ -139,6 +139,7 @@ export type Database = {
           taxpayer_name: string | null
           total_amount: number | null
           type_id: number
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -152,6 +153,7 @@ export type Database = {
           taxpayer_name?: string | null
           total_amount?: number | null
           type_id: number
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -165,6 +167,7 @@ export type Database = {
           taxpayer_name?: string | null
           total_amount?: number | null
           type_id?: number
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -338,6 +341,13 @@ export type Database = {
       }
     }
     Functions: {
+      debug_rateations_count: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          rateations_count: number
+          user_id: string
+        }[]
+      }
       fn_create_rateation_auto: {
         Args: {
           p_amount_per_installment: number
