@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { setSEO } from "@/lib/seo";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useRateations } from "@/features/rateations/hooks/useRateations";
+import { useRateations } from "@/features/rateations/hooks/useRateationsWorking";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";

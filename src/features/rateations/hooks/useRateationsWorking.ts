@@ -22,15 +22,16 @@ export const useRateations = () => {
     setError(null);
 
     try {
+      console.log("[useRateationsWorking] Starting loadData, online:", online);
       // Get current user first - same as useRateationStats
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.warn("[useRateations] User not authenticated, skipping data load");
+        console.warn("[useRateationsWorking] User not authenticated, skipping data load");
         setLoading(false);
         return;
       }
 
-      console.debug("[useRateations] Loading data for user:", user.id);
+      console.debug("[useRateationsWorking] Loading data for user:", user.id);
 
       if (controller.signal.aborted) return;
 
@@ -44,14 +45,16 @@ export const useRateations = () => {
       if (rateationsError) throw rateationsError;
 
       const rateationIds = (rateations || []).map(r => r.id);
-      console.debug("[useRateations] rateations fetched:", {
+      console.log("[useRateationsWorking] rateations fetched:", {
         userId: user.id,
         count: rateations?.length ?? 0,
+        rateations: rateations,
         ms: Math.round(t1 - t0),
       });
       if (rateationIds.length === 0) {
-        console.warn("[useRateations] nessuna rateazione trovata per l'utente. Verificare backfill owner_uid/RLS.");
+        console.warn("[useRateationsWorking] nessuna rateazione trovata per l'utente. Verificare backfill owner_uid/RLS.");
         setRows([]);
+        setLoading(false);
         return;
       }
 
@@ -63,8 +66,9 @@ export const useRateations = () => {
         .in("rateation_id", rateationIds);
       const t3 = performance.now?.() ?? Date.now();
       if (installmentsError) throw installmentsError;
-      console.debug("[useRateations] installments fetched:", {
+      console.log("[useRateationsWorking] installments fetched:", {
         count: installments?.length ?? 0,
+        installments: installments,
         ms: Math.round(t3 - t2),
       });
 
@@ -137,11 +141,16 @@ export const useRateations = () => {
         const db = b._createdAt ? new Date(b._createdAt).getTime() : 0;
         return db - da;
       });
-      console.debug("[useRateations] processed rows:", processedRows.length);
+      console.log("[useRateationsWorking] processed rows:", {
+        count: processedRows.length,
+        finalRows: processedRows.map(({ _createdAt, ...rest }) => rest)
+      });
       
       if (controller.signal.aborted) return;
       // rimuovo proprietà ausiliaria prima di passare i dati alla UI
-      setRows(processedRows.map(({ _createdAt, ...rest }) => rest));
+      const finalRows = processedRows.map(({ _createdAt, ...rest }) => rest);
+      setRows(finalRows);
+      console.log("[useRateationsWorking] setRows called with:", finalRows);
     } catch (err) {
       if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
         console.debug('[ABORT] useRateations loadData');
