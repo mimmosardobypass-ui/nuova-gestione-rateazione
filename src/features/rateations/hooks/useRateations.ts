@@ -374,7 +374,7 @@ export const useRateations = (): UseRateationsReturn => {
         (payload) => {
           console.debug("[useRateations] Realtime rateations change:", payload);
           clearCache();
-          loadData();
+          loadData().catch(console.error);
         }
       )
       .on(
@@ -387,7 +387,7 @@ export const useRateations = (): UseRateationsReturn => {
         (payload) => {
           console.debug("[useRateations] Realtime installments change:", payload);
           clearCache();
-          loadData();
+          loadData().catch(console.error);
         }
       )
       .subscribe();
