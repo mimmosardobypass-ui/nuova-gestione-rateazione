@@ -30,49 +30,66 @@ export const useRateations = () => {
     setError(null);
 
     try {
-      // Fetch data separately to implement custom late logic
+      // --- LOGICA PERSONALIZZATA CON RLS + ORDINAMENTO + TELEMETRIA ---
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
       if (controller.signal.aborted) return;
 
-      // We need to fetch rateations and installments separately to implement custom logic
+      // 1) Prendo le rateazioni dell'utente (RLS-friendly) con created_at per sort
+      const t0 = performance.now?.() ?? Date.now();
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
-        .select(`
-          id, number, type_id, taxpayer_name,
-          rateation_types (name)
-        `);
-
+        .select("id, number, type_id, taxpayer_name, created_at")
+        .eq("owner_uid", user.id);
+      const t1 = performance.now?.() ?? Date.now();
       if (rateationsError) throw rateationsError;
 
+      const rateationIds = (rateations || []).map(r => r.id);
+      console.debug("[useRateations] rateations fetched:", {
+        userId: user.id,
+        count: rateations?.length ?? 0,
+        ms: Math.round(t1 - t0),
+      });
+      if (rateationIds.length === 0) {
+        console.debug("[useRateations] no rateations for user → setRows([])");
+        setRows([]);
+        return;
+      }
+
+      // 2) Installments solo per le rateazioni dell'utente
+      const t2 = performance.now?.() ?? Date.now();
       const { data: installments, error: installmentsError } = await supabase
         .from("installments")
-        .select("*");
-
+        .select("rateation_id, amount, is_paid, due_date, paid_at")
+        .in("rateation_id", rateationIds);
+      const t3 = performance.now?.() ?? Date.now();
       if (installmentsError) throw installmentsError;
+      console.debug("[useRateations] installments fetched:", {
+        count: installments?.length ?? 0,
+        ms: Math.round(t3 - t2),
+      });
 
+      // 3) Tipi (nome tipo)
       const { data: types, error: typesError } = await supabase
         .from("rateation_types")
-        .select("*");
-
+        .select("id, name");
       if (typesError) throw typesError;
 
-      const typesMap = types?.reduce((acc, type) => ({
-        ...acc,
-        [type.id]: type.name
-      }), {} as Record<number, string>) || {};
+      const typesMap = Object.fromEntries((types || []).map(t => [t.id, t.name as string]));
+      const today = new Date(); 
+      today.setHours(0, 0, 0, 0);
 
       // Process each rateation with custom late logic
-      const processedRows: RateationRow[] = (rateations || []).map(r => {
-        const rateForThisRateation = (installments || []).filter(i => i.rateation_id === r.id);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+      const processedRows: (RateationRow & { _createdAt: string | null })[] = (rateations || []).map(r => {
+        const its = (installments || []).filter(i => i.rateation_id === r.id);
 
-        const rateTotali = rateForThisRateation.length;
-        const ratePagate = rateForThisRateation.filter(i => i.is_paid).length;
+        const rateTotali = its.length;
+        const ratePagate = its.filter(i => i.is_paid).length;
         const rateNonPagate = rateTotali - ratePagate;
 
-        // 1) Overdue correnti: scadute e NON pagate
-        const rateInRitardo = rateForThisRateation.filter(i => {
+        // Overdue correnti: scadute e NON pagate
+        const rateInRitardo = its.filter(i => {
           if (i.is_paid) return false;
           if (!i.due_date) return false;
           const due = new Date(i.due_date);
@@ -80,10 +97,9 @@ export const useRateations = () => {
           return due < today;
         }).length;
 
-        // 2) Pagate in ritardo: pagate con paid_at > due_date (storico)
-        const ratePaidLate = rateForThisRateation.filter(i => {
-          if (!i.is_paid) return false;
-          if (!i.due_date || !i.paid_at) return false;
+        // Pagate in ritardo: paid_at > due_date (storico)
+        const ratePaidLate = its.filter(i => {
+          if (!i.is_paid || !i.due_date || !i.paid_at) return false;
           const due = new Date(i.due_date);
           due.setHours(0, 0, 0, 0);
           const paid = new Date(i.paid_at);
@@ -91,23 +107,18 @@ export const useRateations = () => {
           return paid > due;
         }).length;
 
-        // Calculate amounts
-        const importoTotale = rateForThisRateation.reduce((sum, i) => sum + (i.amount || 0), 0);
-        const importoPagato = rateForThisRateation.filter(i => i.is_paid).reduce((sum, i) => sum + (i.amount || 0), 0);
-        const importoRitardo = rateForThisRateation.filter(i => {
-          if (i.is_paid) return false;
-          if (!i.due_date) return false;
-          const due = new Date(i.due_date);
-          due.setHours(0, 0, 0, 0);
-          return due < today;
-        }).reduce((sum, i) => sum + (i.amount || 0), 0);
+        const importoTotale = its.reduce((s, i) => s + (i.amount || 0), 0);
+        const importoPagato = its.filter(i => i.is_paid).reduce((s, i) => s + (i.amount || 0), 0);
+        const importoRitardo = its
+          .filter(i => !i.is_paid && i.due_date && new Date(new Date(i.due_date).setHours(0, 0, 0, 0)) < today)
+          .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
 
         return {
           id: String(r.id),
           numero: r.number || "",
           tipo: typesMap[r.type_id] || "N/A",
-          contribuente: r.taxpayer_name,
+          contribuente: r.taxpayer_name || "",
           importoTotale,
           importoPagato,
           importoRitardo,
@@ -115,13 +126,24 @@ export const useRateations = () => {
           rateTotali,
           ratePagate,
           rateNonPagate,
-          rateInRitardo,
-          ratePaidLate, // NEW
+          rateInRitardo,   // overdue correnti
+          ratePaidLate,    // NEW: pagate in ritardo (storico)
+          // ausiliario per sort (non esposto in UI)
+          _createdAt: r.created_at || null,
         };
       });
 
+      // Ordinamento per created_at discendente per coerenza con la UI
+      processedRows.sort((a, b) => {
+        const da = a._createdAt ? new Date(a._createdAt).getTime() : 0;
+        const db = b._createdAt ? new Date(b._createdAt).getTime() : 0;
+        return db - da;
+      });
+      console.debug("[useRateations] processed rows:", processedRows.length);
+      
       if (controller.signal.aborted) return;
-      setRows(processedRows);
+      // rimuovo proprietà ausiliaria prima di passare i dati alla UI
+      setRows(processedRows.map(({ _createdAt, ...rest }) => rest));
     } catch (err) {
       if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
         console.debug('[ABORT] useRateations loadData');
