@@ -23,5 +23,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storage: window.localStorage,
+  },
+  global: {
+    fetch: (...args) => fetch(...args),
+  },
+  realtime: {
+    params: { eventsPerSecond: 10 },
   },
 });

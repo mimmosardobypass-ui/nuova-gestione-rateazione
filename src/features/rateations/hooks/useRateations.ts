@@ -1,15 +1,88 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
-import { deleteRateation } from "../api/rateations";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useRateations = () => {
+interface UseRateationsReturn {
+  rows: RateationRow[];
+  loading: boolean;
+  error: string | null;
+  online: boolean;
+  info: {
+    count: number;
+    lastUpdatedAt: string | null;
+  };
+  loadData: () => Promise<void>;
+  refresh: () => Promise<void>;
+  handleDelete: (id: string, debouncedReloadStats?: () => void) => Promise<void>;
+  deleting: string | null;
+  addRateation: (data: any) => Promise<void>;
+  updateRateation: (id: string, updates: any) => Promise<void>;
+  deleteRateation: (id: string) => Promise<void>;
+}
+
+const CACHE_KEY = "rateations_cache_v1";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CacheData {
+  rows: RateationRow[];
+  timestamp: number;
+  userId: string;
+}
+
+export const useRateations = (): UseRateationsReturn => {
   const [rows, setRows] = useState<RateationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const online = useOnline();
+  const channelRef = useRef<any>(null);
+  const currentUserIdRef = useRef<string | null>(null);
+
+  // Cache management
+  const saveToCache = useCallback((data: RateationRow[], userId: string) => {
+    try {
+      const cacheData: CacheData = {
+        rows: data,
+        timestamp: Date.now(),
+        userId,
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    } catch (err) {
+      console.warn("Failed to save to cache:", err);
+    }
+  }, []);
+
+  const loadFromCache = useCallback((userId: string): RateationRow[] | null => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+      
+      const cacheData: CacheData = JSON.parse(cached);
+      const isExpired = Date.now() - cacheData.timestamp > CACHE_TTL;
+      const isWrongUser = cacheData.userId !== userId;
+      
+      if (isExpired || isWrongUser) {
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      
+      return cacheData.rows;
+    } catch (err) {
+      console.warn("Failed to load from cache:", err);
+      return null;
+    }
+  }, []);
+
+  const clearCache = useCallback(() => {
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch (err) {
+      console.warn("Failed to clear cache:", err);
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!online) {
@@ -22,40 +95,58 @@ export const useRateations = () => {
     setError(null);
 
     try {
-      // Get current user first - same as useRateationStats
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      // Get current session using getSession (more reliable than getUser)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      
+      if (!session?.user) {
         console.warn("[useRateations] User not authenticated, skipping data load");
         setLoading(false);
+        setRows([]);
+        clearCache();
         return;
       }
 
-      console.debug("[useRateations] Loading data for user:", user.id);
+      const userId = session.user.id;
+      currentUserIdRef.current = userId;
+      console.debug("[useRateations] Loading data for user:", userId);
+
+      // Try to load from cache first for instant display
+      const cachedData = loadFromCache(userId);
+      if (cachedData && cachedData.length > 0) {
+        console.debug("[useRateations] Loaded from cache:", cachedData.length, "rows");
+        setRows(cachedData);
+        setLoading(false); // Show cached data immediately
+      }
 
       if (controller.signal.aborted) return;
 
-      // 1) Prendo le rateazioni dell'utente (RLS-friendly) con created_at per sort
+      // 1) Fetch rateations with owner_uid filter
       const t0 = performance.now?.() ?? Date.now();
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
         .select("id, number, type_id, taxpayer_name, created_at")
-        .eq("owner_uid", user.id);
+        .eq("owner_uid", userId);
       const t1 = performance.now?.() ?? Date.now();
       if (rateationsError) throw rateationsError;
 
       const rateationIds = (rateations || []).map(r => r.id);
       console.debug("[useRateations] rateations fetched:", {
-        userId: user.id,
+        userId,
         count: rateations?.length ?? 0,
         ms: Math.round(t1 - t0),
       });
+
       if (rateationIds.length === 0) {
-        console.warn("[useRateations] nessuna rateazione trovata per l'utente. Verificare backfill owner_uid/RLS.");
-        setRows([]);
+        console.warn("[useRateations] No rateations found for user. Check owner_uid backfill/RLS.");
+        const emptyResult: RateationRow[] = [];
+        setRows(emptyResult);
+        saveToCache(emptyResult, userId);
+        setLastUpdatedAt(new Date().toISOString());
         return;
       }
 
-      // 2) Installments solo per le rateazioni dell'utente
+      // 2) Fetch installments for user's rateations
       const t2 = performance.now?.() ?? Date.now();
       const { data: installments, error: installmentsError } = await supabase
         .from("installments")
@@ -68,7 +159,7 @@ export const useRateations = () => {
         ms: Math.round(t3 - t2),
       });
 
-      // 3) Tipi (nome tipo)
+      // 3) Fetch types
       const { data: types, error: typesError } = await supabase
         .from("rateation_types")
         .select("id, name");
@@ -78,7 +169,7 @@ export const useRateations = () => {
       const today = new Date(); 
       today.setHours(0, 0, 0, 0);
 
-      // Process each rateation with custom late logic
+      // Process each rateation with custom logic
       const processedRows: (RateationRow & { _createdAt: string | null })[] = (rateations || []).map(r => {
         const its = (installments || []).filter(i => i.rateation_id === r.id);
 
@@ -86,7 +177,7 @@ export const useRateations = () => {
         const ratePagate = its.filter(i => i.is_paid).length;
         const rateNonPagate = rateTotali - ratePagate;
 
-        // Overdue correnti: scadute e NON pagate
+        // Overdue installments: not paid and past due date
         const rateInRitardo = its.filter(i => {
           if (i.is_paid) return false;
           if (!i.due_date) return false;
@@ -95,7 +186,7 @@ export const useRateations = () => {
           return due < today;
         }).length;
 
-        // Pagate in ritardo: paid_at > due_date (storico)
+        // Paid late installments: paid_at > due_date (historical)
         const ratePaidLate = its.filter(i => {
           if (!i.is_paid || !i.due_date || !i.paid_at) return false;
           const due = new Date(i.due_date);
@@ -124,24 +215,28 @@ export const useRateations = () => {
           rateTotali,
           ratePagate,
           rateNonPagate,
-          rateInRitardo,   // overdue correnti
-          ratePaidLate,    // NEW: pagate in ritardo (storico)
-          // ausiliario per sort (non esposto in UI)
+          rateInRitardo,
+          ratePaidLate,
           _createdAt: r.created_at || null,
         };
       });
 
-      // Ordinamento per created_at discendente per coerenza con la UI
+      // Sort by created_at descending
       processedRows.sort((a, b) => {
         const da = a._createdAt ? new Date(a._createdAt).getTime() : 0;
         const db = b._createdAt ? new Date(b._createdAt).getTime() : 0;
         return db - da;
       });
-      console.debug("[useRateations] processed rows:", processedRows.length);
       
       if (controller.signal.aborted) return;
-      // rimuovo proprietà ausiliaria prima di passare i dati alla UI
-      setRows(processedRows.map(({ _createdAt, ...rest }) => rest));
+      
+      // Remove auxiliary property and update state
+      const finalRows = processedRows.map(({ _createdAt, ...rest }) => rest);
+      setRows(finalRows);
+      saveToCache(finalRows, userId);
+      setLastUpdatedAt(new Date().toISOString());
+      console.debug("[useRateations] processed rows:", finalRows.length);
+      
     } catch (err) {
       if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
         console.debug('[ABORT] useRateations loadData');
@@ -149,7 +244,8 @@ export const useRateations = () => {
       }
       const message = err instanceof Error ? err.message : "Errore sconosciuto";
       setError(message);
-      setRows([]); // Always set empty array on error, never demo data
+      setRows([]);
+      clearCache();
       toast({
         title: "Errore nel caricamento",
         description: message,
@@ -162,9 +258,12 @@ export const useRateations = () => {
     }
 
     return () => controller.abort();
-  }, [online]);
+  }, [online, loadFromCache, saveToCache, clearCache]);
 
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const refresh = useCallback(async () => {
+    clearCache();
+    await loadData();
+  }, [loadData, clearCache]);
 
   const handleDelete = useCallback(async (id: string, debouncedReloadStats?: () => void) => {
     if (!online) {
@@ -191,13 +290,30 @@ export const useRateations = () => {
 
     setDeleting(id);
     try {
-      await deleteRateation(id);
+      // Delete installments first
+      const { error: installmentsError } = await supabase
+        .from("installments")
+        .delete()
+        .eq("rateation_id", id);
+
+      if (installmentsError) throw installmentsError;
+
+      // Delete rateation
+      const { error: rateationError } = await supabase
+        .from("rateations")
+        .delete()
+        .eq("id", id);
+
+      if (rateationError) throw rateationError;
+
       toast({
         title: "Eliminata",
         description: "Rateazione eliminata con successo",
       });
-      await loadData(); // Reload data
-      debouncedReloadStats?.(); // Reload stats
+      
+      clearCache();
+      await loadData();
+      debouncedReloadStats?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore nell'eliminazione";
       toast({
@@ -208,8 +324,88 @@ export const useRateations = () => {
     } finally {
       setDeleting(null);
     }
-  }, [online, loadData, deleting]);
+  }, [online, loadData, deleting, clearCache]);
 
+  const addRateation = useCallback(async (data: any) => {
+    if (!currentUserIdRef.current) {
+      throw new Error("User not authenticated");
+    }
+
+    const { error } = await supabase
+      .from("rateations")
+      .insert({ ...data, owner_uid: currentUserIdRef.current });
+
+    if (error) throw error;
+    
+    clearCache();
+    await loadData();
+  }, [loadData, clearCache]);
+
+  const updateRateation = useCallback(async (id: string, updates: any) => {
+    const { error } = await supabase
+      .from("rateations")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) throw error;
+    
+    clearCache();
+    await loadData();
+  }, [loadData, clearCache]);
+
+  const deleteRateation = useCallback(async (id: string) => {
+    await handleDelete(id);
+  }, [handleDelete]);
+
+  // Setup Realtime subscription
+  useEffect(() => {
+    if (!currentUserIdRef.current) return;
+
+    console.debug("[useRateations] Setting up Realtime subscription");
+    
+    const channel = supabase
+      .channel('rateations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rateations',
+          filter: `owner_uid=eq.${currentUserIdRef.current}`
+        },
+        (payload) => {
+          console.debug("[useRateations] Realtime rateations change:", payload);
+          clearCache();
+          loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'installments'
+        },
+        (payload) => {
+          console.debug("[useRateations] Realtime installments change:", payload);
+          clearCache();
+          loadData();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        console.debug("[useRateations] Unsubscribing from Realtime");
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [loadData, clearCache]);
+
+  // Initial load
   useEffect(() => {
     const cleanup = loadData();
     return () => {
@@ -222,8 +418,16 @@ export const useRateations = () => {
     loading,
     error,
     online,
+    info: {
+      count: rows.length,
+      lastUpdatedAt,
+    },
     loadData,
+    refresh,
     handleDelete,
     deleting,
+    addRateation,
+    updateRateation,
+    deleteRateation,
   };
 };
