@@ -85,6 +85,7 @@ export const useRateations = (): UseRateationsReturn => {
   }, []);
 
   const loadData = useCallback(async () => {
+    console.debug("[useRateations] loadData called - online:", online);
     if (!online) {
       setError("Offline - impossibile caricare i dati");
       return;
@@ -93,11 +94,16 @@ export const useRateations = (): UseRateationsReturn => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
+    console.debug("[useRateations] Starting data load...");
 
     try {
       // Get current session using getSession (more reliable than getUser)
+      console.debug("[useRateations] Starting loadData...");
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error("[useRateations] Session error:", sessionError);
+        throw sessionError;
+      }
       
       if (!session?.user) {
         console.warn("[useRateations] User not authenticated, skipping data load");
@@ -355,11 +361,11 @@ export const useRateations = (): UseRateationsReturn => {
     await handleDelete(id);
   }, [handleDelete]);
 
-  // Setup Realtime subscription
+  // Setup Realtime subscription - AFTER initial load
   useEffect(() => {
     if (!currentUserIdRef.current) return;
 
-    console.debug("[useRateations] Setting up Realtime subscription");
+    console.debug("[useRateations] Setting up Realtime subscription for user:", currentUserIdRef.current);
     
     const channel = supabase
       .channel('rateations-changes')
@@ -374,7 +380,10 @@ export const useRateations = (): UseRateationsReturn => {
         (payload) => {
           console.debug("[useRateations] Realtime rateations change:", payload);
           clearCache();
-          loadData().catch(console.error);
+          // Use setTimeout to avoid dependency loops
+          setTimeout(() => {
+            loadData().catch(console.error);
+          }, 100);
         }
       )
       .on(
@@ -387,7 +396,10 @@ export const useRateations = (): UseRateationsReturn => {
         (payload) => {
           console.debug("[useRateations] Realtime installments change:", payload);
           clearCache();
-          loadData().catch(console.error);
+          // Use setTimeout to avoid dependency loops
+          setTimeout(() => {
+            loadData().catch(console.error);
+          }, 100);
         }
       )
       .subscribe();
@@ -401,10 +413,11 @@ export const useRateations = (): UseRateationsReturn => {
         channelRef.current = null;
       }
     };
-  }, [loadData, clearCache]);
+  }, []); // NO dependencies to avoid loops
 
   // Initial load
   useEffect(() => {
+    console.debug("[useRateations] Initial load effect triggered");
     loadData();
   }, [loadData]);
 
