@@ -30,6 +30,7 @@ type Installment = {
   is_paid: boolean | null;
   due_date: string | null;   // ISO date (YYYY-MM-DD) o null
   created_at: string;        // ISO datetime
+  owner_uid: string;         // Required for RLS
 };
 
 const Stat = ({ label, value, hint }: { label: string; value: string; hint?: string }) => (
@@ -64,13 +65,30 @@ export default function Dashboard() {
   useEffect(() => {
     const run = async () => {
       setLoading(true);
+      
+      // Get current user for RLS compliance
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn("[Dashboard] User not authenticated, skipping data load");
+        setLoading(false);
+        return;
+      }
+
+      console.log("[Dashboard] Loading installments for user:", user.id);
+      
       const { data, error } = await supabase
         .from("installments")
-        .select("id, amount, is_paid, due_date, created_at")
+        .select("id, amount, is_paid, due_date, created_at, owner_uid")
+        .eq("owner_uid", user.id)
         .order("due_date", { ascending: true });
 
-      if (error) setError(error.message);
-      else setRows((data || []) as Installment[]);
+      if (error) {
+        console.error("[Dashboard] Error loading installments:", error);
+        setError(error.message);
+      } else {
+        console.log("[Dashboard] Installments loaded:", data?.length ?? 0);
+        setRows((data || []) as Installment[]);
+      }
       setLoading(false);
     };
 
@@ -139,12 +157,17 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button 
+                variant="default" 
+                className="btn-cta" 
+                onClick={() => navigate("/rateazioni")}
+                aria-label="Vedi tutte le rateazioni"
+              >
+                <BarChart3 className="mr-2 h-4 w-4" /> Vedi Rateazioni
+              </Button>
               <Button variant="secondary" className="btn-cta" aria-label="Confronto annuale">
                 <LineChart className="mr-2 h-4 w-4" /> Confronto annuale
-              </Button>
-              <Button variant="secondary" className="btn-cta" aria-label="Statistiche avanzate">
-                <BarChart3 className="mr-2 h-4 w-4" /> Statistiche avanzate
               </Button>
               <Button variant="secondary" className="btn-cta" aria-label="Scadenze">
                 <CalendarDays className="mr-2 h-4 w-4" /> Scadenze
@@ -185,6 +208,20 @@ export default function Dashboard() {
           <Stat label="Totale residuo" value={euro(totalResiduo)} />
           <Stat label="In ritardo" value={euro(totalOverdue)} />
           <Stat label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
+        </div>
+
+        {/* Link per vedere dettagli completi */}
+        <div className="mt-6 p-4 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground mb-2">
+            Questa dashboard mostra un riepilogo generale. Per vedere l'elenco completo delle rateazioni:
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/rateazioni")}
+            className="w-full sm:w-auto"
+          >
+            Vai all'elenco completo rateazioni →
+          </Button>
         </div>
 
         {/* Grafico */}
