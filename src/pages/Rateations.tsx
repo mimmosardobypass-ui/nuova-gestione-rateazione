@@ -20,8 +20,24 @@ import { Button } from "@/components/ui/button";
 export default function Rateations() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
+  
+  console.log("[Rateations] Component mount - Auth state:", { 
+    hasSession: !!session, 
+    authLoading, 
+    sessionUser: session?.user?.id 
+  });
+  
   const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
-  console.log("[Rateations] Hook data:", { rows: rows.length, loading, error, online });
+  
+  console.log("[Rateations] Hook returned:", { 
+    rowsCount: rows.length, 
+    rowsData: rows,
+    loading, 
+    error, 
+    online,
+    hookReady: !loading 
+  });
+  
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   
   const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
@@ -33,8 +49,23 @@ export default function Rateations() {
   React.useEffect(() => cleanup, [cleanup]);
   
   React.useEffect(() => {
-    if (authLoading) return; // Wait for auth to finish loading
-    if (!session) return;    // Don't load data if not authenticated
+    console.log("[Rateations] useEffect triggered:", { 
+      authLoading, 
+      hasSession: !!session, 
+      sessionId: session?.user?.id 
+    });
+    
+    if (authLoading) {
+      console.log("[Rateations] Waiting for auth to finish loading...");
+      return; // Wait for auth to finish loading
+    }
+    
+    if (!session) {
+      console.log("[Rateations] No session, skipping data load");
+      return;    // Don't load data if not authenticated
+    }
+    
+    console.log("[Rateations] Calling loadData for user:", session.user?.id);
     loadData();              // Load data only when authenticated
   }, [authLoading, session, loadData]);
   // Key per far re-render la tabella dopo creazione

@@ -49,6 +49,7 @@ export const useRateations = () => {
         userId: user.id,
         count: rateations?.length ?? 0,
         rateations: rateations,
+        rateationIds: rateationIds,
         ms: Math.round(t1 - t0),
       });
       if (rateationIds.length === 0) {
@@ -149,8 +150,16 @@ export const useRateations = () => {
       if (controller.signal.aborted) return;
       // rimuovo proprietà ausiliaria prima di passare i dati alla UI
       const finalRows = processedRows.map(({ _createdAt, ...rest }) => rest);
+      
+      console.log("[useRateationsWorking] About to call setRows with:", {
+        finalRowsCount: finalRows.length,
+        finalRowsData: finalRows,
+        wasAborted: controller.signal.aborted
+      });
+      
       setRows(finalRows);
-      console.log("[useRateationsWorking] setRows called with:", finalRows);
+      
+      console.log("[useRateationsWorking] setRows completed successfully");
     } catch (err) {
       if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
         console.debug('[ABORT] useRateations loadData');
@@ -220,8 +229,10 @@ export const useRateations = () => {
   }, [online, loadData, deleting]);
 
   useEffect(() => {
+    console.log("[useRateationsWorking] useEffect called, about to run loadData");
     const cleanup = loadData();
     return () => {
+      console.log("[useRateationsWorking] useEffect cleanup");
       if (cleanup instanceof Function) cleanup();
     };
   }, [loadData]);
