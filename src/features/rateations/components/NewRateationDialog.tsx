@@ -11,6 +11,8 @@ import { Plus } from "lucide-react";
 import { useRateationTypes } from "../hooks/useRateationTypes";
 import { createRateationAuto, createRateationManual } from "../api/rateations";
 import type { ManualRow } from "../types";
+import { PDFImportTab } from "./ocr/PDFImportTab";
+import type { ParsedInstallment } from "./ocr/OCRTextParser";
 
 interface NewRateationDialogProps {
   onCreated?: () => void;
@@ -20,7 +22,7 @@ interface NewRateationDialogProps {
 
 export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false }: NewRateationDialogProps) {
   const [open, setOpen] = React.useState(initialOpen);
-  const [tab, setTab] = React.useState<"auto" | "manual">("auto");
+  const [tab, setTab] = React.useState<"auto" | "manual" | "pdf-ocr">("auto");
   const online = useOnline();
   const { types, loadTypes, addNewType } = useRateationTypes();
 
@@ -173,6 +175,34 @@ export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false
       setSavingManual(false);
     }
   };
+
+  const handlePDFInstallmentsParsed = async (installments: ParsedInstallment[]) => {
+    try {
+      // Convert ParsedInstallment to the format expected by createRateationManual
+      const installmentsJson = installments.map(inst => ({
+        seq: inst.seq,
+        amount: inst.amount,
+        due_date: inst.due_date,
+      }));
+
+      // For now, create a generic type. In a real app, you'd want to let the user select
+      const typeId = types[0]?.id || 1;
+      
+      await createRateationManual({
+        p_number: `OCR-${Date.now()}`,
+        p_type_id: typeId,
+        p_taxpayer_name: installments[0]?.tributo || 'Importato da OCR',
+        p_installments_json: installmentsJson,
+      });
+
+      toast({ title: "Rateazione creata da OCR con successo!" });
+      onCreated?.();
+      setOpen(false);
+    } catch (error) {
+      console.error('Errore salvataggio OCR:', error);
+      toast({ title: "Errore", description: "Errore nel salvataggio delle rate da OCR", variant: "destructive" });
+    }
+  };
   // LOVABLE:END saveManual
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -198,9 +228,10 @@ export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false
 
         <div className="px-5 pt-5">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="auto">Automatico</TabsTrigger>
               <TabsTrigger value="manual">Manuale</TabsTrigger>
+              <TabsTrigger value="pdf-ocr">PDF/OCR</TabsTrigger>
             </TabsList>
 
             {/* LOVABLE:START tabContent */}
@@ -390,24 +421,33 @@ export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false
                 ))}
               </div>
             </TabsContent>
+
+            <TabsContent value="pdf-ocr" className="mt-6">
+              <PDFImportTab
+                onInstallmentsParsed={handlePDFInstallmentsParsed}
+                onCancel={() => setOpen(false)}
+              />
+            </TabsContent>
             {/* LOVABLE:END tabContent */}
           </Tabs>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Annulla
-          </Button>
-          {tab === "auto" ? (
-            <Button onClick={saveAuto} disabled={!online || savingAuto}>
-              {savingAuto ? "Salvando..." : "Salva (Automatico)"}
+        {tab !== 'pdf-ocr' && (
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
+              Annulla
             </Button>
-          ) : (
-            <Button onClick={saveManual} disabled={!online || savingManual}>
-              {savingManual ? "Salvando..." : "Salva (Manuale)"}
-            </Button>
-          )}
-        </DialogFooter>
+            {tab === "auto" ? (
+              <Button onClick={saveAuto} disabled={!online || savingAuto}>
+                {savingAuto ? "Salvando..." : "Salva (Automatico)"}
+              </Button>
+            ) : (
+              <Button onClick={saveManual} disabled={!online || savingManual}>
+                {savingManual ? "Salvando..." : "Salva (Manuale)"}
+              </Button>
+            )}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
