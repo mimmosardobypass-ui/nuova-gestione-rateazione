@@ -131,9 +131,15 @@ export function useRateationStats() {
               if (dueDate >= monthDate && dueDate < nextMonth) {
                 monthDue += amount;
                 
-                // Check if it's late (not paid and due date is past)
+                // Check if it's late (not paid and due date is past, OR paid late)
                 if (!inst.is_paid && dueDate < today) {
                   monthLate += amount;
+                } else if (inst.is_paid && inst.paid_at) {
+                  const paidDate = new Date(inst.paid_at);
+                  paidDate.setHours(0, 0, 0, 0);
+                  if (paidDate > dueDate) {
+                    monthLate += amount;
+                  }
                 }
               }
             }
@@ -158,6 +164,17 @@ export function useRateationStats() {
             const dueDate = new Date(inst.due_date);
             dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
             if (dueDate < today) {
+              late += amount;
+            }
+          }
+          
+          // Also count paid installments that were paid late
+          if (inst.is_paid && inst.due_date && inst.paid_at) {
+            const dueDate = new Date(inst.due_date);
+            const paidDate = new Date(inst.paid_at);
+            dueDate.setHours(0, 0, 0, 0);
+            paidDate.setHours(0, 0, 0, 0);
+            if (paidDate > dueDate) {
               late += amount;
             }
           }

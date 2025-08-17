@@ -118,9 +118,9 @@ export function RateationsTablePro({
                     <TableCell className="text-center">{r.rateTotali}</TableCell>
                     <TableCell className="text-center text-green-600">{r.ratePagate}</TableCell>
                     <TableCell className="text-center">{r.rateNonPagate}</TableCell>
-                    <TableCell className={`text-center ${r.rateInRitardo > 0 ? "text-destructive font-medium" : ""}`}>
-                      {r.rateInRitardo}
-                    </TableCell>
+                     <TableCell className={`text-center ${(r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : ""}`}>
+                       {r.rateInRitardo + (r.ratePaidLate || 0)}
+                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button 
