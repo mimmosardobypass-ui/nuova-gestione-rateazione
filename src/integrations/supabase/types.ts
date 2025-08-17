@@ -96,6 +96,36 @@ export type Database = {
           },
         ]
       }
+      pdf_import_profiles: {
+        Row: {
+          column_mappings: Json
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_uid: string
+          updated_at: string
+        }
+        Insert: {
+          column_mappings?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_uid: string
+          updated_at?: string
+        }
+        Update: {
+          column_mappings?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_uid?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rateation_types: {
         Row: {
           color: string | null
@@ -268,28 +298,28 @@ export type Database = {
       }
       v_rateations: {
         Row: {
-          amount: number | null
           created_at: string | null
-          description: string | null
+          descrizione: string | null
           due_date: string | null
           id: number | null
-          number: number | null
+          importo: number | null
+          numero: number | null
         }
         Insert: {
-          amount?: number | null
           created_at?: string | null
-          description?: never
+          descrizione?: never
           due_date?: string | null
           id?: number | null
-          number?: number | null
+          importo?: number | null
+          numero?: number | null
         }
         Update: {
-          amount?: number | null
           created_at?: string | null
-          description?: never
+          descrizione?: never
           due_date?: string | null
           id?: number | null
-          number?: number | null
+          importo?: number | null
+          numero?: number | null
         }
         Relationships: []
       }
