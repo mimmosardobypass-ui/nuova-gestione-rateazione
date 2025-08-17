@@ -60,16 +60,36 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
   }, [toast]);
 
   const handleStartOCR = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      toast({
+        title: "Errore",
+        description: "Nessun file selezionato",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('Starting OCR process for file:', selectedFile.name);
 
     try {
       setStep('convert');
+      toast({
+        title: "Conversione PDF",
+        description: "Convertendo le pagine PDF in immagini...",
+      });
+      
       const pages = await convertPDFToImages(selectedFile);
+      console.log(`PDF converted to ${pages.length} page images`);
       
       setStep('ocr');
+      toast({
+        title: "Elaborazione OCR",
+        description: "Estraendo il testo dalle immagini...",
+      });
       const results = await processPages(pages);
       
       const combinedText = results.map(r => r.text).join('\n\n');
+      console.log('Combined OCR text length:', combinedText.length);
       setOcrResults(combinedText);
       
       const parsed = OCRTextParser.parseOCRText(combinedText);
