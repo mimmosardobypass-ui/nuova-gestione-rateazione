@@ -164,11 +164,23 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             </div>
           </div>
           <div className="text-center p-2 bg-red-50 rounded-md">
-            <div className="text-xs text-muted-foreground">In ritardo (non pagate)</div>
+            <div className="text-xs text-muted-foreground">In ritardo</div>
             <div className="font-semibold text-red-700">
               {items.filter(it => {
+                // Conta sia le rate non pagate in ritardo che quelle pagate in ritardo
                 const status = getInstallmentStatus(it);
-                return status === 'overdue';
+                if (status === 'overdue') return true;
+                
+                // Aggiungi le rate pagate in ritardo
+                if (it.is_paid && it.due_date && it.paid_at) {
+                  const due = new Date(it.due_date);
+                  due.setHours(0, 0, 0, 0);
+                  const paid = new Date(it.paid_at);
+                  paid.setHours(0, 0, 0, 0);
+                  return paid > due;
+                }
+                
+                return false;
               }).length}
             </div>
           </div>
