@@ -1,4 +1,5 @@
 import { parseItalianDateToISO } from '@/utils/date';
+import { AgenziaRiscossioneProfile, detectAgenziaRiscossione } from './profiles/AgenziaRiscossioneProfile';
 
 export interface ParsedInstallment {
   seq: number;
@@ -27,6 +28,11 @@ export interface ParsingProfile {
   };
 }
 
+// Profili disponibili
+export const PARSING_PROFILES = [
+  AgenziaRiscossioneProfile,
+] as const;
+
 export class OCRTextParser {
   // Regex migliorate per formato commercialista
   private static readonly IT_AMOUNT_REGEX = /\b\d{1,3}(?:\.\d{3})*,\d{2}\b/g;
@@ -48,7 +54,24 @@ export class OCRTextParser {
     }
   };
 
-  static parseOCRText(text: string, profile: ParsingProfile = this.defaultProfile): ParsedInstallment[] {
+  static parseOCRText(text: string, profile?: ParsingProfile): ParsedInstallment[] {
+    // Auto-detect profile if not provided
+    const selectedProfile = profile || this.detectProfile(text);
+    
+    return this.parseWithProfile(text, selectedProfile);
+  }
+
+  static detectProfile(text: string): ParsingProfile {
+    // Try to detect Agenzia Riscossione format
+    if (detectAgenziaRiscossione(text)) {
+      return AgenziaRiscossioneProfile;
+    }
+    
+    // Fallback to default profile
+    return this.defaultProfile;
+  }
+
+  private static parseWithProfile(text: string, profile: ParsingProfile): ParsedInstallment[] {
     const lines = text.split('\n').filter(line => line.trim().length > 0);
     const installments: ParsedInstallment[] = [];
 

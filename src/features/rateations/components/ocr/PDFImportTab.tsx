@@ -6,7 +6,9 @@ import { Upload, FileText, Eye, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePDFToImageConverter } from './core/usePDFToImageConverter';
 import { useOCRProcessor } from './core/useOCRProcessor';
+import { usePDFTextExtractor } from './core/usePDFTextExtractor';
 import { OCRTextParser, type ParsedInstallment } from './OCRTextParser';
+import { extractInstallmentsFromTextLayer, validateAgenziaInstallments } from './core/TextLayerParser';
 import { ImportReviewTable } from './ImportReviewTable';
 
 interface PDFImportTabProps {
@@ -16,11 +18,13 @@ interface PDFImportTabProps {
 
 export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [step, setStep] = useState<'upload' | 'convert' | 'ocr' | 'review'>('upload');
+  const [step, setStep] = useState<'upload' | 'extract' | 'convert' | 'ocr' | 'review'>('upload');
   const [ocrResults, setOcrResults] = useState<string>('');
   const [parsedInstallments, setParsedInstallments] = useState<ParsedInstallment[]>([]);
+  const [parsingMethod, setParsingMethod] = useState<'text-layer' | 'ocr'>('text-layer');
   const { toast } = useToast();
 
+  const { extractTextFromPDF, isExtracting, progress: extractProgress } = usePDFTextExtractor();
   const { convertPDFToImages, isConverting, progress: convertProgress } = usePDFToImageConverter();
   const { processPages, isProcessing, progress: ocrProgress, currentPage } = useOCRProcessor(2);
 
@@ -59,7 +63,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
     }
   }, [toast]);
 
-  const handleStartOCR = async () => {
+  const handleStartProcessing = async () => {
     if (!selectedFile) {
       toast({
         title: "Errore",
@@ -69,69 +73,104 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
       return;
     }
 
-    console.log('Starting OCR process for file:', selectedFile.name);
+    console.log('Starting PDF processing for file:', selectedFile.name);
 
     try {
-      setStep('convert');
+      // STEP 1: Try text-layer extraction first (fast and accurate)
+      setStep('extract');
+      setParsingMethod('text-layer');
       toast({
-        title: "Conversione PDF",
-        description: "Convertendo le pagine PDF in immagini...",
+        title: "Estrazione testo PDF",
+        description: "Tentando estrazione dal text-layer...",
       });
       
-      const pages = await convertPDFToImages(selectedFile);
-      console.log(`PDF converted to ${pages.length} page images`);
+      const textPages = await extractTextFromPDF(selectedFile, 5);
+      console.log(`Extracted text from ${textPages.length} pages`);
       
-      setStep('ocr');
-      toast({
-        title: "Elaborazione OCR",
-        description: "Estraendo il testo dalle immagini...",
-      });
-      const results = await processPages(pages);
-      
-      const combinedText = results.map(r => r.text).join('\n\n');
-      console.log('Combined OCR text length:', combinedText.length);
-      setOcrResults(combinedText);
-      
-      // Try advanced tabular parser first
-      const allWords = results.flatMap(r => r.words);
+      // Try to parse from text-layer
       let parsed: ParsedInstallment[] = [];
+      const combinedText = textPages.map(p => p.text).join('\n\n');
       
-      if (allWords.length > 0) {
-        try {
-          const { extractInstallmentsFromWords } = await import('./core/TableFromWords');
-          parsed = extractInstallmentsFromWords(allWords);
-          console.log('Tabular parser extracted:', parsed.length, 'installments');
-        } catch (error) {
-          console.warn('Tabular parser failed, falling back to regex:', error);
+      if (combinedText.length > 100) {
+        parsed = extractInstallmentsFromTextLayer(textPages);
+        console.log('Text-layer parser extracted:', parsed.length, 'installments');
+        
+        if (parsed.length > 0) {
+          const { valid, warnings } = validateAgenziaInstallments(parsed);
+          if (warnings.length > 0) {
+            console.warn('Text-layer validation warnings:', warnings);
+          }
+          parsed = valid;
         }
       }
       
-      // Fallback to regex parser if tabular failed
+      // STEP 2: Fallback to OCR if text-layer failed
       if (parsed.length === 0) {
-        const regexParsed = OCRTextParser.parseOCRText(combinedText);
-        const { valid } = OCRTextParser.validateInstallments(regexParsed);
-        parsed = valid;
-        console.log('Regex parser extracted:', parsed.length, 'installments');
+        console.log('Text-layer extraction failed, falling back to OCR...');
+        setParsingMethod('ocr');
+        
+        setStep('convert');
+        toast({
+          title: "Conversione PDF",
+          description: "Text-layer insufficiente, convertendo in immagini...",
+        });
+        
+        const pages = await convertPDFToImages(selectedFile);
+        console.log(`PDF converted to ${pages.length} page images`);
+        
+        setStep('ocr');
+        toast({
+          title: "Elaborazione OCR",
+          description: "Estraendo il testo dalle immagini...",
+        });
+        const results = await processPages(pages);
+        
+        const ocrText = results.map(r => r.text).join('\n\n');
+        console.log('Combined OCR text length:', ocrText.length);
+        setOcrResults(ocrText);
+        
+        // Try advanced tabular parser first
+        const allWords = results.flatMap(r => r.words);
+        
+        if (allWords.length > 0) {
+          try {
+            const { extractInstallmentsFromWords } = await import('./core/TableFromWords');
+            parsed = extractInstallmentsFromWords(allWords);
+            console.log('OCR tabular parser extracted:', parsed.length, 'installments');
+          } catch (error) {
+            console.warn('OCR tabular parser failed, falling back to regex:', error);
+          }
+        }
+        
+        // Final fallback to regex parser
+        if (parsed.length === 0) {
+          const regexParsed = OCRTextParser.parseOCRText(ocrText);
+          const { valid } = OCRTextParser.validateInstallments(regexParsed);
+          parsed = valid;
+          console.log('OCR regex parser extracted:', parsed.length, 'installments');
+        }
+      } else {
+        // Text-layer successful, set combined text for display
+        setOcrResults(combinedText);
       }
       
       setParsedInstallments(parsed);
       setStep('review');
       
+      const method = parsingMethod === 'text-layer' ? 'text-layer' : 'OCR';
       toast({
-        title: "OCR completato",
+        title: `Parsing ${method} completato`,
         description: `Estratte ${parsed.length} rate valide`,
       });
     } catch (error: any) {
-      // log completo
-      console.error('[OCR] Fatal error:', error);
+      console.error('[PDF Processing] Fatal error:', error);
 
-      // messaggio umano
       let msg = 'Errore durante l\'elaborazione del PDF';
       if (error?.message) msg = error.message;
       else if (typeof error === 'string') msg = error;
 
       toast({
-        title: 'Errore OCR',
+        title: 'Errore Processing',
         description: msg,
         variant: 'destructive',
       });
@@ -188,8 +227,8 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
                       ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                     </span>
                   </div>
-                  <Button onClick={handleStartOCR}>
-                    Avvia OCR
+                  <Button onClick={handleStartProcessing}>
+                    Avvia Parsing
                   </Button>
                 </div>
               </div>
@@ -200,13 +239,24 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
     );
   }
 
-  if (step === 'convert' || step === 'ocr') {
-    const isOCRStep = step === 'ocr';
-    const progress = isOCRStep ? ocrProgress : convertProgress;
-    const title = isOCRStep ? 'Elaborazione OCR in corso...' : 'Conversione PDF in corso...';
-    const description = isOCRStep 
-      ? `Elaborando pagina ${currentPage}...` 
-      : 'Convertendo pagine PDF in immagini...';
+  if (step === 'extract' || step === 'convert' || step === 'ocr') {
+    let progress = 0;
+    let title = '';
+    let description = '';
+    
+    if (step === 'extract') {
+      progress = extractProgress;
+      title = 'Estrazione text-layer in corso...';
+      description = 'Estraendo testo dal PDF...';
+    } else if (step === 'convert') {
+      progress = convertProgress;
+      title = 'Conversione PDF in corso...';
+      description = 'Convertendo pagine PDF in immagini...';
+    } else {
+      progress = ocrProgress;
+      title = 'Elaborazione OCR in corso...';
+      description = `Elaborando pagina ${currentPage}...`;
+    }
 
     return (
       <div className="space-y-6">
@@ -224,6 +274,16 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
               <p className="text-sm text-muted-foreground mt-2">
                 {description}
               </p>
+              {parsingMethod === 'text-layer' && step === 'extract' && (
+                <p className="text-xs text-primary mt-1">
+                  ⚡ Metodo veloce: estrazione diretta dal PDF
+                </p>
+              )}
+              {parsingMethod === 'ocr' && (
+                <p className="text-xs text-orange-600 mt-1">
+                  🔄 Fallback OCR: text-layer non disponibile
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -255,13 +315,18 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Testo OCR Grezzo
+                Testo Estratto {parsingMethod === 'text-layer' ? '(Text-layer)' : '(OCR)'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="max-h-40 overflow-y-auto bg-muted p-4 rounded-lg">
                 <pre className="text-sm whitespace-pre-wrap">{ocrResults}</pre>
               </div>
+              {parsingMethod === 'text-layer' && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✅ Estratto direttamente dal text-layer PDF (veloce e preciso)
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
