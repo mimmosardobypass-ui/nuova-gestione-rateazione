@@ -1,28 +1,29 @@
 // Robust PDF.js singleton initialization
-import { GlobalWorkerOptions, version as pdfjsVersion } from 'pdfjs-dist';
-
 let configured = false;
+
+// Fixed CDN URL matching our dependency version
+const PDFJS_CDN_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.worker.min.js';
 
 export async function ensurePdfjsReady() {
   if (configured) return;
 
-  // Import dinamici per evitare problemi SSR e bundle
+  // Import dinamico per evitare problemi SSR e bundle
   const pdfjs: any = await import('pdfjs-dist');
   
-  // Usa CDN per il worker - più affidabile di path locali complessi
-  GlobalWorkerOptions.workerSrc = 
-    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.js`;
+  // 1) Worker: va impostato PRIMA di qualsiasi getDocument()
+  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_CDN_WORKER;
 
-  // Meno log per ridurre noise
-  if (pdfjs.VerbosityLevel) {
-    pdfjs.VerbosityLevel = pdfjs.VerbosityLevel.ERRORS || 0;
+  // 2) Verbosity: usa setVerbosity se disponibile, evita assegnazione diretta
+  if (typeof pdfjs.setVerbosity === 'function' && pdfjs.VerbosityLevel) {
+    pdfjs.setVerbosity(pdfjs.VerbosityLevel.ERRORS);
   }
 
   configured = true;
-  console.log('[PDF.js] Worker configured:', GlobalWorkerOptions.workerSrc);
+  console.log('[PDF.js] Worker configured:', PDFJS_CDN_WORKER);
 }
 
 export async function getPdfjs() {
   await ensurePdfjsReady();
-  return (await import('pdfjs-dist'));
+  // Re-import per avere le API (getDocument, ecc.)
+  return (await import('pdfjs-dist')) as any;
 }
