@@ -8,6 +8,8 @@ import { usePDFTextExtractor } from './core/usePDFTextExtractor';
 import { extractAdrRates } from '../../parsers/adrRates.extract';
 import { extractPagopaRates } from '../../parsers/pagopaRates.extract';
 import { detectPDFFormat, isFormatReliable } from '../../parsers/pdfDetector';
+import { hasTextLayer, normalizePdfViaApi } from '@/utils/normalizePdfClient';
+import { repairAderSchedule } from '@/utils/repairAderSchedule';
 import type { Rata } from '../../parsers/adrRates.types';
 import type { PDFFormat } from '../../parsers/pdfDetector';
 import type { ParsedInstallment } from './types';
@@ -75,13 +77,14 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
       return;
     }
 
+    let fileToProcess = selectedFile;
     setStep('text');
     setCurrentPhase('text');
     setProgress(0);
 
     try {
       // Step 1: Extract text from PDF for format detection
-      console.log('Starting PDF processing for file:', selectedFile.name);
+      console.log('[PDFImportTab] Starting PDF processing for file:', selectedFile.name);
       const textPages = await extractTextFromPDF(selectedFile, 3);
       
       if (textPages.length === 0) {
@@ -98,7 +101,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
       const detection = detectPDFFormat(textPages);
       setDetectedFormat(detection.format);
       
-      console.log('PDF Format Detection:', detection);
+      console.log('[PDFImportTab] PDF Format Detection:', detection);
       
       if (!isFormatReliable(detection)) {
         toast({
@@ -112,11 +115,34 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
         });
       }
 
-      let parsed: ParsedInstallment[] = [];
+      // 🔧 Check if PDF normalization is needed
+      const needsNormalization = detection.format === 'PAGOPA' || detection.format === 'UNKNOWN';
+      const hasText = await hasTextLayer(selectedFile, 2);
+      
+      if (needsNormalization && !hasText) {
+        console.log(`[PDFImportTab] PDF lacks text layer, normalizing with OCRmyPDF...`);
+        setCurrentPhase('ocr');
+        setStep('ocr');
+        toast({
+          title: "Normalizzazione PDF",
+          description: "Text-layer assente: applico OCR per creare PDF ricercabile...",
+        });
+        
+        try {
+          fileToProcess = await normalizePdfViaApi(selectedFile);
+          console.log(`[PDFImportTab] PDF normalized successfully`);
+        } catch (error) {
+          console.warn(`[PDFImportTab] PDF normalization failed, proceeding with original:`, error);
+          // Continue with original file if normalization fails
+        }
+        
+        setCurrentPhase('text');
+        setStep('text');
+      }
 
       let rateTable: Rata[] = [];
 
-      // Step 3: Route to appropriate parser based on detected format
+      // 🧠 Parse with hybrid parser for ALL formats
       if (detection.format === 'PAGOPA') {
         // Use PagoPA hybrid parser
         toast({
@@ -124,7 +150,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
           description: "Utilizzando parser ibrido per Agenzia delle Entrate",
         });
         
-        rateTable = await extractPagopaRates(selectedFile, {
+        rateTable = await extractPagopaRates(fileToProcess, {
           minExpected: 10,
           onPhase: (phase) => {
             setCurrentPhase(phase);
@@ -139,7 +165,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
           description: "Utilizzando parser ibrido per F24/Commercialista",
         });
         
-        rateTable = await extractAdrRates(selectedFile, {
+        rateTable = await extractAdrRates(fileToProcess, {
           minExpected: detection.format === "F24" ? 8 : 5,
           onPhase: (phase) => {
             setCurrentPhase(phase);
@@ -149,20 +175,35 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
         });
       }
 
+      console.log(`[PDFImportTab] Parser found ${rateTable.length} rates:`, rateTable);
+
+      // 🛟 Safety net: repair 9/10 schedule
+      let finalRates = rateTable.map(r => ({ scadenza: r.scadenza, amount: r.totaleEuro }));
+      if (finalRates.length === 9) {
+        console.log(`[PDFImportTab] Found 9 rates, attempting repair...`);
+        finalRates = repairAderSchedule(finalRates);
+        if (finalRates.length === 10) {
+          toast({
+            title: "Rata ricostruita",
+            description: "Completata la 10ª scadenza mancante con pattern trimestrale.",
+          });
+        }
+      }
+
       // Convert to UI format
-      parsed = rateTable.map((r, idx) => ({
-        seq: idx + 1,
-        due_date: r.scadenza,
-        amount: r.totaleEuro,
-        anno: String(r.year),
+      const parsed: ParsedInstallment[] = finalRates.map((rate, index) => ({
+        seq: index + 1,
+        due_date: rate.scadenza,
+        amount: rate.amount,
         description: detection.format === 'PAGOPA' 
-          ? `N. Modulo ${idx + 1} - ${r.scadenza}`
-          : `Rata ${idx + 1} - ${r.scadenza}`,
-        notes: `Parser ibrido (${detection.format})`,
+          ? `N. Modulo ${index + 1} - ${rate.scadenza}`
+          : `Rata ${index + 1} - ${rate.scadenza}`,
+        anno: rate.scadenza.slice(-4),
+        notes: `Parser ibrido (${detection.format})${needsNormalization && !hasText ? " + OCRmyPDF" : ""}${finalRates.length === 10 && rateTable.length === 9 ? " + riparazione" : ""}`,
       }));
 
       setParsedInstallments(parsed);
-      setOcrResults(`Estratte ${parsed.length} rate utilizzando parser ${detection.format} (${currentPhase === 'text' ? 'text-layer' : 'OCR'})`);
+      setOcrResults(`Estratte ${parsed.length} rate utilizzando parser ${detection.format} (${currentPhase === 'text' ? 'text-layer' : 'OCR'})${finalRates.length === 10 && rateTable.length === 9 ? ' + rata ricostruita' : ''}`);
       setStep('review');
 
       // Show success/warning based on results
@@ -286,14 +327,14 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
               <p className="text-sm text-muted-foreground mt-2">
                 {description} (Formato: {detectedFormat})
               </p>
-              {step === 'text' && (
+              {step === 'text' && currentPhase === 'text' && (
                 <p className="text-xs text-primary mt-1">
-                  ⚡ Metodo veloce: estrazione diretta dal PDF
+                  ⚡ Analisi geometrica text-layer
                 </p>
               )}
-              {step === 'ocr' && (
+              {step === 'ocr' && currentPhase === 'ocr' && (
                 <p className="text-xs text-orange-600 mt-1">
-                  🔄 Fallback OCR: text-layer non disponibile
+                  🔄 {progress === 0 ? 'Normalizzazione OCRmyPDF' : 'OCR geometrico word-level'}
                 </p>
               )}
             </div>
