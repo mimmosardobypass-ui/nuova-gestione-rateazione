@@ -9,6 +9,7 @@ import { useOCRProcessor } from './core/useOCRProcessor';
 import { usePDFTextExtractor } from './core/usePDFTextExtractor';
 import { OCRTextParser, type ParsedInstallment } from './OCRTextParser';
 import { extractInstallmentsFromTextLayer, validateAgenziaInstallments } from './core/TextLayerParser';
+import { extractAdrRateTable } from '../../parsers/adrRateTable';
 import { ImportReviewTable } from './ImportReviewTable';
 
 interface PDFImportTabProps {
@@ -76,31 +77,50 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
     console.log('Starting PDF processing for file:', selectedFile.name);
 
     try {
-      // STEP 1: Try text-layer extraction first (fast and accurate)
+      // STEP 1: Try robust geometric text-layer extraction for Agenzia delle Entrate-Riscossione
       setStep('extract');
       setParsingMethod('text-layer');
       toast({
         title: "Estrazione testo PDF",
-        description: "Tentando estrazione dal text-layer...",
+        description: "Tentando estrazione geometrica robusta...",
       });
       
-      const textPages = await extractTextFromPDF(selectedFile, 5);
-      console.log(`Extracted text from ${textPages.length} pages`);
+      console.log('Starting robust geometric text-layer extraction...');
+      const rateTable = await extractAdrRateTable(selectedFile);
       
-      // Try to parse from text-layer
       let parsed: ParsedInstallment[] = [];
-      const combinedText = textPages.map(p => p.text).join('\n\n');
+      let textPages: any[] = [];
       
-      if (combinedText.length > 100) {
-        parsed = extractInstallmentsFromTextLayer(textPages);
-        console.log('Text-layer parser extracted:', parsed.length, 'installments');
+      if (rateTable.length > 0) {
+        console.log(`Robust text-layer parsing successful: found ${rateTable.length} installments`);
         
-        if (parsed.length > 0) {
-          const { valid, warnings } = validateAgenziaInstallments(parsed);
-          if (warnings.length > 0) {
-            console.warn('Text-layer validation warnings:', warnings);
+        // Map to ParsedInstallment format
+        parsed = rateTable.map((rata, index) => ({
+          seq: rata.seq || index + 1,
+          due_date: rata.scadenza.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$2-$1'), // Convert to ISO format
+          amount: rata.totaleEuro,
+          description: `N. Modulo ${rata.seq || index + 1} - ${rata.scadenza}`,
+        }));
+      } else {
+        console.log('Robust text-layer extraction failed, trying standard text-layer...');
+        
+        // Fallback to standard text-layer extraction
+        textPages = await extractTextFromPDF(selectedFile, 5);
+        console.log(`Standard text extraction: ${textPages.length} pages`);
+        
+        const combinedText = textPages.map(p => p.text).join('\n\n');
+        
+        if (combinedText.length > 100) {
+          parsed = extractInstallmentsFromTextLayer(textPages);
+          console.log('Standard text-layer parser extracted:', parsed.length, 'installments');
+          
+          if (parsed.length > 0) {
+            const { valid, warnings } = validateAgenziaInstallments(parsed);
+            if (warnings.length > 0) {
+              console.warn('Text-layer validation warnings:', warnings);
+            }
+            parsed = valid;
           }
-          parsed = valid;
         }
       }
       
@@ -150,8 +170,13 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
           console.log('OCR regex parser extracted:', parsed.length, 'installments');
         }
       } else {
-        // Text-layer successful, set combined text for display
-        setOcrResults(combinedText);
+        // Text-layer successful, set display text
+        if (rateTable.length > 0) {
+          setOcrResults(`Parsed ${rateTable.length} installments using robust geometric text-layer extraction`);
+        } else {
+          const combinedText = textPages.map(p => p.text).join('\n\n');
+          setOcrResults(combinedText);
+        }
       }
       
       setParsedInstallments(parsed);
