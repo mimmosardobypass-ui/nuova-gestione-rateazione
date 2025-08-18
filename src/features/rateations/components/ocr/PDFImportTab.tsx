@@ -4,8 +4,8 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileText, Eye, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { usePDFToImageConverter } from './PDFToImageConverter';
-import { useOCRProcessor } from './OCRProcessor';
+import { usePDFToImageConverter } from './core/usePDFToImageConverter';
+import { useOCRProcessor } from './core/useOCRProcessor';
 import { OCRTextParser, type ParsedInstallment } from './OCRTextParser';
 import { ImportReviewTable } from './ImportReviewTable';
 
@@ -22,7 +22,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
   const { toast } = useToast();
 
   const { convertPDFToImages, isConverting, progress: convertProgress } = usePDFToImageConverter();
-  const { processPages, isProcessing, progress: ocrProgress, currentPage } = useOCRProcessor();
+  const { processPages, isProcessing, progress: ocrProgress, currentPage } = useOCRProcessor(2);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,13 +103,20 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
         description: `Estratte ${valid.length} rate valide`,
       });
     } catch (error: any) {
-      console.error('OCR Error:', error);
-      const msg = error?.message || error?.toString?.() || 'Errore durante l\'elaborazione del PDF';
+      // log completo
+      console.error('[OCR] Fatal error:', error);
+
+      // messaggio umano
+      let msg = 'Errore durante l\'elaborazione del PDF';
+      if (error?.message) msg = error.message;
+      else if (typeof error === 'string') msg = error;
+
       toast({
-        title: "Errore OCR",
+        title: 'Errore OCR',
         description: msg,
-        variant: "destructive",
+        variant: 'destructive',
       });
+
       setStep('upload');
     }
   };

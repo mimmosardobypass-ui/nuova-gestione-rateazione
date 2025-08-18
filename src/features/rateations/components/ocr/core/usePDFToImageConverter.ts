@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
+import { GlobalWorkerOptions } from 'pdfjs-dist';
+import type { PDFPage } from './types';
 
-export interface PDFPage {
-  pageNumber: number;
-  imageData: string;
-  width: number;
-  height: number;
-}
+// worker ufficiale pdf.js
+GlobalWorkerOptions.workerSrc =
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.js';
 
-export const usePDFToImageConverter = () => {
+export function usePDFToImageConverter() {
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -18,11 +16,6 @@ export const usePDFToImageConverter = () => {
     setProgress(0);
 
     try {
-      console.log('Configuring PDF.js worker for Vite...');
-      
-      // Configure worker for Vite environment
-      (pdfjs as any).GlobalWorkerOptions.workerSrc = pdfWorker;
-
       console.log('Converting file to array buffer...');
       const arrayBuffer = await file.arrayBuffer();
       
@@ -47,28 +40,16 @@ export const usePDFToImageConverter = () => {
         const viewport = page.getViewport({ scale: 1.5 }); // Moderate scale to avoid memory issues
         
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        if (!context) {
-          throw new Error('Cannot get canvas context');
-        }
-        
-        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
         canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        if (!ctx) throw new Error('Cannot get canvas context');
 
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-          canvas: canvas,
-        };
-
-        await page.render(renderContext).promise;
-        
-        const imageData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG for smaller size
+        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
         
         pages.push({
           pageNumber: pageNum,
-          imageData,
+          imageData: canvas.toDataURL('image/png'),
           width: viewport.width,
           height: viewport.height,
         });
@@ -102,9 +83,5 @@ export const usePDFToImageConverter = () => {
     }
   };
 
-  return {
-    convertPDFToImages,
-    isConverting,
-    progress,
-  };
-};
+  return { convertPDFToImages, isConverting, progress };
+}
