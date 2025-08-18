@@ -21,13 +21,18 @@ export type Database = {
           created_at: string | null
           due_date: string
           id: number
+          interest_amount_cents: number | null
+          interest_breakdown: Json | null
           is_paid: boolean | null
           late_days: number | null
           notes: string | null
           owner_uid: string
           paid_at: string | null
           paid_recorded_at: string | null
+          paid_total_cents: number | null
           payment_method: string | null
+          penalty_amount_cents: number | null
+          penalty_rule_id: string | null
           postponed: boolean | null
           rateation_id: number
           receipt_url: string | null
@@ -40,13 +45,18 @@ export type Database = {
           created_at?: string | null
           due_date: string
           id?: number
+          interest_amount_cents?: number | null
+          interest_breakdown?: Json | null
           is_paid?: boolean | null
           late_days?: number | null
           notes?: string | null
           owner_uid: string
           paid_at?: string | null
           paid_recorded_at?: string | null
+          paid_total_cents?: number | null
           payment_method?: string | null
+          penalty_amount_cents?: number | null
+          penalty_rule_id?: string | null
           postponed?: boolean | null
           rateation_id: number
           receipt_url?: string | null
@@ -59,13 +69,18 @@ export type Database = {
           created_at?: string | null
           due_date?: string
           id?: number
+          interest_amount_cents?: number | null
+          interest_breakdown?: Json | null
           is_paid?: boolean | null
           late_days?: number | null
           notes?: string | null
           owner_uid?: string
           paid_at?: string | null
           paid_recorded_at?: string | null
+          paid_total_cents?: number | null
           payment_method?: string | null
+          penalty_amount_cents?: number | null
+          penalty_rule_id?: string | null
           postponed?: boolean | null
           rateation_id?: number
           receipt_url?: string | null
@@ -95,6 +110,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_interest_rates: {
+        Row: {
+          annual_rate_percent: number
+          id: string
+          valid_from: string
+          valid_to: string
+        }
+        Insert: {
+          annual_rate_percent: number
+          id?: string
+          valid_from: string
+          valid_to: string
+        }
+        Update: {
+          annual_rate_percent?: number
+          id?: string
+          valid_from?: string
+          valid_to?: string
+        }
+        Relationships: []
       }
       pdf_import_profiles: {
         Row: {
@@ -205,6 +241,65 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "rateation_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ravvedimento_profiles: {
+        Row: {
+          id: string
+          is_default: boolean
+          name: string
+        }
+        Insert: {
+          id?: string
+          is_default?: boolean
+          name: string
+        }
+        Update: {
+          id?: string
+          is_default?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      ravvedimento_rules: {
+        Row: {
+          fixed_percent: number | null
+          id: string
+          max_days: number
+          min_days: number
+          mode: string
+          per_day_percent: number | null
+          priority: number
+          profile_id: string
+        }
+        Insert: {
+          fixed_percent?: number | null
+          id?: string
+          max_days: number
+          min_days: number
+          mode: string
+          per_day_percent?: number | null
+          priority?: number
+          profile_id: string
+        }
+        Update: {
+          fixed_percent?: number | null
+          id?: string
+          max_days?: number
+          min_days?: number
+          mode?: string
+          per_day_percent?: number | null
+          priority?: number
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ravvedimento_rules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ravvedimento_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -371,6 +466,23 @@ export type Database = {
       }
     }
     Functions: {
+      apply_ravvedimento: {
+        Args: {
+          p_installment_id: number
+          p_paid_at: string
+          p_profile_id?: string
+        }
+        Returns: Json
+      }
+      compute_ravvedimento: {
+        Args: {
+          p_amount_cents: number
+          p_due_date: string
+          p_paid_at: string
+          p_profile_id?: string
+        }
+        Returns: Json
+      }
       debug_rateations_count: {
         Args: Record<PropertyKey, never>
         Returns: {

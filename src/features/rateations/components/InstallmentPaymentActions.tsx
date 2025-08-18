@@ -8,6 +8,7 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { markInstallmentPaidWithDate, unmarkInstallmentPaid } from "../api/installments";
+import { RavvedimentoDialog } from "./RavvedimentoDialog";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentPaymentActionsProps {
@@ -28,6 +29,7 @@ export function InstallmentPaymentActions({
   const [isOpen, setIsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unpaying, setUnpaying] = useState(false);
+  const [showRavvedimento, setShowRavvedimento] = useState(false);
 
   // Default date: if already paid use paid_at, otherwise today
   const todayDate = useMemo(() => new Date(), []);
@@ -43,9 +45,19 @@ export function InstallmentPaymentActions({
   const handleMarkPaid = async () => {
     if (!selectedDate) return;
 
+    const dateStr = selectedDate.toISOString().slice(0, 10);
+    const dueDate = new Date(installment.due_date);
+    const isLate = selectedDate > dueDate;
+
+    // Se pagamento in ritardo, mostra dialog ravvedimento
+    if (isLate && !installment.is_paid) {
+      setShowRavvedimento(true);
+      setIsOpen(false);
+      return;
+    }
+
     try {
       setSaving(true);
-      const dateStr = selectedDate.toISOString().slice(0, 10);
       await markInstallmentPaidWithDate(rateationId, installment.seq, dateStr);
       
       toast({
@@ -144,6 +156,17 @@ export function InstallmentPaymentActions({
           {unpaying ? "Annullando..." : "Annulla"}
         </Button>
       )}
+
+      <RavvedimentoDialog
+        open={showRavvedimento}
+        onOpenChange={setShowRavvedimento}
+        installment={installment}
+        paidAt={selectedDate?.toISOString().slice(0, 10) || ''}
+        onConfirm={() => {
+          onReload();
+          onStatsReload?.();
+        }}
+      />
     </div>
   );
 }

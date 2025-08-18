@@ -26,6 +26,32 @@ export interface InstallmentUI {
   late_days?: number;
   status?: string;
   paid_recorded_at?: string | null;
+  penalty_amount_cents?: number;
+  interest_amount_cents?: number;
+  paid_total_cents?: number;
+  penalty_rule_id?: string;
+  interest_breakdown?: Array<{
+    from: string;
+    to: string;
+    days: number;
+    annual_percent: number;
+    amount_cents: number;
+  }>;
+}
+
+export interface RavvedimentoCalculation {
+  late_days: number;
+  penalty_amount_cents: number;
+  interest_amount_cents: number;
+  paid_total_cents: number;
+  penalty_rule_id: string | null;
+  interest_breakdown: Array<{
+    from: string;
+    to: string;
+    days: number;
+    annual_percent: number;
+    amount_cents: number;
+  }>;
 }
 
 export interface RateationType {

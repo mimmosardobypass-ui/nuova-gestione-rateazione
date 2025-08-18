@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { formatEuro } from "@/lib/formatters";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentStatusBadgeProps {
@@ -12,10 +13,18 @@ export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgePr
     if (installment.is_paid) {
       const paidDate = installment.paid_at ? format(new Date(installment.paid_at), "dd/MM/yyyy", { locale: it }) : "N/A";
       const lateDays = installment.late_days || 0;
+      const hasRavvedimento = (installment.penalty_amount_cents || 0) > 0 || (installment.interest_amount_cents || 0) > 0;
+      
+      let subtitle = lateDays > 0 ? `Pagata il ${paidDate} — ${lateDays} gg ritardo` : `Pagata il ${paidDate}`;
+      
+      if (hasRavvedimento && installment.paid_total_cents) {
+        subtitle += ` • Totale: ${formatEuro(installment.paid_total_cents / 100)}`;
+      }
+      
       return {
         variant: "secondary" as const,
-        text: "Pagata",
-        subtitle: lateDays > 0 ? `Pagata il ${paidDate} — ${lateDays} gg ritardo` : `Pagata il ${paidDate}`
+        text: hasRavvedimento ? "Pagata (Ravvedimento)" : "Pagata",
+        subtitle
       };
     }
 
