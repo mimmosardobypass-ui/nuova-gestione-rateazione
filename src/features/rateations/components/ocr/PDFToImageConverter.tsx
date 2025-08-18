@@ -20,14 +20,8 @@ export const usePDFToImageConverter = () => {
     try {
       console.log('Configuring PDF.js worker for Vite...');
       
-      // Configure worker properly for Vite environment
-      if (typeof window !== 'undefined') {
-        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          // Use CDN worker for Vite/Lovable compatibility
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
-          console.log('PDF.js worker configured with Vite worker');
-        }
-      }
+      // Configure worker for Vite environment
+      (pdfjs as any).GlobalWorkerOptions.workerSrc = pdfWorker;
 
       console.log('Converting file to array buffer...');
       const arrayBuffer = await file.arrayBuffer();
@@ -50,7 +44,7 @@ export const usePDFToImageConverter = () => {
         console.log(`Processing page ${pageNum}/${numPages}...`);
         
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 }); // Optimal scale for OCR accuracy vs performance
+        const viewport = page.getViewport({ scale: 1.5 }); // Moderate scale to avoid memory issues
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
