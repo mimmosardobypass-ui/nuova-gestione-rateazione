@@ -93,7 +93,7 @@ export function RavvedimentoDialog({
       setApplying(true);
       
       await applyRavvedimento({
-        installmentId: parseInt(installment.seq.toString()), // Convert to installment ID
+        installmentId: installment.id, // Use the correct installment ID
         paidAt,
         profileId: selectedProfile || undefined
       });
