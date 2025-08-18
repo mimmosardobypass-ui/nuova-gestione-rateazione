@@ -26,12 +26,18 @@ export interface ParsingProfile {
 }
 
 export class OCRTextParser {
+  // Regex migliorate per formato commercialista
+  private static readonly IT_AMOUNT_REGEX = /\b\d{1,3}(?:\.\d{3})*,\d{2}\b/g;
+  private static readonly EN_AMOUNT_REGEX = /\b\d+\.\d{2}\b/g;
+  private static readonly DATE_REGEX = /\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/;
+  private static readonly SEQ_REGEX = /^\s*(\d+)\s+/;
+
   private static defaultProfile: ParsingProfile = {
     name: 'Piano di Ammortamento Standard',
     columnMappings: {
-      seqPattern: '(\\d+)\\s*°?\\s*rata',
-      datePattern: '(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})',
-      amountPattern: '€?\\s*(\\d{1,3}(?:\\.\\d{3})*(?:,\\d{2})?)',
+      seqPattern: '^\\s*(\\d+)\\s+',
+      datePattern: '\\b(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{2,4})\\b',
+      amountPattern: '\\b\\d{1,3}(?:\\.\\d{3})*,\\d{2}\\b',
       descriptionPattern: '(IMU|TASI|TARI|IRPEF|IRES|IVA|[A-Z]{2,})',
       tributoPattern: '(IMU|TASI|TARI|IRPEF|IRES|IVA)',
       annoPattern: '(20\\d{2})',
@@ -63,6 +69,15 @@ export class OCRTextParser {
   }
 
   private static isHeaderLine(line: string): boolean {
+    const l = line.toLowerCase().trim();
+    if (!l) return true;
+    
+    // Scarta intestazioni e righe riassuntive
+    if (/(piano di ammortamento|rata\s*data|descrizione|interessi|da versare|azienda|data di stampa)/i.test(l)) return true;
+    
+    // Scarta righe troppo corte
+    if (l.length < 10) return true;
+    
     const headerPatterns = [
       /^(rata|scadenza|importo|data|descrizione|tributo|anno)/i,
       /^(n°|num|numero)/i,
@@ -75,57 +90,59 @@ export class OCRTextParser {
 
   private static parseLine(line: string, profile: ParsingProfile, fallbackSeq: number): ParsedInstallment | null {
     try {
-      // Extract sequence number
-      const seqMatch = profile.columnMappings.seqPattern 
-        ? new RegExp(profile.columnMappings.seqPattern, 'i').exec(line)
-        : null;
-      const seq = seqMatch ? parseInt(seqMatch[1]) : fallbackSeq;
+      const text = line.replace(/\s+/g, ' ').trim();
+      if (!text) return null;
 
-      // Extract date
-      const dateMatch = profile.columnMappings.datePattern
-        ? new RegExp(profile.columnMappings.datePattern).exec(line)
-        : null;
-      
-      if (!dateMatch) return null; // Skip lines without dates
+      // 1) Numero progressivo all'inizio riga
+      const seqMatch = this.SEQ_REGEX.exec(text);
+      const seq = seqMatch ? parseInt(seqMatch[1], 10) : fallbackSeq;
 
-      const due_date = this.normalizeDate(dateMatch[1]);
+      // 2) Prima DATA dopo il progressivo => scadenza
+      const afterSeq = seqMatch ? text.slice(seqMatch[0].length) : text;
+      const dateMatch = this.DATE_REGEX.exec(afterSeq);
+      if (!dateMatch) return null; // se non abbiamo data, saltiamo la riga
+      const due_date = this.normalizeDate(dateMatch[0]);
 
-      // Extract amount
-      const amountMatch = profile.columnMappings.amountPattern
-        ? new RegExp(profile.columnMappings.amountPattern).exec(line)
-        : null;
-      
-      if (!amountMatch) return null; // Skip lines without amounts
+      // 3) IMPORTO: prendiamo SEMPRE l'ULTIMO importo con 2 decimali della riga
+      // prima in stile IT (1.767,70), se non c'è proviamo stile EN (1767.70)
+      let amounts: string[] = text.match(this.IT_AMOUNT_REGEX) || [];
+      if (amounts.length === 0) {
+        amounts = text.match(this.EN_AMOUNT_REGEX) || [];
+      }
+      if (amounts.length === 0) {
+        // nessun importo con decimali → riga non valida per noi
+        return null;
+      }
+      const amountStr = amounts[amounts.length - 1]; // ULTIMO = "Da versare"
+      const amount = this.parseAmountSmart(amountStr);
 
-      const amount = this.parseAmount(amountMatch[1]);
+      // 4) Campi facoltativi
+      // Anno derivato dalla scadenza
+      const anno = due_date.slice(0, 4);
 
-      // Extract other fields
+      // Tributo e altri campi opzionali (manteniamo le regex esistenti)
       const tributoMatch = profile.columnMappings.tributoPattern
-        ? new RegExp(profile.columnMappings.tributoPattern, 'i').exec(line)
-        : null;
-      
-      const annoMatch = profile.columnMappings.annoPattern
-        ? new RegExp(profile.columnMappings.annoPattern).exec(line)
+        ? new RegExp(profile.columnMappings.tributoPattern, 'i').exec(text)
         : null;
 
       const debitoMatch = profile.columnMappings.debitoPattern
-        ? new RegExp(profile.columnMappings.debitoPattern, 'i').exec(line)
+        ? new RegExp(profile.columnMappings.debitoPattern, 'i').exec(text)
         : null;
 
       const interessiMatch = profile.columnMappings.interessiPattern
-        ? new RegExp(profile.columnMappings.interessiPattern, 'i').exec(line)
+        ? new RegExp(profile.columnMappings.interessiPattern, 'i').exec(text)
         : null;
 
       return {
         seq,
         due_date,
         amount,
-        description: line,
+        description: text,
         tributo: tributoMatch?.[1],
-        anno: annoMatch?.[1],
-        debito: debitoMatch ? this.parseAmount(debitoMatch[1]) : undefined,
-        interessi: interessiMatch ? this.parseAmount(interessiMatch[1]) : undefined,
-        notes: `Estratto da OCR: ${line}`,
+        anno,
+        debito: debitoMatch ? this.parseAmountSmart(debitoMatch[1]) : undefined,
+        interessi: interessiMatch ? this.parseAmountSmart(interessiMatch[1]) : undefined,
+        notes: `Estratto da OCR`,
       };
     } catch (error) {
       console.warn('Error parsing line:', line, error);
@@ -134,26 +151,14 @@ export class OCRTextParser {
   }
 
   private static normalizeDate(dateStr: string): string {
-    // Convert various date formats to ISO (YYYY-MM-DD)
-    const cleanDate = dateStr.replace(/[^\d/-]/g, '');
-    const parts = cleanDate.split(/[/-]/);
+    const m = this.DATE_REGEX.exec(dateStr);
+    if (!m) return dateStr;
     
-    if (parts.length === 3) {
-      let [day, month, year] = parts;
-      
-      // Handle 2-digit years
-      if (year.length === 2) {
-        year = '20' + year;
-      }
-      
-      // Ensure proper formatting
-      day = day.padStart(2, '0');
-      month = month.padStart(2, '0');
-      
-      return `${year}-${month}-${day}`;
-    }
-    
-    return dateStr; // Return original if parsing fails
+    let [_, d, mth, y] = m;
+    if (y.length === 2) y = (parseInt(y, 10) >= 70 ? '19' : '20') + y; // 70->99=1900s, altrimenti 2000s
+    const dd = d.padStart(2, '0');
+    const mm = mth.padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
   }
 
   private static parseAmount(amountStr: string): number {
@@ -165,6 +170,26 @@ export class OCRTextParser {
       .trim();
     
     return parseFloat(cleanAmount) || 0;
+  }
+
+  private static parseAmountSmart(raw: string): number {
+    if (!raw) return 0;
+    
+    // Rimuove spazi e simboli
+    let s = raw.replace(/[^\d.,]/g, '');
+
+    // Se contiene sia '.' che ',' => stile IT: '.' migliaia, ',' decimale
+    if (s.includes('.') && s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+      return parseFloat(s) || 0;
+    }
+    // Solo virgola => probabile stile IT
+    if (s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+      return parseFloat(s) || 0;
+    }
+    // Solo punto => probabile stile EN
+    return parseFloat(s) || 0;
   }
 
   static validateInstallments(installments: ParsedInstallment[]): { valid: ParsedInstallment[], invalid: ParsedInstallment[] } {
