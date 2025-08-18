@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useEffect } from "react";
 import Dashboard from "./pages/Dashboard";
 import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
@@ -14,7 +15,13 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Pre-warm PDF.js per eliminare ritardo al primo uso
+  useEffect(() => {
+    import('@/lib/pdfjs').then(m => m.ensurePdfjsReady()).catch(() => {});
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
@@ -50,6 +57,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
