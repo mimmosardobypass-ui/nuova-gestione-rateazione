@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Plus, Save, X } from 'lucide-react';
 import type { ParsedInstallment } from './OCRTextParser';
 import { formatEuro } from '@/lib/formatters';
+import { formatISOToItalian, isValidISODate } from '@/utils/date';
 
 interface ImportReviewTableProps {
   installments: ParsedInstallment[];
@@ -132,20 +133,20 @@ export const ImportReviewTable = ({ installments, onConfirm, onCancel }: ImportR
                     )}
                   </TableCell>
                   
-                  <TableCell>
-                    {editingIndex === index ? (
-                      <Input
-                        type="date"
-                        value={editForm.due_date || ''}
-                        onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
-                      />
-                    ) : (
-                      <div>
-                        {item.due_date}
-                        {!item.due_date && <Badge variant="destructive" className="ml-2">Mancante</Badge>}
-                      </div>
-                    )}
-                  </TableCell>
+                   <TableCell>
+                     {editingIndex === index ? (
+                       <Input
+                         type="date"
+                         value={isValidISODate(editForm.due_date ?? '') ? editForm.due_date : ''}
+                         onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                       />
+                     ) : (
+                       <div>
+                         {formatISOToItalian(item.due_date)}
+                         {!item.due_date && <Badge variant="destructive" className="ml-2">Mancante</Badge>}
+                       </div>
+                     )}
+                   </TableCell>
                   
                   <TableCell>
                     {editingIndex === index ? (

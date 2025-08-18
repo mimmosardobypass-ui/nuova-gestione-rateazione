@@ -1,4 +1,5 @@
 import type { OCRWord } from './types';
+import { parseItalianDateToISO } from '@/utils/date';
 
 export type ColumnKey = 'seq' | 'date' | 'descrizione' | 'tributo' | 'anno' | 'debito' | 'interessi' | 'da_versare';
 
@@ -45,16 +46,12 @@ export function parseAmount(itAmount: string): number {
   return isNaN(n) ? 0 : n;
 }
 
-/** Normalizza data italiana dd/mm/yyyy → yyyy-mm-dd */
+/** Normalizza data italiana dd/mm/yyyy → yyyy-mm-dd con parser robusto */
 export function parseDate(itDate: string): string {
   if (!itDate) return '';
-  const m = itDate.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if (!m) return '';
-  let [_, d, mo, y] = m;
-  if (y.length === 2) y = (parseInt(y,10) >= 50 ? '19' : '20') + y;
-  const dd = d.padStart(2,'0');
-  const mm = mo.padStart(2,'0');
-  return `${y}-${mm}-${dd}`;
+  // Usa il parser robusto che gestisce OCR e vari formati
+  const isoDate = parseItalianDateToISO(itDate);
+  return isoDate || '';
 }
 
 /** euristica: prima parola numerica all'inizio riga come seq */

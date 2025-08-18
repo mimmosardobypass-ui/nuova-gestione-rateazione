@@ -1,3 +1,5 @@
+import { parseItalianDateToISO } from '@/utils/date';
+
 export interface ParsedInstallment {
   seq: number;
   due_date: string;
@@ -98,10 +100,10 @@ export class OCRTextParser {
       const seq = seqMatch ? parseInt(seqMatch[1], 10) : fallbackSeq;
 
       // 2) Prima DATA dopo il progressivo => scadenza
-      const afterSeq = seqMatch ? text.slice(seqMatch[0].length) : text;
-      const dateMatch = this.DATE_REGEX.exec(afterSeq);
-      if (!dateMatch) return null; // se non abbiamo data, saltiamo la riga
-      const due_date = this.normalizeDate(dateMatch[0]);
+      const dateISO = parseItalianDateToISO(text) || 
+        (this.DATE_REGEX.exec(text) ? parseItalianDateToISO(this.DATE_REGEX.exec(text)![0]) : null);
+      if (!dateISO) return null; // se non abbiamo data, saltiamo la riga
+      const due_date = dateISO;
 
       // 3) IMPORTO: prendiamo SEMPRE l'ULTIMO importo con 2 decimali della riga
       // prima in stile IT (1.767,70), se non c'è proviamo stile EN (1767.70)
@@ -150,16 +152,7 @@ export class OCRTextParser {
     }
   }
 
-  private static normalizeDate(dateStr: string): string {
-    const m = this.DATE_REGEX.exec(dateStr);
-    if (!m) return dateStr;
-    
-    let [_, d, mth, y] = m;
-    if (y.length === 2) y = (parseInt(y, 10) >= 70 ? '19' : '20') + y; // 70->99=1900s, altrimenti 2000s
-    const dd = d.padStart(2, '0');
-    const mm = mth.padStart(2, '0');
-    return `${y}-${mm}-${dd}`;
-  }
+  // Rimosso: normalizeDate sostituito da parseItalianDateToISO
 
   private static parseAmount(amountStr: string): number {
     // Remove currency symbols and normalize decimal separators
