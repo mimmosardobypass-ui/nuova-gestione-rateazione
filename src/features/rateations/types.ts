@@ -17,6 +17,7 @@ export interface RateationRow {
 }
 
 export interface InstallmentUI {
+  id: number;
   seq: number;
   amount: number;
   due_date: string;
