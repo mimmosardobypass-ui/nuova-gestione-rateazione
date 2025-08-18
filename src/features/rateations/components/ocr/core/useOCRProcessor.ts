@@ -44,6 +44,7 @@ export function useOCRProcessor(defaultMaxPages = 10) {
             pageNumber: page.pageNumber,
             text: data.text,
             confidence: data.confidence,
+            words: data.words,
           });
         } catch (pageError) {
           console.error(`[OCR] Error processing page ${i + 1}:`, pageError);
@@ -52,6 +53,7 @@ export function useOCRProcessor(defaultMaxPages = 10) {
             pageNumber: page.pageNumber,
             text: '',
             confidence: 0,
+            words: [],
           });
         }
       }

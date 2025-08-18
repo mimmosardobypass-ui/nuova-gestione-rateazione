@@ -29,7 +29,7 @@ export function usePDFToImageConverter() {
         console.log(`Processing page ${pageNum}/${numPages}...`);
         
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 2 }); // 1.5–2 è un buon compromesso
+        const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR
         
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');

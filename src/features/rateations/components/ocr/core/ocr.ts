@@ -40,7 +40,7 @@ async function tryCreateWorker(cfg: Cfg) {
 export async function ocrImageData(
   imageData: string,
   onProgress?: (p: number) => void
-): Promise<{ text: string; confidence: number }> {
+): Promise<{ text: string; confidence: number; words: any[] }> {
   let worker: Tesseract.Worker | null = null;
 
   for (const cfg of [CDNS.unpkg, CDNS.jsdelivr, CDNS.local]) {
@@ -57,8 +57,41 @@ export async function ocrImageData(
   }
 
   try {
+    // Configura parametri per tabelle
+    await worker.setParameters({
+      preserve_interword_spaces: '1',
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+    });
+
     const { data } = await worker.recognize(imageData);
-    return { text: data.text, confidence: data.confidence };
+
+    // Estrai words manualmente da Tesseract data
+    const words: any[] = [];
+    if (data && (data as any).words) {
+      for (const word of (data as any).words) {
+        if (word.text && word.text.trim()) {
+          words.push({
+            text: word.text.trim(),
+            x0: word.bbox?.x0 ?? 0,
+            y0: word.bbox?.y0 ?? 0,
+            x1: word.bbox?.x1 ?? (word.bbox?.x0 ?? 0) + (word.bbox?.width ?? 0),
+            y1: word.bbox?.y1 ?? (word.bbox?.y0 ?? 0) + (word.bbox?.height ?? 0),
+            conf: word.confidence ?? 0,
+            page: 1,
+          });
+        }
+      }
+    }
+
+    if (onProgress) {
+      onProgress(100);
+    }
+
+    return { 
+      text: data.text || '', 
+      confidence: data.confidence || 0,
+      words 
+    };
   } finally {
     await worker.terminate();
   }

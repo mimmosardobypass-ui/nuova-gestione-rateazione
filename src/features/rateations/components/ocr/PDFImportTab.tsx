@@ -92,15 +92,34 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
       console.log('Combined OCR text length:', combinedText.length);
       setOcrResults(combinedText);
       
-      const parsed = OCRTextParser.parseOCRText(combinedText);
-      const { valid } = OCRTextParser.validateInstallments(parsed);
+      // Try advanced tabular parser first
+      const allWords = results.flatMap(r => r.words);
+      let parsed: ParsedInstallment[] = [];
       
-      setParsedInstallments(valid);
+      if (allWords.length > 0) {
+        try {
+          const { extractInstallmentsFromWords } = await import('./core/TableFromWords');
+          parsed = extractInstallmentsFromWords(allWords);
+          console.log('Tabular parser extracted:', parsed.length, 'installments');
+        } catch (error) {
+          console.warn('Tabular parser failed, falling back to regex:', error);
+        }
+      }
+      
+      // Fallback to regex parser if tabular failed
+      if (parsed.length === 0) {
+        const regexParsed = OCRTextParser.parseOCRText(combinedText);
+        const { valid } = OCRTextParser.validateInstallments(regexParsed);
+        parsed = valid;
+        console.log('Regex parser extracted:', parsed.length, 'installments');
+      }
+      
+      setParsedInstallments(parsed);
       setStep('review');
       
       toast({
         title: "OCR completato",
-        description: `Estratte ${valid.length} rate valide`,
+        description: `Estratte ${parsed.length} rate valide`,
       });
     } catch (error: any) {
       // log completo
