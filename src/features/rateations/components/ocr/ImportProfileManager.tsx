@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { ParsingProfile } from './OCRTextParser';
+import type { ParsingProfile } from './types';
 import { useToast } from '@/hooks/use-toast';
 
 export interface SavedProfile extends ParsingProfile {

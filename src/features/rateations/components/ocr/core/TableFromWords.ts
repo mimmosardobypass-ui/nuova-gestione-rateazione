@@ -10,17 +10,7 @@ export type ColumnBand = {
   label: string;
 };
 
-export type ParsedInstallment = {
-  seq: number;
-  due_date: string;         // ISO yyyy-mm-dd
-  amount: number;           // da_versare oppure debito
-  description: string;      // Required to match OCRTextParser
-  tributo?: string;
-  anno?: string;
-  debito?: number;
-  interessi?: number;
-  notes?: string;
-};
+import type { ParsedInstallment } from '../types';
 
 const HEADER_HINTS: Record<ColumnKey, string[]> = {
   seq:          ['n°','num','numero'],

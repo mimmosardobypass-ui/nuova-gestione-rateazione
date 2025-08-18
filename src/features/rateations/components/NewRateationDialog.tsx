@@ -12,7 +12,7 @@ import { useRateationTypes } from "../hooks/useRateationTypes";
 import { createRateationAuto, createRateationManual } from "../api/rateations";
 import type { ManualRow } from "../types";
 import { PDFImportTab } from "./ocr/PDFImportTab";
-import type { ParsedInstallment } from "./ocr/OCRTextParser";
+import type { ParsedInstallment } from "./ocr/types";
 
 interface NewRateationDialogProps {
   onCreated?: () => void;

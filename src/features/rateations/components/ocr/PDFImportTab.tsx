@@ -4,15 +4,13 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileText, Eye, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { usePDFToImageConverter } from './core/usePDFToImageConverter';
-import { useOCRProcessor } from './core/useOCRProcessor';
 import { usePDFTextExtractor } from './core/usePDFTextExtractor';
-import { OCRTextParser, type ParsedInstallment } from './OCRTextParser';
-import { extractInstallmentsFromTextLayer, validateAgenziaInstallments } from './core/TextLayerParser';
 import { extractAdrRates } from '../../parsers/adrRates.extract';
+import { extractPagopaRates } from '../../parsers/pagopaRates.extract';
 import { detectPDFFormat, isFormatReliable } from '../../parsers/pdfDetector';
 import type { Rata } from '../../parsers/adrRates.types';
 import type { PDFFormat } from '../../parsers/pdfDetector';
+import type { ParsedInstallment } from './types';
 import { ImportReviewTable } from './ImportReviewTable';
 
 interface PDFImportTabProps {
@@ -31,8 +29,6 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
   const { toast } = useToast();
 
   const { extractTextFromPDF, isExtracting, progress: extractProgress } = usePDFTextExtractor();
-  const { convertPDFToImages, isConverting, progress: convertProgress } = usePDFToImageConverter();
-  const { processPages, isProcessing, progress: ocrProgress, currentPage } = useOCRProcessor(2);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,108 +114,52 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
 
       let parsed: ParsedInstallment[] = [];
 
+      let rateTable: Rata[] = [];
+
       // Step 3: Route to appropriate parser based on detected format
       if (detection.format === 'PAGOPA') {
-        // Use PagoPA parser (existing TextLayerParser)
-        try {
-          toast({
-            title: "Parser PagoPA",
-            description: "Utilizzando parser specifico per Agenzia delle Entrate",
-          });
-          
-          const installments = extractInstallmentsFromTextLayer(textPages);
-          
-          // If text-layer extraction fails or gives poor results, try OCR fallback
-          if (installments.length < 5) {
-            console.warn('PagoPA text-layer extraction gave poor results, trying OCR fallback');
-            setCurrentPhase('ocr');
-            setStep('ocr');
-            
-            toast({
-              title: "Fallback OCR",
-              description: "Text-layer insufficiente, elaborando con OCR...",
-            });
-            
-            // Convert entire PDF to images for OCR
-            const imagePages = await convertPDFToImages(selectedFile);
-            
-            let ocrText = '';
-            // Limit to first 5 pages for PagoPA
-            const pagesToProcess = imagePages.slice(0, 5);
-            const results = await processPages(pagesToProcess, 5); // maxPages = 5
-            
-            for (const result of results) {
-              ocrText += result.text + '\n\n';
-              setProgress((results.indexOf(result) / results.length) * 100);
-            }
-            
-            // Parse OCR text using OCRTextParser
-            const ocrInstallments = OCRTextParser.parseOCRText(ocrText);
-            if (ocrInstallments.length > installments.length) {
-              parsed = ocrInstallments;
-              toast({
-                title: "OCR completato",
-                description: "Utilizzato OCR come fallback per PagoPA",
-              });
-            } else {
-              parsed = installments; // Keep text-layer results if better
-            }
-          } else {
-            parsed = installments;
-          }
-          
-        } catch (error) {
-          console.warn('PagoPA parser failed:', error);
-          toast({
-            title: "Errore parser PagoPA",
-            description: "Fallback al parser F24",
-            variant: "destructive",
-          });
-          // Fall through to F24 parser below
-        }
+        // Use PagoPA hybrid parser
+        toast({
+          title: "Parser PagoPA",
+          description: "Utilizzando parser ibrido per Agenzia delle Entrate",
+        });
         
+        rateTable = await extractPagopaRates(selectedFile, {
+          minExpected: 10,
+          onPhase: (phase) => {
+            setCurrentPhase(phase);
+            setStep(phase === "ocr" ? "ocr" : "text");
+          },
+          onProgress: (p) => setProgress(p),
+        });
+      } else {
+        // Use F24/ADR hybrid parser for F24/UNKNOWN
+        toast({
+          title: "Parser F24",
+          description: "Utilizzando parser ibrido per F24/Commercialista",
+        });
+        
+        rateTable = await extractAdrRates(selectedFile, {
+          minExpected: detection.format === "F24" ? 8 : 5,
+          onPhase: (phase) => {
+            setCurrentPhase(phase);
+            setStep(phase === "ocr" ? "ocr" : "text");
+          },
+          onProgress: (p) => setProgress(p),
+        });
       }
-      
-      // Use F24 parser (new hybrid adrRates system) - for F24, UNKNOWN, or PagoPA fallback
-      if (detection.format !== 'PAGOPA' || parsed.length === 0) {
-        try {
-          toast({
-            title: "Parser F24",
-            description: "Utilizzando parser ibrido per F24/Commercialista",
-          });
-          
-          const rateTable: Rata[] = await extractAdrRates(selectedFile, {
-            minExpected: detection.format === 'F24' ? 8 : 5, // Lower expectation for unknown format
-            onPhase: (phase) => {
-              setCurrentPhase(phase);
-              if (phase === 'text') {
-                setStep('text');
-              } else if (phase === 'ocr') {
-                setStep('ocr');
-                toast({
-                  title: "Elaborazione OCR",
-                  description: "Text-layer insufficiente, processando con OCR...",
-                });
-              }
-            },
-            onProgress: (p) => setProgress(p),
-          });
 
-          // Convert to ParsedInstallment format
-          parsed = rateTable.map((rata, index) => ({
-            seq: rata.seq || index + 1,
-            due_date: rata.scadenza,
-            amount: rata.totaleEuro,
-            description: `N. Modulo ${rata.seq || index + 1} - ${rata.scadenza}`,
-            anno: rata.year.toString(),
-            notes: `Estratto con sistema ibrido (${detection.format})`
-          }));
-          
-        } catch (error) {
-          console.error('F24 parser failed:', error);
-          throw error; // Re-throw to outer catch block
-        }
-      }
+      // Convert to UI format
+      parsed = rateTable.map((r, idx) => ({
+        seq: idx + 1,
+        due_date: r.scadenza,
+        amount: r.totaleEuro,
+        anno: String(r.year),
+        description: detection.format === 'PAGOPA' 
+          ? `N. Modulo ${idx + 1} - ${r.scadenza}`
+          : `Rata ${idx + 1} - ${r.scadenza}`,
+        notes: `Parser ibrido (${detection.format})`,
+      }));
 
       setParsedInstallments(parsed);
       setOcrResults(`Estratte ${parsed.length} rate utilizzando parser ${detection.format} (${currentPhase === 'text' ? 'text-layer' : 'OCR'})`);

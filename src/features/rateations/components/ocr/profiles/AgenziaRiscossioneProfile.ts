@@ -1,4 +1,4 @@
-import type { ParsingProfile } from '../OCRTextParser';
+import type { ParsingProfile } from '../types';
 
 // Profilo di parsing specifico per l'Agenzia delle Entrate-Riscossione
 export const AgenziaRiscossioneProfile: ParsingProfile = {

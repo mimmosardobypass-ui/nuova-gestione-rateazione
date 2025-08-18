@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Plus, Save, X } from 'lucide-react';
-import type { ParsedInstallment } from './OCRTextParser';
+import type { ParsedInstallment } from './types';
 import { formatEuro } from '@/lib/formatters';
 import { formatISOToItalian, isValidISODate } from '@/utils/date';
 
