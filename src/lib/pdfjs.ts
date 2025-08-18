@@ -1,4 +1,6 @@
 // Robust PDF.js singleton initialization
+import { GlobalWorkerOptions, version as pdfjsVersion } from 'pdfjs-dist';
+
 let configured = false;
 
 export async function ensurePdfjsReady() {
@@ -7,15 +9,9 @@ export async function ensurePdfjsReady() {
   // Import dinamici per evitare problemi SSR e bundle
   const pdfjs: any = await import('pdfjs-dist');
   
-  try {
-    // Con Vite: usare ?url per ottenere l'URL del worker nel bundle
-    const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
-    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-  } catch (error) {
-    // Fallback per configurazioni diverse
-    const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default;
-    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-  }
+  // Usa CDN per il worker - più affidabile di path locali complessi
+  GlobalWorkerOptions.workerSrc = 
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.js`;
 
   // Meno log per ridurre noise
   if (pdfjs.VerbosityLevel) {
@@ -23,7 +19,7 @@ export async function ensurePdfjsReady() {
   }
 
   configured = true;
-  console.log('[PDF.js] Worker configured:', pdfjs.GlobalWorkerOptions.workerSrc);
+  console.log('[PDF.js] Worker configured:', GlobalWorkerOptions.workerSrc);
 }
 
 export async function getPdfjs() {
