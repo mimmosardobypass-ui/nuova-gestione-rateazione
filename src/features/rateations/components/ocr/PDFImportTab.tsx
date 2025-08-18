@@ -10,7 +10,9 @@ import { usePDFTextExtractor } from './core/usePDFTextExtractor';
 import { OCRTextParser, type ParsedInstallment } from './OCRTextParser';
 import { extractInstallmentsFromTextLayer, validateAgenziaInstallments } from './core/TextLayerParser';
 import { extractAdrRates } from '../../parsers/adrRates.extract';
+import { detectPDFFormat, isFormatReliable } from '../../parsers/pdfDetector';
 import type { Rata } from '../../parsers/adrRates.types';
+import type { PDFFormat } from '../../parsers/pdfDetector';
 import { ImportReviewTable } from './ImportReviewTable';
 
 interface PDFImportTabProps {
@@ -25,6 +27,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
   const [parsedInstallments, setParsedInstallments] = useState<ParsedInstallment[]>([]);
   const [currentPhase, setCurrentPhase] = useState<'text' | 'ocr' | 'done'>('text');
   const [progress, setProgress] = useState(0);
+  const [detectedFormat, setDetectedFormat] = useState<PDFFormat>('UNKNOWN');
   const { toast } = useToast();
 
   const { extractTextFromPDF, isExtracting, progress: extractProgress } = usePDFTextExtractor();
@@ -76,60 +79,168 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
       return;
     }
 
-    console.log('Starting PDF processing for file:', selectedFile.name);
+    setStep('text');
+    setCurrentPhase('text');
+    setProgress(0);
 
     try {
-      console.log('Starting hybrid PDF processing for file:', selectedFile.name);
+      // Step 1: Extract text from PDF for format detection
+      console.log('Starting PDF processing for file:', selectedFile.name);
+      const textPages = await extractTextFromPDF(selectedFile, 3);
       
-      const rateTable: Rata[] = await extractAdrRates(selectedFile, {
-        minExpected: 10,
-        onPhase: (phase) => {
-          setCurrentPhase(phase);
-          if (phase === 'text') {
-            setStep('text');
-            toast({
-              title: "Analisi text-layer",
-              description: "Tentando estrazione geometrica robusta...",
-            });
-          } else if (phase === 'ocr') {
-            setStep('ocr');
-            toast({
-              title: "Elaborazione OCR",
-              description: "Text-layer insufficiente, processando con OCR...",
-            });
-          }
-        },
-        onProgress: (p) => setProgress(p),
-      });
-      
-      console.log(`Hybrid parsing successful: found ${rateTable.length} installments`);
-      
-      // Map to ParsedInstallment format
-      const parsed: ParsedInstallment[] = rateTable.map((rata, index) => ({
-        seq: rata.seq || index + 1,
-        due_date: rata.scadenza.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$2-$1'), // Convert to ISO format
-        amount: rata.totaleEuro,
-        description: `N. Modulo ${rata.seq || index + 1} - ${rata.scadenza}`,
-      }));
-      
-      setParsedInstallments(parsed);
-      setOcrResults(`Estratte ${rateTable.length} rate utilizzando il parser ibrido (${currentPhase === 'text' ? 'text-layer' : 'OCR'})`);
-      setStep('review');
-      
-      const method = currentPhase === 'text' ? 'text-layer' : 'OCR';
-      toast({
-        title: `Parsing ${method} completato`,
-        description: `Estratte ${parsed.length} rate valide`,
-      });
-      
-      if (rateTable.length < 10) {
+      if (textPages.length === 0) {
         toast({
-          title: "Attenzione",
-          description: `Rilevate solo ${rateTable.length} rate. Verifica la tabella o aggiungi manualmente le righe mancanti.`,
+          title: "Errore",
+          description: "Impossibile estrarre testo dal PDF",
           variant: "destructive",
         });
-        console.table(rateTable);
+        setStep('upload');
+        return;
       }
+
+      // Step 2: Auto-detect PDF format
+      const detection = detectPDFFormat(textPages);
+      setDetectedFormat(detection.format);
+      
+      console.log('PDF Format Detection:', detection);
+      
+      if (!isFormatReliable(detection)) {
+        toast({
+          title: "Formato incerto",
+          description: `Formato PDF non riconosciuto con sicurezza. Verrà usato il parser F24 come fallback.`,
+        });
+      } else {
+        toast({
+          title: "Formato rilevato",
+          description: `${detection.format} (confidenza: ${Math.round(detection.confidence * 100)}%)`,
+        });
+      }
+
+      let parsed: ParsedInstallment[] = [];
+
+      // Step 3: Route to appropriate parser based on detected format
+      if (detection.format === 'PAGOPA') {
+        // Use PagoPA parser (existing TextLayerParser)
+        try {
+          toast({
+            title: "Parser PagoPA",
+            description: "Utilizzando parser specifico per Agenzia delle Entrate",
+          });
+          
+          const installments = extractInstallmentsFromTextLayer(textPages);
+          
+          // If text-layer extraction fails or gives poor results, try OCR fallback
+          if (installments.length < 5) {
+            console.warn('PagoPA text-layer extraction gave poor results, trying OCR fallback');
+            setCurrentPhase('ocr');
+            setStep('ocr');
+            
+            toast({
+              title: "Fallback OCR",
+              description: "Text-layer insufficiente, elaborando con OCR...",
+            });
+            
+            // Convert entire PDF to images for OCR
+            const imagePages = await convertPDFToImages(selectedFile);
+            
+            let ocrText = '';
+            // Limit to first 5 pages for PagoPA
+            const pagesToProcess = imagePages.slice(0, 5);
+            const results = await processPages(pagesToProcess, 5); // maxPages = 5
+            
+            for (const result of results) {
+              ocrText += result.text + '\n\n';
+              setProgress((results.indexOf(result) / results.length) * 100);
+            }
+            
+            // Parse OCR text using OCRTextParser
+            const ocrInstallments = OCRTextParser.parseOCRText(ocrText);
+            if (ocrInstallments.length > installments.length) {
+              parsed = ocrInstallments;
+              toast({
+                title: "OCR completato",
+                description: "Utilizzato OCR come fallback per PagoPA",
+              });
+            } else {
+              parsed = installments; // Keep text-layer results if better
+            }
+          } else {
+            parsed = installments;
+          }
+          
+        } catch (error) {
+          console.warn('PagoPA parser failed:', error);
+          toast({
+            title: "Errore parser PagoPA",
+            description: "Fallback al parser F24",
+            variant: "destructive",
+          });
+          // Fall through to F24 parser below
+        }
+        
+      }
+      
+      // Use F24 parser (new hybrid adrRates system) - for F24, UNKNOWN, or PagoPA fallback
+      if (detection.format !== 'PAGOPA' || parsed.length === 0) {
+        try {
+          toast({
+            title: "Parser F24",
+            description: "Utilizzando parser ibrido per F24/Commercialista",
+          });
+          
+          const rateTable: Rata[] = await extractAdrRates(selectedFile, {
+            minExpected: detection.format === 'F24' ? 8 : 5, // Lower expectation for unknown format
+            onPhase: (phase) => {
+              setCurrentPhase(phase);
+              if (phase === 'text') {
+                setStep('text');
+              } else if (phase === 'ocr') {
+                setStep('ocr');
+                toast({
+                  title: "Elaborazione OCR",
+                  description: "Text-layer insufficiente, processando con OCR...",
+                });
+              }
+            },
+            onProgress: (p) => setProgress(p),
+          });
+
+          // Convert to ParsedInstallment format
+          parsed = rateTable.map((rata, index) => ({
+            seq: rata.seq || index + 1,
+            due_date: rata.scadenza,
+            amount: rata.totaleEuro,
+            description: `N. Modulo ${rata.seq || index + 1} - ${rata.scadenza}`,
+            anno: rata.year.toString(),
+            notes: `Estratto con sistema ibrido (${detection.format})`
+          }));
+          
+        } catch (error) {
+          console.error('F24 parser failed:', error);
+          throw error; // Re-throw to outer catch block
+        }
+      }
+
+      setParsedInstallments(parsed);
+      setOcrResults(`Estratte ${parsed.length} rate utilizzando parser ${detection.format} (${currentPhase === 'text' ? 'text-layer' : 'OCR'})`);
+      setStep('review');
+
+      // Show success/warning based on results
+      const expectedMin = detection.format === 'PAGOPA' ? 5 : 8;
+      if (parsed.length >= expectedMin) {
+        toast({
+          title: "Parsing completato",
+          description: `Estratte ${parsed.length} rate con successo (formato: ${detection.format})`,
+        });
+      } else {
+        toast({
+          title: "Attenzione",
+          description: `Estratte solo ${parsed.length} rate (attese almeno ${expectedMin}). Verifica i dati prima di confermare.`,
+          variant: "destructive",
+        });
+        console.table(parsed);
+      }
+
     } catch (error: any) {
       console.error('[PDF Processing] Fatal error:', error);
 
@@ -233,7 +344,7 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
               <div className="text-2xl font-bold mb-2">{Math.round(progress)}%</div>
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground mt-2">
-                {description}
+                {description} (Formato: {detectedFormat})
               </p>
               {step === 'text' && (
                 <p className="text-xs text-primary mt-1">
