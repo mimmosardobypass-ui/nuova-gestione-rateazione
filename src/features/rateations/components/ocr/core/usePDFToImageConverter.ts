@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
-import { GlobalWorkerOptions } from 'pdfjs-dist';
+import { ensurePdfWorker } from './pdfWorker';
 import type { PDFPage } from './types';
-
-// worker ufficiale pdf.js
-GlobalWorkerOptions.workerSrc =
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.js';
 
 export function usePDFToImageConverter() {
   const [isConverting, setIsConverting] = useState(false);
@@ -16,18 +12,14 @@ export function usePDFToImageConverter() {
     setProgress(0);
 
     try {
+      // ⚠️ IMPORTANTISSIMO: configura il worker PRIMA di chiamare getDocument
+      ensurePdfWorker();
+
       console.log('Converting file to array buffer...');
       const arrayBuffer = await file.arrayBuffer();
       
       console.log('Loading PDF document...');
-      const pdf = await pdfjs.getDocument({ 
-        data: arrayBuffer,
-        verbosity: 0,
-        disableAutoFetch: false,
-        disableStream: false,
-        isEvalSupported: false,
-        useSystemFonts: true
-      }).promise;
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       
       const numPages = pdf.numPages;
       console.log(`PDF loaded with ${numPages} pages`);
@@ -37,7 +29,7 @@ export function usePDFToImageConverter() {
         console.log(`Processing page ${pageNum}/${numPages}...`);
         
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 }); // Moderate scale to avoid memory issues
+        const viewport = page.getViewport({ scale: 2 }); // 1.5–2 è un buon compromesso
         
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
