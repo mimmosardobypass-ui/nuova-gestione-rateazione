@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { markInstallmentPaidWithDate, unmarkInstallmentPaid } from "../api/installments";
+import { markInstallmentPaidWithDate, cancelInstallmentPayment } from "../api/installments";
 import { RavvedimentoDialog } from "./RavvedimentoDialog";
 import type { InstallmentUI } from "../types";
 
@@ -80,26 +80,22 @@ export function InstallmentPaymentActions({
   };
 
   const handleUnmarkPaid = async () => {
-    if (!confirm("Confermi di voler annullare il pagamento di questa rata?")) return;
-
+    if (!confirm("Sei sicuro di voler annullare il pagamento di questa rata?")) return;
+    
+    setUnpaying(true);
     try {
-      setUnpaying(true);
-      await unmarkInstallmentPaid(rateationId, installment.seq);
-      
+      await cancelInstallmentPayment(installment.id);
       toast({
-        title: "Pagamento annullato",
-        description: `Rata #${installment.seq} riportata a non pagata.`,
+        title: "Successo",
+        description: "Pagamento annullato"
       });
-      
-      // Reset date to today for next payment
-      setSelectedDate(todayDate);
       onReload();
       onStatsReload?.();
     } catch (error: any) {
       toast({
         title: "Errore",
-        description: error?.message || "Impossibile annullare il pagamento.",
-        variant: "destructive",
+        description: error.message || "Errore nell'annullamento",
+        variant: "destructive"
       });
     } finally {
       setUnpaying(false);

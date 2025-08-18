@@ -38,7 +38,7 @@ export function RavvedimentoDialog({
     if (open) {
       loadProfilesAndCalculate();
     }
-  }, [open, paidAt]);
+  }, [open, paidAt, selectedProfile]);
 
   const loadProfilesAndCalculate = async () => {
     try {
@@ -76,6 +76,11 @@ export function RavvedimentoDialog({
         profileId
       });
       setCalculation(result);
+      
+      // If not in manual mode, update the manual total with the calculated value
+      if (!manualMode) {
+        setManualTotal(result.paid_total_cents / 100);
+      }
     } catch (error: any) {
       toast({
         title: "Errore calcolo",
@@ -90,12 +95,20 @@ export function RavvedimentoDialog({
     calculatePreview(profileId);
   };
 
-  // Prefill manual total when calculation changes
-  useEffect(() => {
-    if (calculation) {
+  const handleManualModeToggle = (checked: boolean) => {
+    setManualMode(checked);
+    if (!checked && calculation) {
+      // When switching back to automatic, use the calculated value
       setManualTotal(calculation.paid_total_cents / 100);
     }
-  }, [calculation]);
+  };
+
+  // Update total when calculation changes (but preserve manual input)
+  useEffect(() => {
+    if (calculation && !manualMode) {
+      setManualTotal(calculation.paid_total_cents / 100);
+    }
+  }, [calculation, manualMode]);
 
   const handleApply = async () => {
     if (!calculation) return;
@@ -206,7 +219,7 @@ export function RavvedimentoDialog({
               <Checkbox
                 id="manual-mode"
                 checked={manualMode}
-                onCheckedChange={(checked) => setManualMode(checked as boolean)}
+                onCheckedChange={handleManualModeToggle}
               />
               <Label htmlFor="manual-mode" className="text-sm">
                 Inserisci manualmente il totale
@@ -228,6 +241,11 @@ export function RavvedimentoDialog({
                   />
                   <span className="text-sm text-muted-foreground">€</span>
                 </div>
+                {calculation && (
+                  <div className="text-xs text-muted-foreground">
+                    Suggerito: {formatEuro(calculation.paid_total_cents / 100)}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex justify-between text-lg font-semibold">

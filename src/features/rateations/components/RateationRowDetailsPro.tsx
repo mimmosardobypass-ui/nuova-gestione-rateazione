@@ -235,10 +235,10 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="space-y-1">
-                        <div className="font-medium">{formatEuro(displayAmount)}</div>
-                        {it.paid_total_cents && it.paid_total_cents > (it.amount || 0) * 100 && (
+                        <div className="font-medium">{formatEuro(it.amount || 0)}</div>
+                        {it.is_paid && it.paid_total_cents && it.paid_total_cents > 0 && (
                           <div className="text-xs text-muted-foreground">
-                            (orig. {formatEuro(it.amount || 0)})
+                            tot. {formatEuro(it.paid_total_cents / 100)} ({formatEuro((it.paid_total_cents / 100) - (it.amount || 0))} extra)
                           </div>
                         )}
                       </div>

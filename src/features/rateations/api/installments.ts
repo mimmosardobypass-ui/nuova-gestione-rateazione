@@ -99,3 +99,13 @@ export const deleteInstallment = async (rateationId: string, seq: number): Promi
   if (error) throw error;
 };
 // LOVABLE:END deleteInstallment
+
+// LOVABLE:START cancelInstallmentPayment
+export const cancelInstallmentPayment = async (installmentId: number): Promise<void> => {
+  const { data, error } = await supabase.rpc('cancel_installment_payment', {
+    p_installment_id: installmentId,
+  });
+  if (error) throw error;
+  return data;
+};
+// LOVABLE:END cancelInstallmentPayment

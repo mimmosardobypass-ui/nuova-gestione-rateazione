@@ -13,18 +13,22 @@ export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgePr
     if (installment.is_paid) {
       const paidDate = installment.paid_at ? format(new Date(installment.paid_at), "dd/MM/yyyy", { locale: it }) : "N/A";
       const lateDays = installment.late_days || 0;
-      const hasRavvedimento = (installment.penalty_amount_cents || 0) > 0 || (installment.interest_amount_cents || 0) > 0;
+      const hasRav = (installment.paid_total_cents ?? 0) > 0;
       
       let subtitle = lateDays > 0 ? `Pagata il ${paidDate} — ${lateDays} gg ritardo` : `Pagata il ${paidDate}`;
       
-      if (hasRavvedimento && installment.paid_total_cents) {
-        const extraEuro = installment.paid_total_cents / 100 - installment.amount;
-        subtitle += ` • Totale: ${formatEuro(installment.paid_total_cents / 100)} • Extra: ${formatEuro(extraEuro)}`;
+      if (hasRav && installment.paid_total_cents) {
+        const originalAmount = installment.amount || 0;
+        const extraAmount = (installment.paid_total_cents / 100) - originalAmount;
+        subtitle += ` • Totale: ${formatEuro(installment.paid_total_cents / 100)}`;
+        if (extraAmount > 0) {
+          subtitle += ` (${formatEuro(extraAmount)} extra)`;
+        }
       }
       
       return {
         variant: "secondary" as const,
-        text: hasRavvedimento ? "Pagata (Ravvedimento)" : "Pagata",
+        text: hasRav ? "Pagata (Ravvedimento)" : "Pagata",
         subtitle
       };
     }
