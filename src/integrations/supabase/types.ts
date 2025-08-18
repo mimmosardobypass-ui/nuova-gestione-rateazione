@@ -17,6 +17,7 @@ export type Database = {
       installments: {
         Row: {
           amount: number
+          amount_cents: number | null
           canceled_at: string | null
           created_at: string | null
           due_date: string
@@ -41,6 +42,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_cents?: number | null
           canceled_at?: string | null
           created_at?: string | null
           due_date: string
@@ -65,6 +67,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_cents?: number | null
           canceled_at?: string | null
           created_at?: string | null
           due_date?: string
@@ -473,6 +476,39 @@ export type Database = {
           p_profile_id?: string
         }
         Returns: Json
+      }
+      apply_ravvedimento_manual: {
+        Args: {
+          p_installment_id: number
+          p_paid_at: string
+          p_paid_total_cents: number
+          p_profile_id?: string
+        }
+        Returns: {
+          amount: number
+          amount_cents: number | null
+          canceled_at: string | null
+          created_at: string | null
+          due_date: string
+          id: number
+          interest_amount_cents: number | null
+          interest_breakdown: Json | null
+          is_paid: boolean | null
+          late_days: number | null
+          notes: string | null
+          owner_uid: string
+          paid_at: string | null
+          paid_recorded_at: string | null
+          paid_total_cents: number | null
+          payment_method: string | null
+          penalty_amount_cents: number | null
+          penalty_rule_id: string | null
+          postponed: boolean | null
+          rateation_id: number
+          receipt_url: string | null
+          seq: number
+          status: string | null
+        }
       }
       compute_ravvedimento: {
         Args: {

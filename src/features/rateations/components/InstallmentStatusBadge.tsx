@@ -18,7 +18,8 @@ export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgePr
       let subtitle = lateDays > 0 ? `Pagata il ${paidDate} — ${lateDays} gg ritardo` : `Pagata il ${paidDate}`;
       
       if (hasRavvedimento && installment.paid_total_cents) {
-        subtitle += ` • Totale: ${formatEuro(installment.paid_total_cents / 100)}`;
+        const extraEuro = installment.paid_total_cents / 100 - installment.amount;
+        subtitle += ` • Totale: ${formatEuro(installment.paid_total_cents / 100)} • Extra: ${formatEuro(extraEuro)}`;
       }
       
       return {

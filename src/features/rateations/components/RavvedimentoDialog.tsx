@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatEuro } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
-import { previewRavvedimento, applyRavvedimento, fetchRavvedimentoProfiles } from "../api/ravvedimento";
+import { previewRavvedimento, applyRavvedimento, applyRavvedimentoManual, fetchRavvedimentoProfiles } from "../api/ravvedimento";
 import type { InstallmentUI, RavvedimentoCalculation } from "../types";
 
 interface RavvedimentoDialogProps {
@@ -28,6 +30,8 @@ export function RavvedimentoDialog({
   const [calculation, setCalculation] = useState<RavvedimentoCalculation | null>(null);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualTotal, setManualTotal] = useState<number | ''>('');
 
   // Load profiles and calculate preview
   useEffect(() => {
@@ -86,21 +90,37 @@ export function RavvedimentoDialog({
     calculatePreview(profileId);
   };
 
+  // Prefill manual total when calculation changes
+  useEffect(() => {
+    if (calculation) {
+      setManualTotal(calculation.paid_total_cents / 100);
+    }
+  }, [calculation]);
+
   const handleApply = async () => {
     if (!calculation) return;
     
     try {
       setApplying(true);
       
-      await applyRavvedimento({
-        installmentId: installment.id, // Use the correct installment ID
-        paidAt,
-        profileId: selectedProfile || undefined
-      });
+      if (manualMode) {
+        await applyRavvedimentoManual({
+          installmentId: installment.id,
+          paidAt,
+          totalEuro: Number(manualTotal || 0),
+          profileId: selectedProfile || undefined
+        });
+      } else {
+        await applyRavvedimento({
+          installmentId: installment.id,
+          paidAt,
+          profileId: selectedProfile || undefined
+        });
+      }
       
       toast({
         title: "Ravvedimento applicato",
-        description: `Rata #${installment.seq} aggiornata con penalità e interessi`
+        description: `Rata #${installment.seq} aggiornata con successo`
       });
       
       onConfirm();
@@ -182,10 +202,39 @@ export function RavvedimentoDialog({
               </>
             )}
             
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Totale da pagare:</span>
-              <span>{formatEuro(calculation.paid_total_cents / 100)}</span>
+            <div className="flex items-center space-x-2 mb-3">
+              <Checkbox
+                id="manual-mode"
+                checked={manualMode}
+                onCheckedChange={(checked) => setManualMode(checked as boolean)}
+              />
+              <Label htmlFor="manual-mode" className="text-sm">
+                Inserisci manualmente il totale
+              </Label>
             </div>
+
+            {manualMode ? (
+              <div className="space-y-2">
+                <Label htmlFor="manual-total">Totale da pagare:</Label>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="manual-total"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-32"
+                    value={manualTotal}
+                    onChange={(e) => setManualTotal(e.target.value === '' ? '' : Number(e.target.value))}
+                  />
+                  <span className="text-sm text-muted-foreground">€</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Totale da pagare:</span>
+                <span>{formatEuro(calculation.paid_total_cents / 100)}</span>
+              </div>
+            )}
           </div>
           
           {calculation.interest_breakdown.length > 0 && (

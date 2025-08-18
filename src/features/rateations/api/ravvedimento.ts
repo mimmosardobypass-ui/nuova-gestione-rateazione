@@ -40,6 +40,26 @@ export async function applyRavvedimento(params: {
 }
 
 /**
+ * Applica ravvedimento manuale con totale inserito dall'utente
+ */
+export async function applyRavvedimentoManual(params: {
+  installmentId: number;
+  paidAt: string;
+  totalEuro: number;
+  profileId?: string;
+}) {
+  const { data, error } = await supabase.rpc('apply_ravvedimento_manual', {
+    p_installment_id: params.installmentId,
+    p_paid_at: params.paidAt,
+    p_paid_total_cents: Math.round(params.totalEuro * 100),
+    p_profile_id: params.profileId ?? null
+  });
+  
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Fetch profili di ravvedimento disponibili
  */
 export async function fetchRavvedimentoProfiles() {

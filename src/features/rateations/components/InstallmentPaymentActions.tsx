@@ -106,6 +106,11 @@ export function InstallmentPaymentActions({
     }
   };
 
+  // Check if installment is late and unpaid for explicit ravvedimento button
+  const isLate = !installment.is_paid && new Date() > new Date(installment.due_date);
+  const [dateForRav, setDateForRav] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [showExplicitRav, setShowExplicitRav] = useState(false);
+
   return (
     <div className="flex items-center gap-2">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -157,11 +162,41 @@ export function InstallmentPaymentActions({
         </Button>
       )}
 
+      {isLate && (
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            className="px-2 py-1 text-sm border rounded"
+            value={dateForRav}
+            onChange={(e) => setDateForRav(e.target.value)}
+          />
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowExplicitRav(true)}
+            disabled={disabled}
+          >
+            Paga con ravvedimento
+          </Button>
+        </div>
+      )}
+
       <RavvedimentoDialog
         open={showRavvedimento}
         onOpenChange={setShowRavvedimento}
         installment={installment}
         paidAt={selectedDate?.toISOString().slice(0, 10) || ''}
+        onConfirm={() => {
+          onReload();
+          onStatsReload?.();
+        }}
+      />
+
+      <RavvedimentoDialog
+        open={showExplicitRav}
+        onOpenChange={setShowExplicitRav}
+        installment={installment}
+        paidAt={dateForRav}
         onConfirm={() => {
           onReload();
           onStatsReload?.();
