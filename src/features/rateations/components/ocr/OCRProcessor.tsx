@@ -37,7 +37,8 @@ export const useOCRProcessor = () => {
                 const totalProgress = pageProgress + (ocrProgress / pages.length);
                 setProgress(totalProgress);
               }
-            }
+            },
+            errorHandler: err => console.error(`OCR worker error on page ${i + 1}:`, err)
           });
 
           const { data } = await worker.recognize(page.imageData);

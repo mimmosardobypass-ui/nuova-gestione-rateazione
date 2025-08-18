@@ -21,14 +21,12 @@ export const usePDFToImageConverter = () => {
       // Dynamic import to avoid SSR issues
       const pdfjs = await import('pdfjs-dist');
       
-      // Use a more reliable worker setup
-      if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-        try {
-          // Try to use the bundled worker first
-          pdfjs.GlobalWorkerOptions.workerSrc = `/node_modules/pdfjs-dist/build/pdf.worker.min.js`;
-        } catch {
-          // Fallback to CDN if bundled version fails
+      // Configure worker for Vite environment
+      if (typeof window !== 'undefined') {
+        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+          // Use CDN worker for Vite/Lovable compatibility
           pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+          console.log('PDF.js worker configured with CDN source');
         }
       }
 
@@ -39,8 +37,10 @@ export const usePDFToImageConverter = () => {
       const pdf = await pdfjs.getDocument({ 
         data: arrayBuffer,
         verbosity: 0,
-        disableAutoFetch: true,
-        disableStream: true
+        disableAutoFetch: false,
+        disableStream: false,
+        isEvalSupported: false,
+        useSystemFonts: true
       }).promise;
       
       const numPages = pdf.numPages;
@@ -87,7 +87,22 @@ export const usePDFToImageConverter = () => {
       return pages;
     } catch (error) {
       console.error('PDF conversion error:', error);
-      throw new Error(`Errore nella conversione PDF: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Errore sconosciuto nella conversione PDF';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Errore nel caricamento del worker PDF. Controlla la connessione internet.';
+        } else if (error.message.includes('InvalidPDFException')) {
+          errorMessage = 'Il file PDF non è valido o è corrotto.';
+        } else if (error.message.includes('PasswordException')) {
+          errorMessage = 'Il PDF è protetto da password.';
+        } else {
+          errorMessage = `Errore nella conversione PDF: ${error.message}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
     } finally {
       setIsConverting(false);
       setProgress(0);
