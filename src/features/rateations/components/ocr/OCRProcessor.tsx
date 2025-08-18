@@ -8,6 +8,28 @@ export interface OCRResult {
   confidence: number;
 }
 
+// Enhanced OCR function using Tesseract.js v6 API
+async function ocrImageData(imageData: string, onProgress?: (progress: number) => void): Promise<{ text: string; confidence: number }> {
+  const worker = await Tesseract.createWorker('ita', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text' && onProgress) {
+        onProgress(Math.round(m.progress * 100));
+      }
+    },
+    errorHandler: err => console.error('Tesseract worker error:', err)
+  });
+
+  try {
+    const { data } = await worker.recognize(imageData);
+    return {
+      text: data.text,
+      confidence: data.confidence
+    };
+  } finally {
+    await worker.terminate();
+  }
+}
+
 export const useOCRProcessor = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -19,29 +41,24 @@ export const useOCRProcessor = () => {
     setCurrentPage(0);
 
     const results: OCRResult[] = [];
+    // Limit pages for initial testing (remove this limit in production)
+    const maxPages = Math.min(pages.length, 5); // Process max 5 pages to start
 
     try {
-      console.log(`Starting OCR processing for ${pages.length} pages...`);
+      console.log(`Starting OCR processing for ${maxPages} pages (${pages.length} total)...`);
       
-      for (let i = 0; i < pages.length; i++) {
+      for (let i = 0; i < maxPages; i++) {
         const page = pages[i];
         setCurrentPage(i + 1);
-        console.log(`Processing page ${i + 1}/${pages.length}...`);
+        console.log(`Processing page ${i + 1}/${maxPages}...`);
 
         try {
-          const worker = await Tesseract.createWorker('ita', 1, {
-            logger: m => {
-              if (m.status === 'recognizing text') {
-                const pageProgress = (i / pages.length) * 100;
-                const ocrProgress = m.progress * 100;
-                const totalProgress = pageProgress + (ocrProgress / pages.length);
-                setProgress(totalProgress);
-              }
-            },
-            errorHandler: err => console.error(`OCR worker error on page ${i + 1}:`, err)
+          const data = await ocrImageData(page.imageData, (pageProgress) => {
+            const totalPageProgress = (i / maxPages) * 100;
+            const currentProgress = totalPageProgress + (pageProgress / maxPages);
+            setProgress(currentProgress);
           });
 
-          const { data } = await worker.recognize(page.imageData);
           console.log(`OCR completed for page ${i + 1}, confidence: ${data.confidence}%`);
           
           results.push({
@@ -50,7 +67,6 @@ export const useOCRProcessor = () => {
             confidence: data.confidence,
           });
 
-          await worker.terminate();
         } catch (pageError) {
           console.error(`Error processing page ${i + 1}:`, pageError);
           // Continue with next page instead of failing completely
@@ -66,7 +82,21 @@ export const useOCRProcessor = () => {
       return results;
     } catch (error) {
       console.error('OCR processing error:', error);
-      throw new Error(`Errore durante l'elaborazione OCR: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      let errorMessage = 'Errore sconosciuto durante l\'elaborazione OCR';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Errore nel caricamento del motore OCR. Controlla la connessione internet.';
+        } else if (error.message.includes('createWorker')) {
+          errorMessage = 'Errore nell\'inizializzazione del worker OCR.';
+        } else if (error.message.includes('wasm')) {
+          errorMessage = 'Errore nel caricamento del modulo WebAssembly per OCR.';
+        } else {
+          errorMessage = `Errore OCR: ${error.message}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
     } finally {
       setIsProcessing(false);
       setProgress(0);

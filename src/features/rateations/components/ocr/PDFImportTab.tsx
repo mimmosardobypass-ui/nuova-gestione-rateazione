@@ -102,11 +102,12 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
         title: "OCR completato",
         description: `Estratte ${valid.length} rate valide`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('OCR Error:', error);
+      const msg = error?.message || error?.toString?.() || 'Errore durante l\'elaborazione del PDF';
       toast({
         title: "Errore OCR",
-        description: "Errore durante l'elaborazione del PDF",
+        description: msg,
         variant: "destructive",
       });
       setStep('upload');

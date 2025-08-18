@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import * as pdfjs from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 
 export interface PDFPage {
   pageNumber: number;
@@ -16,17 +18,14 @@ export const usePDFToImageConverter = () => {
     setProgress(0);
 
     try {
-      console.log('Loading PDF.js dynamically...');
+      console.log('Configuring PDF.js worker for Vite...');
       
-      // Dynamic import to avoid SSR issues
-      const pdfjs = await import('pdfjs-dist');
-      
-      // Configure worker for Vite environment
+      // Configure worker properly for Vite environment
       if (typeof window !== 'undefined') {
         if (!pdfjs.GlobalWorkerOptions.workerSrc) {
           // Use CDN worker for Vite/Lovable compatibility
           pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
-          console.log('PDF.js worker configured with CDN source');
+          console.log('PDF.js worker configured with Vite worker');
         }
       }
 
@@ -51,7 +50,7 @@ export const usePDFToImageConverter = () => {
         console.log(`Processing page ${pageNum}/${numPages}...`);
         
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 }); // Reduced scale for better performance
+        const viewport = page.getViewport({ scale: 1.5 }); // Optimal scale for OCR accuracy vs performance
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
