@@ -1,6 +1,6 @@
 import type { Rata } from "./adrRates.types";
 import { getPdfDocument } from '@/lib/pdfjs';
-import { createWorkerCompat } from './ocrWorker';
+import { ocrImageData } from '../components/ocr/core/ocr';
 
 type Word = { text: string; x: number; y: number; w: number; h: number; lineY: number };
 
@@ -32,19 +32,17 @@ function tolYFor(h: number): number {
   return Math.max(6, Math.round(h * 0.9)); // 6–14 tipicamente
 }
 
-function toWords(data: any): Word[] {
-  const out: Word[] = [];
-  for (const w of data?.words || []) {
-    const bbox = w.bbox;
-    if (!bbox || bbox.length < 4) continue;
-    const [x0, y0, x1, y1] = bbox;
-    out.push({
-      text: String(w.text ?? ""),
-      x: x0, y: y0, w: x1 - x0, h: y1 - y0,
-      lineY: (y0 + y1) / 2,
-    });
-  }
-  return out;
+function toWords(result: { words?: any[] }): Word[] {
+  if (!result.words) return [];
+  
+  return result.words.map(w => ({
+    text: w.text || '',
+    x: w.x0 || 0,
+    y: w.y0 || 0, 
+    w: (w.x1 || 0) - (w.x0 || 0),
+    h: (w.y1 || 0) - (w.y0 || 0),
+    lineY: w.y0 || 0
+  })).filter(w => w.text.trim().length > 0);
 }
 
 function groupByLineY(words: Word[], tol = 6) {
@@ -62,7 +60,7 @@ function groupByLineY(words: Word[], tol = 6) {
 const join = (arr: Word[], sp=false) => arr.map(w=>w.text).join(sp?" ":"");
 
 function findDatesMultiWord(lines: Array<{y:number;words:Word[] }>) {
-  const dates: Array<{ anchor: Word; dd:string; mm:string; yyyy:string }> = [];
+  const dates: Array<{ day: string; month: string; year: string; words: Word[] }> = [];
   for (const L of lines) {
     const lineText = join(L.words, true);
     if (/TOTALE\s+COMPLESSIVAMENT[EA]\s+DOVUTO/i.test(lineText)) continue;
@@ -73,7 +71,7 @@ function findDatesMultiWord(lines: Array<{y:number;words:Word[] }>) {
         const joined = sanitizeDigits(join(slice, false));
         const m = joined.match(/(\d{1,2})\s*[-\/\.]\s*(\d{1,2})\s*[-\/\.]\s*(\d{4})/);
         if (m){
-          dates.push({ anchor: slice[slice.length-1], dd:m[1], mm:m[2], yyyy:m[3] });
+          dates.push({ day: m[1], month: m[2], year: m[3], words: slice });
           i = i + win - 1;
           break;
         }
@@ -105,57 +103,55 @@ export async function extractRatesFromOCR(file: File, onProgress?: (p:number)=>v
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await getPdfDocument({ data: arrayBuffer });
 
-  // Worker OCR (singolo, riusato per tutte le pagine)
-  const worker = await createWorkerCompat("ita+eng", (m: any) => { 
-    if (onProgress && m.progress) {
-      onProgress(Math.round(m.progress * 100)); 
-    }
-  });
-
   const found: Record<string, Rata> = {};
 
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
-    // render ad alta definizione
     const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-    canvas.width = Math.ceil(viewport.width);
-    canvas.height = Math.ceil(viewport.height);
-    await page.render({ canvasContext: ctx as any, viewport }).promise;
-
-    const { data: ocr } = await worker.recognize(canvas);
-    const words = toWords(ocr);
-    if (!words.length) { 
-      canvas.width = canvas.height = 0; 
-      continue; 
-    }
-
-    const lines = groupByLineY(words, 6);
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Cannot get canvas context');
+    
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const imageData = canvas.toDataURL('image/png');
+    
+    // Use the existing OCR system without problematic worker logger
+    const result = await ocrImageData(imageData, (progress) => {
+      if (onProgress) {
+        const pageProgress = ((p - 1) / pdf.numPages) * 100;
+        const totalProgress = pageProgress + (progress / pdf.numPages);
+        onProgress(Math.round(totalProgress));
+      }
+    });
+    
+    const words = toWords(result);
+    const lines = groupByLineY(words);
     const dates = findDatesMultiWord(lines);
+    
+    for (const { day, month, year, words: dateWords } of dates) {
+      const dateKey = normDate(day, month, year);
+      if (found[dateKey]) continue;
 
-    for (const d of dates) {
-      let amountTxt = stitchAmountRightOf(words, d.anchor, tolYFor(d.anchor.h));
-      if (!amountTxt) amountTxt = stitchAmountRightOf(words, d.anchor, tolYFor(d.anchor.h) * 2);
-      if (!amountTxt) continue;
-
-      const value = eurosToNumber(amountTxt);
-      if (!isFinite(value)) continue;
-
-      const scadenza = normDate(d.dd, d.mm, d.yyyy);
-      found[scadenza] = { scadenza, totaleEuro: value, year: parseInt(d.yyyy, 10) };
+      for (const anchor of dateWords) {
+        const amount = stitchAmountRightOf(words, anchor, tolYFor(anchor.h));
+        if (amount) {
+          const euros = eurosToNumber(amount);
+          if (euros > 0) {
+            found[dateKey] = { scadenza: dateKey, totaleEuro: euros, year: parseInt(year) };
+            break;
+          }
+        }
+      }
     }
-
-    canvas.width = canvas.height = 0; // free RAM
   }
-
-  await worker.terminate();
-  try { await pdf.cleanup(); } catch {}
-  try { await pdf.destroy(); } catch {}
-
+  
   return Object.values(found).sort((a, b) => {
-    const ka = a.scadenza.split("-").reverse().join("");
-    const kb = b.scadenza.split("-").reverse().join("");
-    return ka.localeCompare(kb);
+    const kA = a.scadenza.split('-').reverse().join('');
+    const kB = b.scadenza.split('-').reverse().join('');
+    return kA.localeCompare(kB);
   });
 }
