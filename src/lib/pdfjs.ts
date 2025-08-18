@@ -1,29 +1,73 @@
-// Robust PDF.js singleton initialization
+// Loader unico e idempotente per PDF.js + worker, senza CDN.
+// Funziona con Vite/Lovable perché usa ?url: il worker viene bundle-izzato sullo stesso dominio.
+
 let configured = false;
+let cachedPdfjs: any = null;
+let fallbackDisableWorker = false;
 
-// Fixed CDN URL matching our dependency version
-const PDFJS_CDN_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.worker.min.js';
+export async function loadPdfjs() {
+  if (typeof window === 'undefined') {
+    throw new Error('PDF.js può essere caricato solo lato client');
+  }
+  if (configured && cachedPdfjs) return cachedPdfjs;
 
-export async function ensurePdfjsReady() {
-  if (configured) return;
-
-  // Import dinamico per evitare problemi SSR e bundle
+  // Import del build principale (API stabili)
   const pdfjs: any = await import('pdfjs-dist');
-  
-  // 1) Worker: va impostato PRIMA di qualsiasi getDocument()
-  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_CDN_WORKER;
+  // Import del file worker come URL locale
+  const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
 
-  // 2) Verbosity: usa setVerbosity se disponibile, evita assegnazione diretta
-  if (typeof pdfjs.setVerbosity === 'function' && pdfjs.VerbosityLevel) {
-    pdfjs.setVerbosity(pdfjs.VerbosityLevel.ERRORS);
+  try {
+    // Modalità più affidabile: creiamo noi il Worker e lo passiamo come "porta"
+    const worker = new Worker(workerUrl, { type: 'module' as any });
+    pdfjs.GlobalWorkerOptions.workerPort = worker;
+    // Optional: meno rumore di log, evita di toccare proprietà readonly
+    if (typeof pdfjs.setVerbosity === 'function' && pdfjs.VerbosityLevel) {
+      pdfjs.setVerbosity(pdfjs.VerbosityLevel.ERRORS);
+    }
+  } catch {
+    // Fallback classico: src stringa
+    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
   }
 
   configured = true;
-  console.log('[PDF.js] Worker configured:', PDFJS_CDN_WORKER);
+  cachedPdfjs = pdfjs;
+  return pdfjs;
+}
+
+/**
+ * Wrapper robusto: tenta il worker; se fallisce forza disableWorker=true (sempre funziona).
+ */
+export async function getPdfDocument(params: any) {
+  const pdfjs = await loadPdfjs();
+
+  try {
+    return await pdfjs.getDocument({
+      ...params,
+      isEvalSupported: false,
+      useSystemFonts: true,
+      disableWorker: false,
+    }).promise;
+  } catch (err) {
+    console.warn('[PDF] worker fallito, retry senza worker:', err);
+    fallbackDisableWorker = true;
+    return await pdfjs.getDocument({
+      ...params,
+      isEvalSupported: false,
+      useSystemFonts: true,
+      disableWorker: true,
+    }).promise;
+  }
+}
+
+export function isWorkerDisabledFallback() {
+  return fallbackDisableWorker;
+}
+
+// Legacy compatibility exports
+export async function ensurePdfjsReady() {
+  await loadPdfjs();
 }
 
 export async function getPdfjs() {
-  await ensurePdfjsReady();
-  // Re-import per avere le API (getDocument, ecc.)
-  return (await import('pdfjs-dist')) as any;
+  return await loadPdfjs();
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getPdfjs } from '@/lib/pdfjs';
+import { getPdfDocument } from '@/lib/pdfjs';
 import type { PDFPage } from './types';
 
 export function usePDFToImageConverter() {
@@ -15,14 +15,8 @@ export function usePDFToImageConverter() {
       const arrayBuffer = await file.arrayBuffer();
       
       console.log('Loading PDF document...');
-      // Garantisce workerSrc impostato PRIMA di getDocument
-      const pdfjs = await getPdfjs();
-      
-      const pdf = await pdfjs.getDocument({ 
-        data: arrayBuffer,
-        isEvalSupported: false,
-        useSystemFonts: true,
-      }).promise;
+      // Usa il wrapper robusto (worker + fallback automatico)
+      const pdf = await getPdfDocument({ data: arrayBuffer });
       
       const numPages = pdf.numPages;
       console.log(`PDF loaded with ${numPages} pages`);
