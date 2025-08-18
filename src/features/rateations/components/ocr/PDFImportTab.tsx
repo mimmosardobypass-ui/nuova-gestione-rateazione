@@ -208,16 +208,13 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
   }
 
   if (step === 'text' || step === 'ocr') {
-    let displayProgress = 0;
     let title = '';
     let description = '';
     
     if (step === 'text') {
-      displayProgress = 50; // Static for text-layer
       title = 'Analisi text-layer in corso...';
       description = 'Estraendo testo geometricamente dal PDF...';
     } else {
-      displayProgress = progress;
       title = 'Elaborazione OCR in corso...';
       description = 'Processando con riconoscimento ottico...';
     }
@@ -233,8 +230,8 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center">
-              <div className="text-2xl font-bold mb-2">{Math.round(displayProgress)}%</div>
-              <Progress value={displayProgress} className="w-full" />
+              <div className="text-2xl font-bold mb-2">{Math.round(progress)}%</div>
+              <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground mt-2">
                 {description}
               </p>

@@ -1,14 +1,24 @@
-import { createWorker } from "tesseract.js";
 import type { Rata } from "./adrRates.types";
 import { getPdfDocument } from '@/lib/pdfjs';
+import { createWorkerCompat } from './ocrWorker';
 
 type Word = { text: string; x: number; y: number; w: number; h: number; lineY: number };
 
 const normDate = (d: string, m: string, y: string) =>
   `${d.padStart(2,"0")}-${m.padStart(2,"0")}-${y}`;
 
+function sanitizeDigits(s: string): string {
+  return s
+    .replace(/[lI]/g, "1")
+    .replace(/O/g, "0")
+    .replace(/S/g, "5")
+    .replace(/B/g, "8")
+    .replace(/[,·]/g, ",")     // virgole "strane"
+    .replace(/\s+/g, "");
+}
+
 function eurosToNumber(txt: string): number {
-  const clean = txt.replace(/[€\s]/g, "");
+  const clean = sanitizeDigits(txt.replace(/[€\s]/g, ""));
   const m = clean.match(/^(\d{1,3}(?:\.\d{3})*),(\d{2})$/);
   if (!m) return NaN;
   const intPart = m[1].replace(/\./g, "");
@@ -16,7 +26,11 @@ function eurosToNumber(txt: string): number {
 }
 
 const looksAmount = (s: string) =>
-  /\d{1,3}(?:\.\d{3})*,\d{2}$/.test(s.replace(/\s|€/g, ""));
+  /\d{1,3}(?:\.\d{3})*,\d{2}$/.test(sanitizeDigits(s.replace(/\s|€/g, "")));
+
+function tolYFor(h: number): number {
+  return Math.max(6, Math.round(h * 0.9)); // 6–14 tipicamente
+}
 
 function toWords(data: any): Word[] {
   const out: Word[] = [];
@@ -56,7 +70,7 @@ function findDatesMultiWord(lines: Array<{y:number;words:Word[] }>) {
     for (let i=0;i<L.words.length;i++){
       for (let win=1; win<=6 && i+win<=L.words.length; win++){
         const slice = L.words.slice(i, i+win);
-        const joined = join(slice, false);
+        const joined = sanitizeDigits(join(slice, false));
         const m = joined.match(/(\d{1,2})\s*[-\/\.]\s*(\d{1,2})\s*[-\/\.]\s*(\d{4})/);
         if (m){
           dates.push({ anchor: slice[slice.length-1], dd:m[1], mm:m[2], yyyy:m[3] });
@@ -77,7 +91,7 @@ function stitchAmountRightOf(words: Word[], anchor: Word, tolY: number): string 
   for (let win = 6; win >= 1; win--) {
     for (let i = 0; i <= band.length - win; i++) {
       const slice = band.slice(i, i + win);
-      const joined = join(slice, false).replace(/\s/g, "");
+      const joined = sanitizeDigits(join(slice, false).replace(/\s/g, ""));
       if (looksAmount(joined)) {
         const m = joined.match(/(\d{1,3}(?:\.\d{3})*),(\d{2})/);
         if (m) return `${m[1]},${m[2]}`;
@@ -92,11 +106,9 @@ export async function extractRatesFromOCR(file: File, onProgress?: (p:number)=>v
   const pdf = await getPdfDocument({ data: arrayBuffer });
 
   // Worker OCR (singolo, riusato per tutte le pagine)
-  const worker = await createWorker("ita+eng", 1, {
-    logger: (m: any) => { 
-      if (onProgress && m.progress) {
-        onProgress(Math.round(m.progress * 100)); 
-      }
+  const worker = await createWorkerCompat("ita+eng", (m: any) => { 
+    if (onProgress && m.progress) {
+      onProgress(Math.round(m.progress * 100)); 
     }
   });
 
@@ -123,8 +135,8 @@ export async function extractRatesFromOCR(file: File, onProgress?: (p:number)=>v
     const dates = findDatesMultiWord(lines);
 
     for (const d of dates) {
-      let amountTxt = stitchAmountRightOf(words, d.anchor, 6);
-      if (!amountTxt) amountTxt = stitchAmountRightOf(words, d.anchor, 12);
+      let amountTxt = stitchAmountRightOf(words, d.anchor, tolYFor(d.anchor.h));
+      if (!amountTxt) amountTxt = stitchAmountRightOf(words, d.anchor, tolYFor(d.anchor.h) * 2);
       if (!amountTxt) continue;
 
       const value = eurosToNumber(amountTxt);

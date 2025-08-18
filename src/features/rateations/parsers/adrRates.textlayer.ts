@@ -13,8 +13,18 @@ function toTokens(items: any[]): Token[] {
   }));
 }
 
+function sanitizeDigits(s: string): string {
+  return s
+    .replace(/[lI]/g, "1")
+    .replace(/O/g, "0")
+    .replace(/S/g, "5")
+    .replace(/B/g, "8")
+    .replace(/[,·]/g, ",")     // virgole "strane"
+    .replace(/\s+/g, "");
+}
+
 function eurosToNumber(txt: string): number {
-  const clean = txt.replace(/[€\s]/g, "");
+  const clean = sanitizeDigits(txt.replace(/[€\s]/g, ""));
   const m = clean.match(/^(\d{1,3}(?:\.\d{3})*),(\d{2})$/);
   if (!m) return NaN;
   const intPart = m[1].replace(/\./g, "");
@@ -27,7 +37,11 @@ const normDate = (d: string, m: string, y: string) =>
 const join = (t: Token[], sp = false) => t.map(x => x.str).join(sp ? " " : "");
 
 const looksAmount = (s: string) =>
-  /\d{1,3}(?:\.\d{3})*,\d{2}$/.test(s.replace(/\s|€/g, ""));
+  /\d{1,3}(?:\.\d{3})*,\d{2}$/.test(sanitizeDigits(s.replace(/\s|€/g, "")));
+
+function tolYFor(h: number): number {
+  return Math.max(6, Math.round(h * 0.9)); // 6–14 tipicamente
+}
 
 function stitchAmountRightOf(tokens: Token[], anchor: Token, tolY: number): string | null {
   const band = tokens
@@ -37,7 +51,7 @@ function stitchAmountRightOf(tokens: Token[], anchor: Token, tolY: number): stri
   for (let win = 5; win >= 1; win--) {
     for (let i = 0; i <= band.length - win; i++) {
       const slice = band.slice(i, i + win);
-      const joined = join(slice).replace(/\s/g, "");
+      const joined = sanitizeDigits(join(slice).replace(/\s/g, ""));
       if (looksAmount(joined)) {
         const m = joined.match(/(\d{1,3}(?:\.\d{3})*),(\d{2})/);
         if (m) return `${m[1]},${m[2]}`;
@@ -71,7 +85,7 @@ function findDatesMultiToken(lines: Array<{ y: number; line: Token[] }>) {
     for (let i = 0; i < tokens.length; i++) {
       for (let win = 1; win <= 6 && i + win <= tokens.length; win++) {
         const slice = tokens.slice(i, i + win);
-        const joined = join(slice, false);
+        const joined = sanitizeDigits(join(slice, false));
         const m = joined.match(/(\d{1,2})\s*[-\/\.]\s*(\d{1,2})\s*[-\/\.]\s*(\d{4})/);
         if (m) {
           dates.push({ anchor: slice[slice.length - 1], dd: m[1], mm: m[2], yyyy: m[3] });
@@ -101,8 +115,8 @@ export async function extractRatesFromTextLayer(file: File): Promise<Rata[]> {
     const dates = findDatesMultiToken(lines);
 
     for (const d of dates) {
-      let amountTxt = stitchAmountRightOf(tokens, d.anchor, 6);
-      if (!amountTxt) amountTxt = stitchAmountRightOf(tokens, d.anchor, 12);
+      let amountTxt = stitchAmountRightOf(tokens, d.anchor, tolYFor(d.anchor.h));
+      if (!amountTxt) amountTxt = stitchAmountRightOf(tokens, d.anchor, tolYFor(d.anchor.h) * 2);
       if (!amountTxt) continue;
       
       const value = eurosToNumber(amountTxt);
