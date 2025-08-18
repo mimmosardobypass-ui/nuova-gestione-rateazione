@@ -1,9 +1,10 @@
 import * as React from "react";
 import { formatEuro } from "@/lib/formatters";
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
-import { StatusBadge, getInstallmentStatus, Installment } from "./Status";
 import { AttachmentsPanel } from "./AttachmentsPanel";
-import { PaidAtEditor } from "./PaidAtEditor";
+import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
+import { InstallmentStatusBadge } from "./InstallmentStatusBadge";
+import type { InstallmentUI } from "../types";
 import {
   Table,
   TableBody,
@@ -24,7 +25,7 @@ interface RateationRowDetailsProProps {
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged }: RateationRowDetailsProProps) {
-  const [items, setItems] = React.useState<Installment[]>([]);
+  const [items, setItems] = React.useState<InstallmentUI[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [processing, setProcessing] = React.useState<{ [key: string]: boolean }>({});
@@ -167,19 +168,18 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             <div className="text-xs text-muted-foreground">In ritardo</div>
             <div className="font-semibold text-red-700">
               {items.filter(it => {
-                // Conta sia le rate non pagate in ritardo che quelle pagate in ritardo
-                const status = getInstallmentStatus(it);
-                if (status === 'overdue') return true;
-                
-                // Aggiungi le rate pagate in ritardo
+                // Non pagate in ritardo
+                if (!it.is_paid && it.due_date) {
+                  const today = new Date();
+                  const due = new Date(it.due_date);
+                  return today > due;
+                }
+                // Pagate in ritardo
                 if (it.is_paid && it.due_date && it.paid_at) {
                   const due = new Date(it.due_date);
-                  due.setHours(0, 0, 0, 0);
                   const paid = new Date(it.paid_at);
-                  paid.setHours(0, 0, 0, 0);
                   return paid > due;
                 }
-                
                 return false;
               }).length}
             </div>
@@ -209,12 +209,16 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             </TableHeader>
             <TableBody>
               {items.map((it) => {
-                const status = getInstallmentStatus(it);
                 const today = new Date();
                 const dueDate = it.due_date ? new Date(it.due_date) : null;
-                const daysLate = dueDate && status === 'overdue' 
+                const daysLate = dueDate && !it.is_paid && today > dueDate
                   ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
                   : 0;
+
+                // Show ravvedimento total if available, otherwise original amount
+                const displayAmount = it.paid_total_cents 
+                  ? it.paid_total_cents / 100 
+                  : it.amount || 0;
 
                 return (
                   <TableRow key={it.seq} className="hover:bg-muted/50">
@@ -229,17 +233,23 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">{formatEuro(it.amount || 0)}</TableCell>
-                    <TableCell><StatusBadge status={status} /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="space-y-1">
+                        <div className="font-medium">{formatEuro(displayAmount)}</div>
+                        {it.paid_total_cents && it.paid_total_cents > (it.amount || 0) * 100 && (
+                          <div className="text-xs text-muted-foreground">
+                            (orig. {formatEuro(it.amount || 0)})
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell><InstallmentStatusBadge installment={it} /></TableCell>
                     <TableCell>
-                      <PaidAtEditor
+                      <InstallmentPaymentActions
                         rateationId={rateationId}
-                        seq={it.seq}
-                        dueDate={it.due_date}
-                        paidAt={it.paid_at}
-                        isPaid={it.is_paid}
-                        lateDays={it.late_days}
-                        onSaved={() => { debouncedReload(); }}
+                        installment={it}
+                        onReload={debouncedReload}
+                        onStatsReload={debouncedReloadStats}
                         disabled={!online}
                       />
                     </TableCell>
