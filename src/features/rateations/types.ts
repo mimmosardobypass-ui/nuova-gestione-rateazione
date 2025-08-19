@@ -38,6 +38,11 @@ export interface InstallmentUI {
     annual_percent: number;
     amount_cents: number;
   }>;
+  // New fields for clearer payment handling
+  payment_mode?: 'ordinary' | 'ravvedimento' | 'partial';
+  paid_date?: string | null;
+  extra_interest_euro?: number;
+  extra_penalty_euro?: number;
 }
 
 export interface RavvedimentoCalculation {

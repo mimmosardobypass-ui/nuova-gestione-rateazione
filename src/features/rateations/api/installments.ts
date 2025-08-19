@@ -40,19 +40,44 @@ export const markInstallmentPaidWithDate = async (
 /**
  * Mark installment as paid with ordinary payment (no ravvedimento calculation)
  */
-export const markInstallmentPaidOrdinaryFixed = async (
-  rateationId: string,
-  seq: number,
-  paidAtDate: string
-): Promise<void> => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidAtDate)) {
+export const markInstallmentPaidOrdinary = async (params: {
+  installmentId: string;
+  paidDate: string;
+  amountPaid?: number;
+}): Promise<void> => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.paidDate)) {
     throw new Error("Data pagamento non valida (formato atteso YYYY-MM-DD).");
   }
 
-  const { error } = await supabase.rpc("mark_installment_paid_ordinary", {
-    p_rateation_id: parseInt(rateationId),
-    p_seq: seq,
-    p_paid_at: paidAtDate,
+  const { error } = await supabase.rpc("mark_installment_paid_ordinary_new", {
+    p_installment_id: parseInt(params.installmentId),
+    p_paid_date: params.paidDate,
+    p_amount_paid: params.amountPaid ?? null,
+  });
+
+  if (error) throw error;
+};
+
+/**
+ * Mark installment as paid with ravvedimento (manual total amount)
+ */
+export const markInstallmentPaidRavvedimento = async (params: {
+  installmentId: string;
+  paidDate: string;
+  totalPaid: number;
+  interest?: number;
+  penalty?: number;
+}): Promise<void> => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.paidDate)) {
+    throw new Error("Data pagamento non valida (formato atteso YYYY-MM-DD).");
+  }
+
+  const { error } = await supabase.rpc("mark_installment_paid_ravvedimento_new", {
+    p_installment_id: parseInt(params.installmentId),
+    p_paid_date: params.paidDate,
+    p_total_paid: params.totalPaid,
+    p_interest: params.interest ?? null,
+    p_penalty: params.penalty ?? null,
   });
 
   if (error) throw error;

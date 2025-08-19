@@ -1,92 +1,104 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { markInstallmentPaidOrdinaryFixed as markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
-import { RavvedimentoDialog } from "./RavvedimentoDialog";
+import { formatEuro } from "@/lib/formatters";
+import { markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
+import { RavvedimentoModal } from "./RavvedimentoModal";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentPaymentActionsProps {
   rateationId: string;
   installment: InstallmentUI;
-  onReload: () => void;
+  onReload?: () => void;
+  onReloadList?: () => void;
   onStatsReload?: () => void;
   disabled?: boolean;
 }
 
-export function InstallmentPaymentActions({
-  rateationId,
-  installment,
-  onReload,
-  onStatsReload,
-  disabled = false,
+export function InstallmentPaymentActions({ 
+  rateationId, 
+  installment, 
+  onReload, 
+  onReloadList,
+  onStatsReload, 
+  disabled = false 
 }: InstallmentPaymentActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unpaying, setUnpaying] = useState(false);
   const [showRavvedimento, setShowRavvedimento] = useState(false);
 
-  // Default date: if already paid use paid_at, otherwise today
-  const todayDate = useMemo(() => new Date(), []);
+  // Default to current date, or use existing paid_date/paid_at
   const currentPaymentDate = useMemo(() => {
-    if (installment.paid_at) {
-      return new Date(installment.paid_at);
+    if (installment.paid_date || installment.paid_at) {
+      return installment.paid_date || installment.paid_at;
     }
-    return todayDate;
-  }, [installment.paid_at, todayDate]);
+    return format(new Date(), "yyyy-MM-dd");
+  }, [installment.paid_date, installment.paid_at]);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(currentPaymentDate);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    (installment.paid_date || installment.paid_at) ? new Date(installment.paid_date || installment.paid_at!) : new Date()
+  );
 
-  const handleMarkPaid = async () => {
-    if (!selectedDate) return;
-
-    const dateStr = selectedDate.toISOString().slice(0, 10);
+  const handleMarkPaidOrdinary = async (date: Date) => {
+    if (!date || disabled) return;
     
+    setSaving(true);
     try {
-      setSaving(true);
-      // Always use ordinary payment - no automatic ravvedimento calculation
-      await markInstallmentPaidOrdinary(rateationId, installment.seq, dateStr);
-      
-      toast({
-        title: installment.is_paid ? "Pagamento aggiornato" : "Pagamento registrato",
-        description: `Rata #${installment.seq} ${installment.is_paid ? "aggiornata" : "pagata"} in data ${format(selectedDate, "dd/MM/yyyy")}.`,
+      const isoDate = format(date, "yyyy-MM-dd");
+      await markInstallmentPaidOrdinary({
+        installmentId: installment.id.toString(),
+        paidDate: isoDate
       });
       
-      setIsOpen(false);
-      onReload();
+      toast({
+        title: "Rata pagata",
+        description: "Pagamento ordinario registrato"
+      });
+      
+      onReload?.();
+      onReloadList?.();
       onStatsReload?.();
     } catch (error: any) {
       toast({
         title: "Errore",
-        description: error?.message || "Impossibile salvare la data di pagamento.",
-        variant: "destructive",
+        description: error.message,
+        variant: "destructive"
       });
     } finally {
       setSaving(false);
+      setIsOpen(false);
     }
   };
 
   const handleUnmarkPaid = async () => {
-    if (!confirm("Sei sicuro di voler annullare il pagamento di questa rata?")) return;
+    if (disabled) return;
     
+    const confirmed = window.confirm("Sei sicuro di voler annullare il pagamento di questa rata?");
+    if (!confirmed) return;
+
     setUnpaying(true);
     try {
       await cancelInstallmentPayment(installment.id);
+      
       toast({
-        title: "Successo",
-        description: "Pagamento annullato"
+        title: "Pagamento annullato",
+        description: "La rata è stata rimessa in stato non pagata"
       });
-      onReload();
+      
+      onReload?.();
+      onReloadList?.();
       onStatsReload?.();
     } catch (error: any) {
       toast({
         title: "Errore",
-        description: error.message || "Errore nell'annullamento",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -94,119 +106,99 @@ export function InstallmentPaymentActions({
     }
   };
 
-  // Check if installment is late and unpaid for explicit ravvedimento button
-  const isLate = !installment.is_paid && new Date() > new Date(installment.due_date);
-  const [dateForRav, setDateForRav] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [showExplicitRav, setShowExplicitRav] = useState(false);
-
-  // Check if paid installment is late without ravvedimento
-  const isPaidLateWithoutRavvedimento = installment.is_paid && 
-    installment.late_days && installment.late_days > 0 && 
-    !installment.penalty_amount_cents && 
-    !installment.interest_amount_cents;
-
   return (
     <div className="flex items-center gap-2">
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled || saving || unpaying}
-            className={cn(
-              "justify-start text-left font-normal min-w-[120px]",
-              !selectedDate && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Seleziona data"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={(date) => date && setSelectedDate(date)}
-            initialFocus
-            locale={it}
-            className={cn("p-3 pointer-events-auto")}
-          />
-          <div className="p-3 pt-0 border-t">
-            <Button 
-              onClick={handleMarkPaid} 
-              disabled={saving || !selectedDate}
-              className="w-full"
-              size="sm"
-            >
-              {saving ? "Salvataggio..." : installment.is_paid ? "Aggiorna data" : "Segna pagata"}
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {installment.is_paid && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleUnmarkPaid}
-          disabled={disabled || saving || unpaying}
-          className="text-destructive hover:text-destructive"
-        >
-          {unpaying ? "Annullando..." : "Annulla"}
-        </Button>
-      )}
-
-      {isLate && (
+      {!installment.is_paid ? (
         <div className="flex items-center gap-2">
-          <input
-            type="date"
-            className="px-2 py-1 text-sm border rounded"
-            value={dateForRav}
-            onChange={(e) => setDateForRav(e.target.value)}
-          />
+          {/* Ordinary Payment - Date Picker */}
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[200px] justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+                disabled={disabled || saving}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "dd/MM/yyyy", { locale: it })
+                ) : (
+                  <span>Paga (ordinario)</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    handleMarkPaidOrdinary(date);
+                  }
+                }}
+                initialFocus
+                locale={it}
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          
+          {/* Ravvedimento Payment Button */}
           <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowExplicitRav(true)}
+            variant="secondary"
+            onClick={() => setShowRavvedimento(true)}
             disabled={disabled}
+            className="whitespace-nowrap"
           >
             Paga con ravvedimento
           </Button>
         </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <div className="text-sm">
+            <div className="font-medium">
+              {installment.payment_mode === 'ravvedimento' ? 'Pagata (Rav.)' : 'Pagata'}
+            </div>
+            <div className="text-muted-foreground">
+              {format(new Date(currentPaymentDate), "dd/MM/yyyy", { locale: it })}
+            </div>
+            {installment.payment_mode === 'ravvedimento' && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Quota: {formatEuro(installment.amount)} • 
+                Extra: {formatEuro((installment.extra_interest_euro || 0) + (installment.extra_penalty_euro || 0))} • 
+                Totale: {formatEuro(installment.amount + (installment.extra_interest_euro || 0) + (installment.extra_penalty_euro || 0))}
+              </div>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUnmarkPaid}
+            disabled={disabled || unpaying}
+          >
+            {unpaying ? "Annullando..." : "Annulla pagamento"}
+          </Button>
+        </div>
       )}
 
-      {isPaidLateWithoutRavvedimento && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowExplicitRav(true)}
-          disabled={disabled}
-          className="text-purple-600 hover:text-purple-700 border-purple-600"
-        >
-          Calcola ravvedimento
-        </Button>
-      )}
-
-      <RavvedimentoDialog
+      {/* New Ravvedimento Modal */}
+      <RavvedimentoModal
         open={showRavvedimento}
-        onOpenChange={setShowRavvedimento}
-        installment={installment}
-        paidAt={selectedDate?.toISOString().slice(0, 10) || ''}
-        onConfirm={() => {
-          onReload();
+        installment={{
+          id: installment.id.toString(),
+          amount: installment.amount,
+          dueDate: installment.due_date
+        }}
+        onSuccess={() => {
+          setShowRavvedimento(false);
+          onReload?.();
+          onReloadList?.();
           onStatsReload?.();
         }}
-      />
-
-      <RavvedimentoDialog
-        open={showExplicitRav}
-        onOpenChange={setShowExplicitRav}
-        installment={installment}
-        paidAt={dateForRav}
-        onConfirm={() => {
-          onReload();
-          onStatsReload?.();
-        }}
+        onClose={() => setShowRavvedimento(false)}
       />
     </div>
   );
