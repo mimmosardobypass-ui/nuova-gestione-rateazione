@@ -9,13 +9,44 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-type Installment = {
-  id: string;
-  rateation_id: string;
+// Helper functions for Italian date/amount parsing
+const euroToNumber = (txt: string): number => {
+  if (typeof txt !== 'string') return Number(txt) || 0;
+  const clean = txt.replace(/\./g, '').replace(',', '.'); // "1.773,24" -> "1773.24"
+  const n = Number(clean);
+  return Number.isFinite(n) ? n : NaN;
+};
+
+const formatIT = (n: number): string =>
+  new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .format(n);
+
+const toISO = (s: string | Date): string => {
+  if (s instanceof Date) return s.toISOString().slice(0, 10);
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`; // DD/MM/YYYY -> YYYY-MM-DD
+  return s.slice(0, 10); // assume già ISO
+};
+
+const isValidISODate = (iso: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const d = new Date(iso);
+  return !Number.isNaN(d.getTime());
+};
+
+type Row = {
   seq: number;
-  due_date: string;  // yyyy-MM-dd
-  amount: number;
-  paid_at: string | null;
+  due_date: string;     // accetta "DD/MM/YYYY" o "YYYY-MM-DD" in UI
+  amount: string;       // stringa IT per input, es. "1.773,24"
+  paid?: boolean;       // se pagata -> riga bloccata
+  id?: string;
+  rateation_id?: string;
+  paid_at?: string | null;
+};
+
+type RowError = {
+  date?: string;        // messaggio errore
+  amount?: string;      // messaggio errore
 };
 
 type Props = {
@@ -26,15 +57,46 @@ type Props = {
 };
 
 export default function EditScheduleModal({ rateationId, open, onOpenChange, onSaved }: Props) {
-  const [rows, setRows] = useState<Installment[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<number, RowError>>({});
   const { toast } = useToast();
 
   const totals = useMemo(() => {
-    const quota = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+    const quota = rows.reduce((s, r) => s + euroToNumber(r.amount || '0'), 0);
     const cnt = rows.length;
     return { quota, cnt };
+  }, [rows]);
+
+  // Validazione live
+  useEffect(() => {
+    const map: Record<number, RowError> = {};
+    let prevDateISO: string | null = null;
+
+    rows.forEach((r, idx) => {
+      const e: RowError = {};
+
+      // Date
+      const iso = toISO(r.due_date);
+      if (!isValidISODate(iso)) {
+        e.date = 'Data non valida (usa gg/mm/aaaa)';
+      } else if (prevDateISO && new Date(iso) < new Date(prevDateISO)) {
+        e.date = 'Data precedente alla rata precedente';
+      } else {
+        prevDateISO = iso;
+      }
+
+      // Amount
+      const n = euroToNumber(r.amount);
+      if (!Number.isFinite(n) || n <= 0) {
+        e.amount = 'Importo non valido';
+      }
+
+      if (e.date || e.amount) map[idx] = e;
+    });
+
+    setErrors(map);
   }, [rows]);
 
   useEffect(() => {
@@ -55,9 +117,10 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
           rateation_id: d.rateation_id?.toString() || rateationId,
           seq: d.seq,
           due_date: d.due_date,
-          amount: Number(d.amount || 0),
+          amount: formatIT(Number(d.amount || 0)),
           paid_at: d.paid_at,
-        })) as Installment[];
+          paid: !!d.paid_at,
+        })) as Row[];
 
         setRows(mapped);
       } catch (error) {
@@ -73,7 +136,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
     })();
   }, [open, rateationId, toast]);
 
-  const setCell = (idx: number, patch: Partial<Installment>) => {
+  const setCell = (idx: number, patch: Partial<Row>) => {
     setRows(prev => {
       const clone = [...prev];
       clone[idx] = { ...clone[idx], ...patch };
@@ -88,8 +151,9 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
       rateation_id: rateationId,
       seq: maxSeq + 1,
       due_date: format(new Date(), "yyyy-MM-dd"),
-      amount: 0,
+      amount: '0,00',
       paid_at: null,
+      paid: false,
     }]);
   };
 
@@ -99,8 +163,8 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
 
   const shiftMonths = (delta: number) => {
     setRows(prev => prev.map(r => {
-      if (r.paid_at) return r;
-      const d = new Date(r.due_date);
+      if (r.paid) return r;
+      const d = new Date(toISO(r.due_date));
       d.setMonth(d.getMonth() + delta);
       return { ...r, due_date: format(d, "yyyy-MM-dd") };
     }));
@@ -108,21 +172,34 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
 
   const setMonthDay = (day: number) => {
     setRows(prev => prev.map(r => {
-      if (r.paid_at) return r;
-      const d = new Date(r.due_date);
+      if (r.paid) return r;
+      const d = new Date(toISO(r.due_date));
       const target = new Date(d.getFullYear(), d.getMonth(), day);
       return { ...r, due_date: format(target, "yyyy-MM-dd") };
     }));
   };
 
   const save = async () => {
+    // Blocca se errori
+    if (Object.keys(errors).length > 0) {
+      toast({
+        title: "Errore",
+        description: "Correggi gli errori (date/importi) prima di salvare",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      const payload = rows.map(r => ({
-        seq: r.seq,
-        due_date: r.due_date,
-        amount: r.amount
-      }));
+      // Solo righe NON pagate
+      const payload = rows
+        .filter(r => !r.paid)
+        .map(r => ({
+          seq: Number(r.seq),
+          due_date: toISO(r.due_date), // "YYYY-MM-DD"
+          amount: euroToNumber(r.amount).toString(), // "1773.24"
+        }));
 
       const { error } = await supabase.rpc("apply_rateation_edits", {
         p_rateation_id: parseInt(rateationId),
@@ -133,16 +210,16 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
 
       toast({
         title: "Successo",
-        description: "Modifiche salvate correttamente",
+        description: "Rate salvate e riepilogo ricalcolato",
       });
 
       onOpenChange(false);
       onSaved?.();
-    } catch (error) {
-      console.error("Error saving edits:", error);
+    } catch (err: any) {
+      console.error('[apply_rateation_edits] error:', err);
       toast({
         title: "Errore",
-        description: "Errore nel salvataggio delle modifiche",
+        description: `Errore nel salvataggio: ${err?.message || 'sconosciuto'}`,
         variant: "destructive",
       });
     } finally {
@@ -169,9 +246,16 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
             Fine mese
           </Button>
           <div className="ml-auto text-sm text-muted-foreground">
-            Totale rate: <b>{totals.cnt}</b> &nbsp;•&nbsp; Somma: <b>{totals.quota.toLocaleString("it-IT", {minimumFractionDigits:2})} €</b>
+            Totale rate: <b>{totals.cnt}</b> &nbsp;•&nbsp; Somma: <b>{formatIT(totals.quota)} €</b>
           </div>
         </div>
+
+        {/* Alert errori */}
+        {Object.keys(errors).length > 0 && (
+          <div className="mb-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
+            Sono presenti <b>{Object.keys(errors).length}</b> righe con errori. Correggi prima di salvare.
+          </div>
+        )}
 
         {/* Tabella */}
         <div className="border rounded overflow-hidden flex-1 flex flex-col min-h-0">
@@ -193,60 +277,84 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
               rows
                 .sort((a, b) => a.seq - b.seq)
                 .map((r, idx) => {
-                  const isPaid = !!r.paid_at;
+                  const isPaid = !!r.paid;
+                  const e = errors[idx] || {};
+                  const dateError = !!e.date;
+                  const amountError = !!e.amount;
+
                   return (
-                    <div 
-                      key={r.id} 
-                      className={cn(
-                        "grid grid-cols-[60px_140px_160px_1fr] items-center px-3 py-2 border-t text-sm",
-                        isPaid && "bg-muted/40"
-                      )}
-                    >
-                      <div>
-                        <Input
-                          className="w-14 h-8"
-                          type="number"
-                          value={r.seq}
-                          onChange={e => setCell(idx, { seq: Number(e.target.value) })}
-                          disabled={isPaid}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4 opacity-60" />
-                        <Input
-                          className="w-[110px] h-8"
-                          type="date"
-                          value={r.due_date}
-                          onChange={e => setCell(idx, { due_date: e.target.value })}
-                          disabled={isPaid}
-                        />
-                      </div>
-                      <div>
-                        <Input
-                          className="w-[140px] h-8 text-right"
-                          type="number"
-                          step="0.01"
-                          value={r.amount}
-                          onChange={e => setCell(idx, { amount: Number(e.target.value) })}
-                          disabled={isPaid}
-                        />
-                      </div>
-                      <div className="text-right">
-                        {isPaid ? (
-                          <span className="text-xs text-muted-foreground">
-                            Pagata il {format(new Date(r.paid_at!), "dd/MM/yyyy", { locale: it })}
-                          </span>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => removeRow(idx)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                    <div key={r.id || idx}>
+                      <div 
+                        className={cn(
+                          "grid grid-cols-[60px_140px_160px_1fr] items-center px-3 py-2 border-t text-sm",
+                          isPaid && "bg-muted/40"
                         )}
+                      >
+                        <div>
+                          <Input
+                            className="w-14 h-8"
+                            type="number"
+                            value={r.seq}
+                            onChange={e => setCell(idx, { seq: Number(e.target.value) })}
+                            disabled={isPaid}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 opacity-60" />
+                          <Input
+                            className={cn(
+                              "w-[110px] h-8",
+                              dateError && "border-destructive ring-1 ring-destructive/40"
+                            )}
+                            value={r.due_date}
+                            onChange={e => setCell(idx, { due_date: e.target.value })}
+                            placeholder="gg/mm/aaaa"
+                            disabled={isPaid}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            className={cn(
+                              "w-[140px] h-8 text-right tabular-nums",
+                              amountError && "border-destructive ring-1 ring-destructive/40"
+                            )}
+                            value={r.amount}
+                            onChange={e => setCell(idx, { amount: e.target.value })}
+                            onBlur={() => {
+                              const n = euroToNumber(r.amount);
+                              if (Number.isFinite(n)) {
+                                setCell(idx, { amount: formatIT(n) });
+                              }
+                            }}
+                            disabled={isPaid}
+                          />
+                        </div>
+                        <div className="text-right">
+                          {isPaid ? (
+                            <span className="text-xs text-muted-foreground">
+                              Pagata il {format(new Date(r.paid_at!), "dd/MM/yyyy", { locale: it })}
+                            </span>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={() => removeRow(idx)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                      {/* Errori inline */}
+                      {(dateError || amountError) && (
+                        <div className="grid grid-cols-[60px_140px_160px_1fr] px-3 pb-2 text-[11px] text-destructive">
+                          <div></div>
+                          <div>{dateError && e.date}</div>
+                          <div>{amountError && e.amount}</div>
+                          <div></div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -259,7 +367,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annulla
           </Button>
-          <Button onClick={save} disabled={saving || loading}>
+          <Button onClick={save} disabled={saving || loading || Object.keys(errors).length > 0}>
             <Save className="mr-2 h-4 w-4" /> 
             {saving ? "Salvataggio..." : "Salva modifiche"}
           </Button>
