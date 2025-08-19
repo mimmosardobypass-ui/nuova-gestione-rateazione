@@ -36,6 +36,26 @@ export const markInstallmentPaidWithDate = async (
   if (error) throw error;
 };
 
+// LOVABLE:START markInstallmentPaidOrdinary
+export const markInstallmentPaidOrdinary = async (
+  rateationId: string,
+  seq: number,
+  paidAtDate: string
+): Promise<void> => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidAtDate)) {
+    throw new Error("Data pagamento non valida (formato atteso YYYY-MM-DD).");
+  }
+
+  const { error } = await supabase.rpc("mark_installment_paid_ordinary", {
+    p_rateation_id: parseInt(rateationId),
+    p_seq: seq,
+    p_paid_at: paidAtDate,
+  });
+
+  if (error) throw error;
+};
+// LOVABLE:END markInstallmentPaidOrdinary
+
 // Keep legacy function for backward compatibility
 export const markInstallmentPaid = async (
   rateationId: string, 

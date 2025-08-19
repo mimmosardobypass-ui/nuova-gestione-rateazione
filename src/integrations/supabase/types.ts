@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           amount: number
           amount_cents: number | null
+          apply_ravvedimento: boolean | null
           canceled_at: string | null
           created_at: string | null
           due_date: string
@@ -32,6 +33,7 @@ export type Database = {
           paid_recorded_at: string | null
           paid_total_cents: number | null
           payment_method: string | null
+          payment_mode: string | null
           penalty_amount_cents: number | null
           penalty_rule_id: string | null
           postponed: boolean | null
@@ -43,6 +45,7 @@ export type Database = {
         Insert: {
           amount: number
           amount_cents?: number | null
+          apply_ravvedimento?: boolean | null
           canceled_at?: string | null
           created_at?: string | null
           due_date: string
@@ -57,6 +60,7 @@ export type Database = {
           paid_recorded_at?: string | null
           paid_total_cents?: number | null
           payment_method?: string | null
+          payment_mode?: string | null
           penalty_amount_cents?: number | null
           penalty_rule_id?: string | null
           postponed?: boolean | null
@@ -68,6 +72,7 @@ export type Database = {
         Update: {
           amount?: number
           amount_cents?: number | null
+          apply_ravvedimento?: boolean | null
           canceled_at?: string | null
           created_at?: string | null
           due_date?: string
@@ -82,6 +87,7 @@ export type Database = {
           paid_recorded_at?: string | null
           paid_total_cents?: number | null
           payment_method?: string | null
+          payment_mode?: string | null
           penalty_amount_cents?: number | null
           penalty_rule_id?: string | null
           postponed?: boolean | null
@@ -545,6 +551,7 @@ export type Database = {
         Returns: {
           amount: number
           amount_cents: number | null
+          apply_ravvedimento: boolean | null
           canceled_at: string | null
           created_at: string | null
           due_date: string
@@ -559,6 +566,7 @@ export type Database = {
           paid_recorded_at: string | null
           paid_total_cents: number | null
           payment_method: string | null
+          payment_mode: string | null
           penalty_amount_cents: number | null
           penalty_rule_id: string | null
           postponed: boolean | null
@@ -573,6 +581,7 @@ export type Database = {
         Returns: {
           amount: number
           amount_cents: number | null
+          apply_ravvedimento: boolean | null
           canceled_at: string | null
           created_at: string | null
           due_date: string
@@ -587,6 +596,7 @@ export type Database = {
           paid_recorded_at: string | null
           paid_total_cents: number | null
           payment_method: string | null
+          payment_mode: string | null
           penalty_amount_cents: number | null
           penalty_rule_id: string | null
           postponed: boolean | null
@@ -651,6 +661,10 @@ export type Database = {
         Returns: undefined
       }
       mark_installment_paid: {
+        Args: { p_paid_at: string; p_rateation_id: number; p_seq: number }
+        Returns: undefined
+      }
+      mark_installment_paid_ordinary: {
         Args: { p_paid_at: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
       }

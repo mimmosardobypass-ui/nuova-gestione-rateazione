@@ -1,7 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { it } from "date-fns/locale";
-import { formatEuro } from "@/lib/formatters";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentStatusBadgeProps {
@@ -9,62 +6,43 @@ interface InstallmentStatusBadgeProps {
 }
 
 export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgeProps) {
-  const getStatusInfo = () => {
-    if (installment.is_paid) {
-      const paidDate = installment.paid_at ? format(new Date(installment.paid_at), "dd/MM/yyyy", { locale: it }) : "N/A";
-      const lateDays = installment.late_days || 0;
-      const hasRav = (installment.paid_total_cents ?? 0) > 0;
-      
-      let subtitle = lateDays > 0 ? `Pagata il ${paidDate} — ${lateDays} gg ritardo` : `Pagata il ${paidDate}`;
-      
-      if (hasRav && installment.paid_total_cents) {
-        const originalAmount = installment.amount || 0;
-        const extraAmount = (installment.paid_total_cents / 100) - originalAmount;
-        subtitle += ` • Totale: ${formatEuro(installment.paid_total_cents / 100)}`;
-        if (extraAmount > 0) {
-          subtitle += ` (${formatEuro(extraAmount)} extra)`;
-        }
-      }
-      
-      return {
-        variant: "secondary" as const,
-        text: hasRav ? "Pagata (Ravvedimento)" : "Pagata",
-        subtitle
-      };
-    }
-
+  if (!installment.is_paid) {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (installment.due_date) {
-      const dueDate = new Date(installment.due_date);
-      dueDate.setHours(0, 0, 0, 0);
-      
-      if (dueDate < today) {
-        const daysDiff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-        return {
-          variant: "destructive" as const,
-          text: "In ritardo",
-          subtitle: `${daysDiff} giorni di ritardo`
-        };
-      }
+    const dueDate = new Date(installment.due_date);
+    const isOverdue = today > dueDate;
+
+    if (isOverdue) {
+      return <Badge variant="destructive">In ritardo</Badge>;
+    } else {
+      return <Badge variant="outline">Da pagare</Badge>;
     }
+  }
 
-    const dueText = installment.due_date ? format(new Date(installment.due_date), "dd/MM/yyyy", { locale: it }) : "N/A";
-    return {
-      variant: "outline" as const,
-      text: "Da pagare",
-      subtitle: `Scade il ${dueText}`
-    };
-  };
+  // Installment is paid - check payment mode and late status
+  const isLatePayment = installment.late_days && installment.late_days > 0;
+  const hasRavvedimento = installment.penalty_amount_cents > 0 || installment.interest_amount_cents > 0;
 
-  const { variant, text, subtitle } = getStatusInfo();
+  if (isLatePayment && !hasRavvedimento) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary">Pagata</Badge>
+        <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+          Pagata in ritardo (senza ravvedimento)
+        </Badge>
+      </div>
+    );
+  }
 
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <Badge variant={variant}>{text}</Badge>
-      {installment.postponed && <Badge variant="outline" className="text-xs">Rimandata</Badge>}
-      <div className="text-xs text-muted-foreground text-right">{subtitle}</div>
-    </div>
-  );
+  if (hasRavvedimento) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary">Pagata</Badge>
+        <Badge variant="outline" className="text-purple-600 border-purple-600">
+          Con ravvedimento
+        </Badge>
+      </div>
+    );
+  }
+
+  return <Badge variant="secondary">Pagata</Badge>;
 }

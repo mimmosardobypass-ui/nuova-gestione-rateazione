@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { markInstallmentPaidWithDate, cancelInstallmentPayment } from "../api/installments";
+import { markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
 import { RavvedimentoDialog } from "./RavvedimentoDialog";
 import type { InstallmentUI } from "../types";
 
@@ -46,19 +46,11 @@ export function InstallmentPaymentActions({
     if (!selectedDate) return;
 
     const dateStr = selectedDate.toISOString().slice(0, 10);
-    const dueDate = new Date(installment.due_date);
-    const isLate = selectedDate > dueDate;
-
-    // Se pagamento in ritardo, mostra dialog ravvedimento
-    if (isLate && !installment.is_paid) {
-      setShowRavvedimento(true);
-      setIsOpen(false);
-      return;
-    }
-
+    
     try {
       setSaving(true);
-      await markInstallmentPaidWithDate(rateationId, installment.seq, dateStr);
+      // Always use ordinary payment - no automatic ravvedimento calculation
+      await markInstallmentPaidOrdinary(rateationId, installment.seq, dateStr);
       
       toast({
         title: installment.is_paid ? "Pagamento aggiornato" : "Pagamento registrato",
@@ -106,6 +98,12 @@ export function InstallmentPaymentActions({
   const isLate = !installment.is_paid && new Date() > new Date(installment.due_date);
   const [dateForRav, setDateForRav] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [showExplicitRav, setShowExplicitRav] = useState(false);
+
+  // Check if paid installment is late without ravvedimento
+  const isPaidLateWithoutRavvedimento = installment.is_paid && 
+    installment.late_days && installment.late_days > 0 && 
+    !installment.penalty_amount_cents && 
+    !installment.interest_amount_cents;
 
   return (
     <div className="flex items-center gap-2">
@@ -175,6 +173,18 @@ export function InstallmentPaymentActions({
             Paga con ravvedimento
           </Button>
         </div>
+      )}
+
+      {isPaidLateWithoutRavvedimento && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowExplicitRav(true)}
+          disabled={disabled}
+          className="text-purple-600 hover:text-purple-700 border-purple-600"
+        >
+          Calcola ravvedimento
+        </Button>
       )}
 
       <RavvedimentoDialog
