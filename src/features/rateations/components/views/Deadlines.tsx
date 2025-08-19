@@ -1,11 +1,18 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, AlertTriangle, Clock } from "lucide-react";
-import { format, addDays, isAfter, isBefore, differenceInDays } from "date-fns";
-import { it } from "date-fns/locale";
-import type { RateationRow } from "@/features/rateations/types";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowLeft, Calendar, Download, TrendingUp } from 'lucide-react';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { formatEuro } from '@/lib/formatters';
+import { useDeadlines, useDeadlineKPIs, useMonthlyTrends, type DeadlineFilters } from '@/features/rateations/hooks/useDeadlines';
+import { DeadlineFilters as FilterComponent } from '@/features/rateations/components/DeadlineFilters';
+import { DeadlineKPICards } from '@/features/rateations/components/DeadlineKPICards';
+import type { RateationRow } from '@/features/rateations/types';
 
 interface DeadlinesProps {
   rows: RateationRow[];
@@ -13,241 +20,230 @@ interface DeadlinesProps {
   onBack: () => void;
 }
 
-interface DeadlineItem {
-  rateationId: string;
-  rateationNumber: string;
-  taxpayerName: string | null;
-  installmentSeq: number;
-  amount: number;
-  dueDate: Date;
-  status: 'overdue' | 'due-soon' | 'upcoming';
-  daysUntilDue: number;
-}
+const BUCKET_COLORS = {
+  'In ritardo': 'hsl(var(--destructive))',
+  'Entro 7 giorni': 'hsl(var(--warning))',
+  'Entro 30 giorni': 'hsl(var(--accent))',
+  'Futuro': 'hsl(var(--primary))',
+  'Pagata': 'hsl(var(--success))',
+};
 
-export function Deadlines({ rows, loading, onBack }: DeadlinesProps) {
-  const today = new Date();
-  const nextWeek = addDays(today, 7);
-  const nextMonth = addDays(today, 30);
+export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesProps) {
+  const [filters, setFilters] = React.useState<DeadlineFilters>({
+    startDate: format(new Date(), 'yyyy-MM-dd'),
+    endDate: format(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // Next 90 days
+  });
 
-  // Mock function to generate installment deadlines from rateations
-  // In real implementation, you would fetch actual installment data
-  const generateDeadlines = (rows: RateationRow[]): DeadlineItem[] => {
-    const deadlines: DeadlineItem[] = [];
-    
-    rows.forEach(row => {
-      // Mock: generate some upcoming installments for active rateations
-      if (row.residuo > 0 && row.ratePagate < row.rateTotali) {
-        const remainingInstallments = row.rateTotali - row.ratePagate;
-        
-        // Generate up to 3 upcoming installments
-        for (let i = 0; i < Math.min(remainingInstallments, 3); i++) {
-          const dueDate = addDays(today, Math.random() * 60 - 10); // Random dates within 2 months
-          const daysUntilDue = differenceInDays(dueDate, today);
-          
-          let status: DeadlineItem['status'] = 'upcoming';
-          if (daysUntilDue < 0) {
-            status = 'overdue';
-          } else if (daysUntilDue <= 7) {
-            status = 'due-soon';
-          }
+  const { data: deadlines = [], isLoading: deadlinesLoading } = useDeadlines(filters);
+  const { data: kpis, isLoading: kpisLoading } = useDeadlineKPIs(filters);
+  const { data: monthlyTrends = [], isLoading: trendsLoading } = useMonthlyTrends(12);
 
-          deadlines.push({
-            rateationId: row.id,
-            rateationNumber: row.numero,
-            taxpayerName: row.contribuente,
-            installmentSeq: row.ratePagate + i + 1,
-            amount: row.importoTotale / row.rateTotali, // Mock equal installments
-            dueDate,
-            status,
-            daysUntilDue,
-          });
-        }
-      }
+  const loading = parentLoading || deadlinesLoading;
+
+  // Prepare monthly trend data for chart
+  const chartData = React.useMemo(() => {
+    const months = Array.from(new Set(monthlyTrends.map(t => t.due_month))).sort();
+    return months.map(month => {
+      const monthData = { month };
+      const buckets = ['In ritardo', 'Entro 7 giorni', 'Entro 30 giorni', 'Futuro', 'Pagata'];
+      buckets.forEach(bucket => {
+        const trend = monthlyTrends.find(t => t.due_month === month && t.bucket === bucket);
+        monthData[bucket] = trend?.amount || 0;
+      });
+      return monthData;
     });
+  }, [monthlyTrends]);
 
-    return deadlines.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  const exportToCSV = () => {
+    const headers = ['Numero', 'Contribuente', 'Rata', 'Scadenza', 'Importo', 'Stato', 'Tipo'];
+    const csvContent = [
+      headers.join(','),
+      ...deadlines.map(d => [
+        d.rateation_number,
+        d.taxpayer_name || '',
+        d.seq,
+        d.due_date,
+        d.amount,
+        d.bucket,
+        d.type_name
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scadenze-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  const deadlines = generateDeadlines(rows);
-  const overdueDeadlines = deadlines.filter(d => d.status === 'overdue');
-  const dueSoonDeadlines = deadlines.filter(d => d.status === 'due-soon');
-  const upcomingDeadlines = deadlines.filter(d => d.status === 'upcoming');
-
-  const getStatusBadge = (status: DeadlineItem['status']) => {
-    switch (status) {
-      case 'overdue':
-        return <Badge variant="destructive">In ritardo</Badge>;
-      case 'due-soon':
-        return <Badge variant="secondary">Scade presto</Badge>;
-      case 'upcoming':
-        return <Badge variant="outline">Prossima</Badge>;
-    }
-  };
-
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
-
-  const formatDate = (date: Date) => 
-    format(date, "d MMM yyyy", { locale: it });
-
-  const DeadlineCard = ({ deadline }: { deadline: DeadlineItem }) => (
-    <Card className={`border ${
-      deadline.status === 'overdue' 
-        ? 'border-destructive bg-destructive/5' 
-        : deadline.status === 'due-soon'
-        ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20'
-        : ''
-    }`}>
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Rateazione #{deadline.rateationNumber}</span>
-              {getStatusBadge(deadline.status)}
-            </div>
-            {deadline.taxpayerName && (
-              <div className="text-sm text-muted-foreground">
-                {deadline.taxpayerName}
-              </div>
-            )}
-            <div className="text-sm">
-              Rata {deadline.installmentSeq} - {formatCurrency(deadline.amount)}
-            </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              {formatDate(deadline.dueDate)}
-              {deadline.daysUntilDue !== 0 && (
-                <span className={`ml-1 ${
-                  deadline.daysUntilDue < 0 ? 'text-destructive' : 'text-muted-foreground'
-                }`}>
-                  ({deadline.daysUntilDue < 0 ? `${Math.abs(deadline.daysUntilDue)} giorni fa` : `tra ${deadline.daysUntilDue} giorni`})
-                </span>
-              )}
-            </div>
-          </div>
-          {deadline.status === 'overdue' && (
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          )}
-          {deadline.status === 'due-soon' && (
-            <Clock className="h-4 w-4 text-orange-500" />
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  if (loading) {
+  if (loading && !kpis) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-muted-foreground">Caricamento scadenze...</div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onBack} size="sm" disabled>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Indietro
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">Scadenze</h2>
+            <p className="text-muted-foreground">Analisi dettagliata delle scadenze</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <Skeleton className="h-96 col-span-1" />
+          <div className="col-span-3 space-y-6">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-48" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Torna alla lista
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onBack} size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Indietro
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">Scadenze</h2>
+            <p className="text-muted-foreground">Analisi dettagliata delle scadenze</p>
+          </div>
+        </div>
+        <Button variant="outline" onClick={exportToCSV} disabled={!deadlines.length}>
+          <Download className="h-4 w-4 mr-2" />
+          Esporta CSV
         </Button>
-        <h2 className="text-2xl font-bold">Scadenze</h2>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Ritardo</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{overdueDeadlines.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(overdueDeadlines.reduce((sum, d) => sum + d.amount, 0))}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Filters Sidebar */}
+        <div className="lg:col-span-1">
+          <FilterComponent filters={filters} onFiltersChange={setFilters} />
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scadono Entro 7 Giorni</CardTitle>
-            <Clock className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{dueSoonDeadlines.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(dueSoonDeadlines.reduce((sum, d) => sum + d.amount, 0))}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Main Content */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* KPI Cards */}
+          {kpis && <DeadlineKPICards kpis={kpis} loading={kpisLoading} />}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prossime Scadenze</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{upcomingDeadlines.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(upcomingDeadlines.reduce((sum, d) => sum + d.amount, 0))}
-            </p>
-          </CardContent>
-        </Card>
+          {/* Monthly Trend Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Trend Mensile (Prossimi 12 Mesi)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {trendsLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => format(new Date(value), 'MMM', { locale: it })}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      formatter={(value, name) => [formatEuro(Number(value)), name]}
+                      labelFormatter={(label) => format(new Date(label), 'MMMM yyyy', { locale: it })}
+                    />
+                    <Legend />
+                    {Object.entries(BUCKET_COLORS).map(([bucket, color]) => (
+                      <Bar 
+                        key={bucket} 
+                        dataKey={bucket} 
+                        stackId="a" 
+                        fill={color}
+                        name={bucket}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Deadlines Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Elenco Scadenze ({deadlines.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {deadlinesLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : deadlines.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Numero</TableHead>
+                      <TableHead>Contribuente</TableHead>
+                      <TableHead>Rata</TableHead>
+                      <TableHead>Scadenza</TableHead>
+                      <TableHead>Importo</TableHead>
+                      <TableHead>Stato</TableHead>
+                      <TableHead>Tipo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deadlines.slice(0, 50).map((deadline) => (
+                      <TableRow key={`${deadline.rateation_id}-${deadline.seq}`}>
+                        <TableCell className="font-medium">{deadline.rateation_number}</TableCell>
+                        <TableCell>{deadline.taxpayer_name || '-'}</TableCell>
+                        <TableCell>{deadline.seq}</TableCell>
+                        <TableCell>
+                          {format(new Date(deadline.due_date), 'dd/MM/yyyy', { locale: it })}
+                          {deadline.days_overdue > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              +{deadline.days_overdue} giorni
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{formatEuro(deadline.amount)}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              deadline.bucket === 'In ritardo' ? 'destructive' :
+                              deadline.bucket === 'Entro 7 giorni' ? 'secondary' :
+                              deadline.bucket === 'Pagata' ? 'default' : 'outline'
+                            }
+                          >
+                            {deadline.bucket}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{deadline.type_name}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Nessuna scadenza trovata con i filtri selezionati</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {/* Deadline Lists */}
-      {overdueDeadlines.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-destructive mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Scadenze in Ritardo
-          </h3>
-          <div className="grid gap-3">
-            {overdueDeadlines.map((deadline, index) => (
-              <DeadlineCard key={`overdue-${index}`} deadline={deadline} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {dueSoonDeadlines.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-orange-600 mb-3 flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Scadono Entro 7 Giorni
-          </h3>
-          <div className="grid gap-3">
-            {dueSoonDeadlines.map((deadline, index) => (
-              <DeadlineCard key={`due-soon-${index}`} deadline={deadline} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {upcomingDeadlines.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Prossime Scadenze
-          </h3>
-          <div className="grid gap-3">
-            {upcomingDeadlines.slice(0, 10).map((deadline, index) => (
-              <DeadlineCard key={`upcoming-${index}`} deadline={deadline} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {deadlines.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-muted-foreground">
-              Nessuna scadenza trovata per le rateazioni attive
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

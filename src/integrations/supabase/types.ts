@@ -246,6 +246,13 @@ export type Database = {
             referencedRelation: "rateation_types"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rateations_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "v_scadenze"
+            referencedColumns: ["type_id"]
+          },
         ]
       }
       ravvedimento_profiles: {
@@ -463,6 +470,57 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "rateation_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "v_scadenze"
+            referencedColumns: ["type_id"]
+          },
+        ]
+      }
+      v_scadenze: {
+        Row: {
+          aging_band: string | null
+          amount: number | null
+          bucket: string | null
+          days_overdue: number | null
+          due_date: string | null
+          due_month: string | null
+          due_week: string | null
+          id: number | null
+          is_paid: boolean | null
+          owner_uid: string | null
+          paid_at: string | null
+          rateation_id: number | null
+          rateation_number: string | null
+          seq: number | null
+          taxpayer_name: string | null
+          type_id: number | null
+          type_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
             referencedColumns: ["id"]
           },
         ]
