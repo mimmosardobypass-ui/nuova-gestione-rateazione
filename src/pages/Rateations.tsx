@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { KpiCards } from "@/features/rateations/components/KpiCards";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PrintButtons } from "@/components/print/PrintButtons";
 
 // View components
 import { RateList } from "@/features/rateations/components/views/RateList";
@@ -107,6 +108,7 @@ export default function Rateations() {
       <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
         <div className="flex items-center gap-2">
+          <PrintButtons showSummaryOptions />
           <UserMenu />
           <NewRateationDialog 
             initialOpen={openOnMount} 

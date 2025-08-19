@@ -4,6 +4,7 @@ import { fetchInstallments, postponeInstallment, deleteInstallment } from "../ap
 import { AttachmentsPanel } from "./AttachmentsPanel";
 import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
 import { InstallmentStatusBadge } from "./InstallmentStatusBadge";
+import { PrintButtons } from "@/components/print/PrintButtons";
 import type { InstallmentUI } from "../types";
 import {
   Table,

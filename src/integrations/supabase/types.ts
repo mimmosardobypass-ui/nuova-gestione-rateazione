@@ -61,6 +61,13 @@ export type Database = {
             foreignKeyName: "installment_payments_installment_id_fkey"
             columns: ["installment_id"]
             isOneToOne: false
+            referencedRelation: "v_rateation_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
             referencedRelation: "v_rateations"
             referencedColumns: ["id"]
           },
@@ -397,6 +404,15 @@ export type Database = {
       }
     }
     Views: {
+      v_deadlines_monthly: {
+        Row: {
+          amount: number | null
+          cnt: number | null
+          month: string | null
+          owner_uid: string | null
+        }
+        Relationships: []
+      }
       v_installments_status: {
         Row: {
           amount: number | null
@@ -489,17 +505,98 @@ export type Database = {
         }
         Relationships: []
       }
+      v_rateation_installments: {
+        Row: {
+          amount: number | null
+          days_overdue: number | null
+          due_date: string | null
+          extra_interest: number | null
+          extra_penalty: number | null
+          id: number | null
+          owner_uid: string | null
+          paid_date: string | null
+          payment_mode: string | null
+          rateation_id: number | null
+          seq: number | null
+          status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          days_overdue?: never
+          due_date?: string | null
+          extra_interest?: never
+          extra_penalty?: never
+          id?: number | null
+          owner_uid?: string | null
+          paid_date?: string | null
+          payment_mode?: string | null
+          rateation_id?: number | null
+          seq?: number | null
+          status?: never
+        }
+        Update: {
+          amount?: number | null
+          days_overdue?: never
+          due_date?: string | null
+          extra_interest?: never
+          extra_penalty?: never
+          id?: number | null
+          owner_uid?: string | null
+          paid_date?: string | null
+          payment_mode?: string | null
+          rateation_id?: number | null
+          seq?: number | null
+          status?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_rateation_summary: {
         Row: {
           extra_ravv_pagati: number | null
+          first_due_date: string | null
           id: number | null
           importo_pagato_quota: number | null
           importo_totale: number | null
+          last_activity: string | null
+          last_due_date: string | null
+          numero: string | null
+          owner_uid: string | null
           rate_in_ritardo: number | null
           rate_pagate: number | null
           rate_pagate_ravv: number | null
           rate_totali: number | null
+          taxpayer_name: string | null
           totale_residuo: number | null
+          type_name: string | null
         }
         Relationships: []
       }

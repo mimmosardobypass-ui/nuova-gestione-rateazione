@@ -1,3 +1,4 @@
+import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,13 +6,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useEffect } from "react";
 import Dashboard from "./pages/Dashboard";
 import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
+
+// Lazy load print components
+const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport"));
+const SchedaRateazione = React.lazy(() => import("./pages/print/SchedaRateazione"));
 
 const queryClient = new QueryClient();
 
@@ -38,6 +42,20 @@ const App = () => {
             <Route path="/rateazioni" element={
               <ProtectedRoute>
                 <Rateations />
+              </ProtectedRoute>
+            } />
+            <Route path="/print/riepilogo" element={
+              <ProtectedRoute>
+                <Suspense fallback={<div>Caricamento...</div>}>
+                  <RiepilogoReport />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/print/rateazione/:id" element={
+              <ProtectedRoute>
+                <Suspense fallback={<div>Caricamento...</div>}>
+                  <SchedaRateazione />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/test" element={

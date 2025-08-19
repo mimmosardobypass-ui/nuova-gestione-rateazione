@@ -1,0 +1,239 @@
+import React, { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import PrintLayout from "@/components/print/PrintLayout";
+import { formatEuro } from "@/lib/formatters";
+import QRCode from "qrcode";
+
+interface RateationHeader {
+  id: string;
+  numero: string;
+  type_name: string | null;
+  taxpayer_name: string | null;
+  importo_totale: number;
+  importo_pagato_quota: number;
+  extra_ravv_pagati: number;
+  totale_residuo: number;
+  rate_totali: number;
+  rate_pagate: number;
+  rate_pagate_ravv: number;
+  last_activity: string | null;
+}
+
+interface InstallmentDetail {
+  id: string;
+  seq: number;
+  due_date: string;
+  amount: number;
+  status: string;
+  payment_mode: string | null;
+  paid_date: string | null;
+  extra_interest: number;
+  extra_penalty: number;
+  days_overdue: number;
+}
+
+interface MonthlyForecast {
+  month: string;
+  amount: number;
+  cnt: number;
+}
+
+export default function SchedaRateazione() {
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const [header, setHeader] = useState<RateationHeader | null>(null);
+  const [installments, setInstallments] = useState<InstallmentDetail[]>([]);
+  const [forecast, setForecast] = useState<MonthlyForecast[]>([]);
+  const [qrCode, setQrCode] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  const theme = searchParams.get("theme") === "bn" ? "theme-bn" : "";
+  const density = searchParams.get("density") === "compact" ? "density-compact" : "";
+  const bodyClass = `${theme} ${density}`.trim();
+  const logoUrl = searchParams.get("logo") || undefined;
+
+  useEffect(() => {
+    if (id) {
+      loadData();
+      generateQRCode();
+    }
+  }, [id]);
+
+  const loadData = async () => {
+    try {
+      // Load header data
+      const { data: headerData } = await supabase
+        .from("v_rateation_summary")
+        .select("*")
+        .eq("id", id!)
+        .single();
+
+      // Load installments
+      const { data: installmentsData } = await supabase
+        .from("v_rateation_installments")
+        .select("*")
+        .eq("rateation_id", id!)
+        .order("seq");
+
+      // Load forecast (next 12 months)
+      const { data: forecastData } = await supabase
+        .from("v_deadlines_monthly")
+        .select("*")
+        .gte("month", new Date().toISOString().split("T")[0])
+        .order("month")
+        .limit(12);
+
+      setHeader(headerData);
+      setInstallments(installmentsData || []);
+      setForecast(forecastData || []);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateQRCode = async () => {
+    try {
+      const url = `${window.location.origin}/rateazioni/${id}`;
+      const qr = await QRCode.toDataURL(url, { 
+        margin: 0, 
+        width: 120,
+        color: { dark: "#000000", light: "#FFFFFF" }
+      });
+      setQrCode(qr);
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+    }
+  };
+
+  if (loading || !header) {
+    return <div>Caricamento...</div>;
+  }
+
+  return (
+    <PrintLayout
+      title={`Scheda Rateazione #${header.numero}`}
+      subtitle={`Contribuente: ${header.taxpayer_name || "-"}`}
+      logoUrl={logoUrl}
+      bodyClass={bodyClass}
+    >
+      {/* Header Section */}
+      <section className="grid grid-cols-3 gap-4 mb-6">
+        <div className="col-span-2 border rounded p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <InfoField label="Importo totale" value={formatEuro(header.importo_totale)} />
+            <InfoField label="Pagato (quota)" value={formatEuro(header.importo_pagato_quota)} />
+            <InfoField label="Extra ravv." value={formatEuro(header.extra_ravv_pagati)} />
+            <InfoField label="Residuo" value={formatEuro(header.totale_residuo)} />
+            <InfoField label="Rate totali" value={String(header.rate_totali)} />
+            <InfoField label="Pagate (Rav.)" value={`${header.rate_pagate} (${header.rate_pagate_ravv})`} />
+            <InfoField label="Ultima attività" value={
+              header.last_activity ? 
+                new Date(header.last_activity).toLocaleDateString("it-IT") : 
+                "-"
+            } />
+            <InfoField label="Tipo" value={header.type_name || "-"} />
+          </div>
+        </div>
+        <div className="qr-container">
+          {qrCode && <img src={qrCode} alt="QR Code" />}
+        </div>
+      </section>
+
+      {/* Installments Section */}
+      <h2 className="mt-4 mb-3 font-semibold text-base">Rate</h2>
+      <table className="print-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Scadenza</th>
+            <th className="text-right">Importo</th>
+            <th>Stato</th>
+            <th>Pagata il</th>
+            <th className="text-right">Extra ravv.</th>
+            <th className="text-right">Totale versato</th>
+            <th className="text-right">Giorni ritardo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {installments.map((inst) => {
+            const extra = Number(inst.extra_interest) + Number(inst.extra_penalty);
+            const totale = Number(inst.amount) + extra;
+            const stato = getStatusLabel(inst);
+
+            return (
+              <tr key={inst.id} className="avoid-break">
+                <td>{inst.seq}</td>
+                <td>{new Date(inst.due_date).toLocaleDateString("it-IT")}</td>
+                <td className="text-right">{formatEuro(inst.amount)}</td>
+                <td>{stato}</td>
+                <td>
+                  {inst.paid_date ? 
+                    new Date(inst.paid_date).toLocaleDateString("it-IT") : 
+                    "-"
+                  }
+                </td>
+                <td className="text-right">{extra ? formatEuro(extra) : "-"}</td>
+                <td className="text-right">
+                  {inst.status === "paid" ? formatEuro(totale) : "-"}
+                </td>
+                <td className="text-right">{inst.days_overdue || "-"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Forecast Section */}
+      <div className="page-break"></div>
+      <h2 className="mt-4 mb-3 font-semibold text-base">Scadenze (prossimi mesi)</h2>
+      <table className="print-table">
+        <thead>
+          <tr>
+            <th>Mese</th>
+            <th className="text-right">Importo</th>
+            <th className="text-center"># rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {forecast.map((month) => (
+            <tr key={month.month}>
+              <td>
+                {new Date(month.month).toLocaleDateString("it-IT", {
+                  month: "long",
+                  year: "numeric"
+                })}
+              </td>
+              <td className="text-right">{formatEuro(month.amount)}</td>
+              <td className="text-center">{month.cnt}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </PrintLayout>
+  );
+}
+
+function InfoField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function getStatusLabel(inst: InstallmentDetail): string {
+  if (inst.status === "paid" && inst.payment_mode === "ravvedimento") {
+    return "Pagata (Rav.)";
+  }
+  if (inst.status === "paid") {
+    return "Pagata";
+  }
+  if (inst.days_overdue > 0) {
+    return "In ritardo";
+  }
+  return "Aperta";
+}
