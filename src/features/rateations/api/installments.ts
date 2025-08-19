@@ -37,7 +37,10 @@ export const markInstallmentPaidWithDate = async (
 };
 
 // LOVABLE:START markInstallmentPaidOrdinary
-export const markInstallmentPaidOrdinary = async (
+/**
+ * Mark installment as paid with ordinary payment (no ravvedimento calculation)
+ */
+export const markInstallmentPaidOrdinaryFixed = async (
   rateationId: string,
   seq: number,
   paidAtDate: string

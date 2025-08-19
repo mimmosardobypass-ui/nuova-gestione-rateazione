@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
+import { markInstallmentPaidOrdinaryFixed as markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
 import { RavvedimentoDialog } from "./RavvedimentoDialog";
 import type { InstallmentUI } from "../types";
 
