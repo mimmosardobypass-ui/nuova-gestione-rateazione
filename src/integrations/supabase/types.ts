@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      installment_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          installment_id: number
+          kind: string
+          note: string | null
+          paid_date: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          installment_id: number
+          kind: string
+          note?: string | null
+          paid_date: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          installment_id?: number
+          kind?: string
+          note?: string | null
+          paid_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "v_installments_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "v_scadenze"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installments: {
         Row: {
           amount: number
@@ -22,6 +81,8 @@ export type Database = {
           canceled_at: string | null
           created_at: string | null
           due_date: string
+          extra_interest_euro: number | null
+          extra_penalty_euro: number | null
           id: number
           interest_amount_cents: number | null
           interest_breakdown: Json | null
@@ -30,6 +91,7 @@ export type Database = {
           notes: string | null
           owner_uid: string
           paid_at: string | null
+          paid_date: string | null
           paid_recorded_at: string | null
           paid_total_cents: number | null
           payment_method: string | null
@@ -49,6 +111,8 @@ export type Database = {
           canceled_at?: string | null
           created_at?: string | null
           due_date: string
+          extra_interest_euro?: number | null
+          extra_penalty_euro?: number | null
           id?: number
           interest_amount_cents?: number | null
           interest_breakdown?: Json | null
@@ -57,6 +121,7 @@ export type Database = {
           notes?: string | null
           owner_uid: string
           paid_at?: string | null
+          paid_date?: string | null
           paid_recorded_at?: string | null
           paid_total_cents?: number | null
           payment_method?: string | null
@@ -76,6 +141,8 @@ export type Database = {
           canceled_at?: string | null
           created_at?: string | null
           due_date?: string
+          extra_interest_euro?: number | null
+          extra_penalty_euro?: number | null
           id?: number
           interest_amount_cents?: number | null
           interest_breakdown?: Json | null
@@ -84,6 +151,7 @@ export type Database = {
           notes?: string | null
           owner_uid?: string
           paid_at?: string | null
+          paid_date?: string | null
           paid_recorded_at?: string | null
           paid_total_cents?: number | null
           payment_method?: string | null
@@ -102,6 +170,13 @@ export type Database = {
             columns: ["rateation_id"]
             isOneToOne: false
             referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
             referencedColumns: ["id"]
           },
           {
@@ -386,6 +461,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rateations_summary"
             referencedColumns: ["rateation_id"]
           },
@@ -404,6 +486,20 @@ export type Database = {
           amount_paid: number | null
           month: string | null
           owner_uid: string | null
+        }
+        Relationships: []
+      }
+      v_rateation_summary: {
+        Row: {
+          extra_ravv_pagati: number | null
+          id: number | null
+          importo_pagato_quota: number | null
+          importo_totale: number | null
+          rate_in_ritardo: number | null
+          rate_pagate: number | null
+          rate_pagate_ravv: number | null
+          rate_totali: number | null
+          totale_residuo: number | null
         }
         Relationships: []
       }
@@ -519,6 +615,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rateations_summary"
             referencedColumns: ["rateation_id"]
           },
@@ -555,6 +658,8 @@ export type Database = {
           canceled_at: string | null
           created_at: string | null
           due_date: string
+          extra_interest_euro: number | null
+          extra_penalty_euro: number | null
           id: number
           interest_amount_cents: number | null
           interest_breakdown: Json | null
@@ -563,6 +668,7 @@ export type Database = {
           notes: string | null
           owner_uid: string
           paid_at: string | null
+          paid_date: string | null
           paid_recorded_at: string | null
           paid_total_cents: number | null
           payment_method: string | null
@@ -585,6 +691,8 @@ export type Database = {
           canceled_at: string | null
           created_at: string | null
           due_date: string
+          extra_interest_euro: number | null
+          extra_penalty_euro: number | null
           id: number
           interest_amount_cents: number | null
           interest_breakdown: Json | null
@@ -593,6 +701,7 @@ export type Database = {
           notes: string | null
           owner_uid: string
           paid_at: string | null
+          paid_date: string | null
           paid_recorded_at: string | null
           paid_total_cents: number | null
           payment_method: string | null
@@ -666,6 +775,24 @@ export type Database = {
       }
       mark_installment_paid_ordinary: {
         Args: { p_paid_at: string; p_rateation_id: number; p_seq: number }
+        Returns: undefined
+      }
+      mark_installment_paid_ordinary_new: {
+        Args: {
+          p_amount_paid?: number
+          p_installment_id: number
+          p_paid_date: string
+        }
+        Returns: undefined
+      }
+      mark_installment_paid_ravvedimento_new: {
+        Args: {
+          p_installment_id: number
+          p_interest?: number
+          p_paid_date: string
+          p_penalty?: number
+          p_total_paid: number
+        }
         Returns: undefined
       }
       unmark_installment_paid: {
