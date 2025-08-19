@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { AttachmentsPanel } from "./AttachmentsPanel";
@@ -25,14 +25,14 @@ interface RateationRowDetailsProProps {
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged }: RateationRowDetailsProProps) {
-  const [items, setItems] = React.useState<InstallmentUI[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [processing, setProcessing] = React.useState<{ [key: string]: boolean }>({});
+  const [items, setItems] = useState<InstallmentUI[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
   const { toast } = useToast();
   const online = useOnline();
 
-  const load = React.useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true); 
     setError(null);
     try {
@@ -51,7 +51,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     reloadStats: () => onDataChanged?.()
   });
 
-  React.useEffect(() => { 
+  useEffect(() => { 
     load(); 
   }, [load]);
 

@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import {
@@ -45,8 +45,8 @@ export function RateationsTablePro({
   onDataChanged, 
   deleting 
 }: RateationsTableProProps) {
-  const [openId, setOpenId] = React.useState<string | null>(null);
-  const [editId, setEditId] = React.useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const toggle = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 

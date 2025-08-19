@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,19 +20,19 @@ type Props = {
 export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }: Props) {
   const online = useOnline();
 
-  const [loading, setLoading] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const [types, setTypes] = React.useState<{ id: number; name: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [types, setTypes] = useState<{ id: number; name: string }[]>([]);
 
-  const [numero, setNumero] = React.useState("");
-  const [typeId, setTypeId] = React.useState<string | undefined>(undefined);
-  const [contribuente, setContribuente] = React.useState("");
-  const [totalAmount, setTotalAmount] = React.useState<string>("0");
-  const [startDueDate, setStartDueDate] = React.useState<string>("");
+  const [numero, setNumero] = useState("");
+  const [typeId, setTypeId] = useState<string | undefined>(undefined);
+  const [contribuente, setContribuente] = useState("");
+  const [totalAmount, setTotalAmount] = useState<string>("0");
+  const [startDueDate, setStartDueDate] = useState<string>("");
 
   const rid = rateationId ? Number(rateationId) : null;
 
-  const loadTypes = React.useCallback(async () => {
+  const loadTypes = useCallback(async () => {
     const { data, error } = await supabase.from("rateation_types").select("id, name").order("name", { ascending: true });
     if (error) {
       console.error(error);
@@ -42,7 +42,7 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
     setTypes((data || []).map((t) => ({ id: Number(t.id), name: String(t.name) })));
   }, []);
 
-  const loadRateation = React.useCallback(async () => {
+  const loadRateation = useCallback(async () => {
     if (!rid) return;
     setLoading(true);
     try {
@@ -65,7 +65,7 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
     }
   }, [rid]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       // Load types and rateation in parallel
       Promise.all([loadTypes(), loadRateation()]).catch((e) => console.error(e));
