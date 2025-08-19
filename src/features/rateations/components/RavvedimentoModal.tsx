@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,13 +23,13 @@ type Props = {
 };
 
 export function RavvedimentoModal({ open, onClose, installment, onSuccess }: Props) {
-  const [form, setForm] = React.useState({ 
+  const [form, setForm] = useState({ 
     paidDate: "", 
     totalPaid: installment.amount, 
     interest: 0, 
     penalty: 0 
   });
-  const [saving, setSaving] = React.useState(false);
+  const [saving, setSaving] = useState(false);
 
   const extra = Math.max((form.totalPaid ?? 0) - installment.amount, 0);
 
