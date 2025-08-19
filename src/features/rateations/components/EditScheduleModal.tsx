@@ -21,6 +21,14 @@ const formatIT = (n: number): string =>
   new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     .format(n);
 
+// ISO -> Italian format for UI display
+const isoToIT = (iso?: string): string => {
+  if (!iso) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`; // YYYY-MM-DD -> DD/MM/YYYY
+};
+
 const toISO = (s: string | Date): string => {
   if (s instanceof Date) return s.toISOString().slice(0, 10);
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
@@ -36,9 +44,9 @@ const isValidISODate = (iso: string): boolean => {
 
 type Row = {
   seq: number;
-  due_date: string;     // accetta "DD/MM/YYYY" o "YYYY-MM-DD" in UI
-  amount: string;       // stringa IT per input, es. "1.773,24"
-  paid?: boolean;       // se pagata -> riga bloccata
+  due_date_iso: string;  // Internal ISO format (YYYY-MM-DD)
+  amount: string;        // Italian format for UI, es. "1.773,24"
+  paid?: boolean;        // se pagata -> riga bloccata
   id?: string;
   rateation_id?: string;
   paid_at?: string | null;
@@ -77,14 +85,13 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
     rows.forEach((r, idx) => {
       const e: RowError = {};
 
-      // Date
-      const iso = toISO(r.due_date);
-      if (!isValidISODate(iso)) {
+      // Date - validation works directly on ISO
+      if (!isValidISODate(r.due_date_iso)) {
         e.date = 'Data non valida (usa gg/mm/aaaa)';
-      } else if (prevDateISO && new Date(iso) < new Date(prevDateISO)) {
+      } else if (prevDateISO && new Date(r.due_date_iso) < new Date(prevDateISO)) {
         e.date = 'Data precedente alla rata precedente';
       } else {
-        prevDateISO = iso;
+        prevDateISO = r.due_date_iso;
       }
 
       // Amount
@@ -116,7 +123,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
           id: d.id?.toString() || crypto.randomUUID(),
           rateation_id: d.rateation_id?.toString() || rateationId,
           seq: d.seq,
-          due_date: d.due_date,
+          due_date_iso: d.due_date,  // Keep ISO in state
           amount: formatIT(Number(d.amount || 0)),
           paid_at: d.paid_at,
           paid: !!d.paid_at,
@@ -150,7 +157,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
       id: crypto.randomUUID(),
       rateation_id: rateationId,
       seq: maxSeq + 1,
-      due_date: format(new Date(), "yyyy-MM-dd"),
+      due_date_iso: format(new Date(), "yyyy-MM-dd"),
       amount: '0,00',
       paid_at: null,
       paid: false,
@@ -164,18 +171,18 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
   const shiftMonths = (delta: number) => {
     setRows(prev => prev.map(r => {
       if (r.paid) return r;
-      const d = new Date(toISO(r.due_date));
+      const d = new Date(r.due_date_iso);
       d.setMonth(d.getMonth() + delta);
-      return { ...r, due_date: format(d, "yyyy-MM-dd") };
+      return { ...r, due_date_iso: format(d, "yyyy-MM-dd") };
     }));
   };
 
   const setMonthDay = (day: number) => {
     setRows(prev => prev.map(r => {
       if (r.paid) return r;
-      const d = new Date(toISO(r.due_date));
+      const d = new Date(r.due_date_iso);
       const target = new Date(d.getFullYear(), d.getMonth(), day);
-      return { ...r, due_date: format(target, "yyyy-MM-dd") };
+      return { ...r, due_date_iso: format(target, "yyyy-MM-dd") };
     }));
   };
 
@@ -197,7 +204,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
         .filter(r => !r.paid)
         .map(r => ({
           seq: Number(r.seq),
-          due_date: toISO(r.due_date), // "YYYY-MM-DD"
+          due_date: r.due_date_iso, // Already in ISO format
           amount: euroToNumber(r.amount).toString(), // "1773.24"
         }));
 
@@ -301,16 +308,19 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
                         </div>
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4 opacity-60" />
-                          <Input
-                            className={cn(
-                              "w-[110px] h-8",
-                              dateError && "border-destructive ring-1 ring-destructive/40"
-                            )}
-                            value={r.due_date}
-                            onChange={e => setCell(idx, { due_date: e.target.value })}
-                            placeholder="gg/mm/aaaa"
-                            disabled={isPaid}
-                          />
+                           <Input
+                             className={cn(
+                               "w-[110px] h-8",
+                               dateError && "border-destructive ring-1 ring-destructive/40"
+                             )}
+                             type="text"
+                             inputMode="numeric"
+                             value={isoToIT(r.due_date_iso)}
+                             onChange={e => setCell(idx, { due_date_iso: toISO(e.target.value) })}
+                             onBlur={e => setCell(idx, { due_date_iso: toISO(e.target.value) })}
+                             placeholder="gg/mm/aaaa"
+                             disabled={isPaid}
+                           />
                         </div>
                         <div>
                           <Input
