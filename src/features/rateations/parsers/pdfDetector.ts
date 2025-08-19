@@ -12,79 +12,92 @@ export interface PDFDetectionResult {
  * Auto-detect PDF format based on text content
  */
 export function detectPDFFormat(pages: ExtractedPageText[]): PDFDetectionResult {
-  const allText = pages.map(p => p.text).join(' ').toLowerCase();
+  const allText = pages.map(p => p.text).join(" ").toLowerCase();
   
-  // F24 indicators (from commercialista software)
-  const f24Indicators = [
-    'piano di ammortamento',
-    'piano di pagamento',
-    'f24',
-    'commercialista',
-    'software',
-    'gestionale',
-    'versamento',
-    'codice tributo'
-  ];
-  
-  // PagoPA indicators (from Agenzia delle Entrate)
+  console.log(`[detectPDFFormat] Analyzing text content (${allText.length} chars)`);
+  console.log(`[detectPDFFormat] First 500 chars:`, allText.substring(0, 500));
+
+  // Enhanced PagoPA indicators
   const pagopaIndicators = [
-    'agenzia delle entrate',
-    'agenzia entrate-riscossione',
-    'ader',
-    'pagopa',
-    'n. modulo pagamento',
-    'data scadenza',
-    'totale da pagare',
-    'importo debito da pagare',
-    'interessi di dilazione',
-    'codice avviso',
-    'ente creditore'
+    "agenzia delle entrate",
+    "agenzia entrate-riscossione", 
+    "ader",
+    "pagopa",
+    "n. modulo pagamento",
+    "data scadenza",
+    "totale da pagare",
+    "importo debito da pagare",
+    "interessi di dilazione",
+    "codice avviso",
+    "ente creditore",
+    "piano di dilazione",
+    "rateazione",
+    "rata numero",
+    "scadenza rata",
+    "importo rata",
+    "avviso di pagamento",
+    "codice fiscale ente",
+    "piano pagamento",
+    "dilazione pagamento",
+    "modulo pagamento",
+    "importo debito",
+    "interessi"
   ];
+
+  const f24Indicators = [
+    "piano di ammortamento",
+    "piano di pagamento", 
+    "f24",
+    "commercialista",
+    "gestionale",
+    "versamento",
+    "codice tributo",
+    "rata numero"
+  ];
+
+  const pagopaScore = pagopaIndicators.reduce((score, indicator) => 
+    score + (allText.includes(indicator) ? 1 : 0), 0);
   
-  // Count matches for each format
-  const f24Score = f24Indicators.reduce((score, indicator) => {
-    return score + (allText.includes(indicator) ? 1 : 0);
-  }, 0);
-  
-  const pagopaScore = pagopaIndicators.reduce((score, indicator) => {
-    return score + (allText.includes(indicator) ? 1 : 0);
-  }, 0);
-  
-  // Additional scoring based on text patterns
-  let f24Bonus = 0;
+  const f24Score = f24Indicators.reduce((score, indicator) => 
+    score + (allText.includes(indicator) ? 1 : 0), 0);
+
+  console.log(`[detectPDFFormat] PagoPA score: ${pagopaScore}, F24 score: ${f24Score}`);
+
+  // Bonus patterns for PagoPA
   let pagopaBonus = 0;
-  
-  // F24: Look for typical structure patterns
+  if (/rata\s*\d+\s*di\s*\d+/.test(allText)) pagopaBonus += 2;
+  if (/\d{2}\/\d{2}\/\d{4}.*€/.test(allText)) pagopaBonus += 2;
+  if (/modulo.*scadenza.*importo/i.test(allText)) pagopaBonus += 3;
+  if (/importo.*debito.*interessi/i.test(allText)) pagopaBonus += 2;
+  if (/ente\s*creditore/i.test(allText)) pagopaBonus += 2;
+  if (/dilazione.*pagamento/i.test(allText)) pagopaBonus += 2;
+
+  // Bonus patterns for F24
+  let f24Bonus = 0;
   if (/rata\s+\d+/.test(allText)) f24Bonus += 2;
   if (/\d{2}\/\d{2}\/\d{4}.*\d{1,3}\.\d{3},\d{2}/.test(allText)) f24Bonus += 2;
-  
-  // PagoPA: Look for structured table headers
-  if (/n\.\s*modulo.*data\s*scadenza.*totale\s*da\s*pagare/.test(allText)) pagopaBonus += 3;
-  if (/importo\s*debito.*interessi\s*di\s*dilazione/.test(allText)) pagopaBonus += 2;
-  
-  const totalF24 = f24Score + f24Bonus;
-  const totalPagoPA = pagopaScore + pagopaBonus;
-  
-  // Determine format and confidence
-  if (totalF24 > totalPagoPA && totalF24 >= 2) {
-    return {
-      format: 'F24',
-      confidence: Math.min(totalF24 / 5, 1), // Normalize to 0-1
-      indicators: f24Indicators.filter(ind => allText.includes(ind))
-    };
-  } else if (totalPagoPA > totalF24 && totalPagoPA >= 2) {
-    return {
-      format: 'PAGOPA',
-      confidence: Math.min(totalPagoPA / 5, 1), // Normalize to 0-1  
-      indicators: pagopaIndicators.filter(ind => allText.includes(ind))
-    };
+
+  const finalPagopaScore = pagopaScore + pagopaBonus;
+  const finalF24Score = f24Score + f24Bonus;
+
+  console.log(`[detectPDFFormat] Final scores - PagoPA: ${finalPagopaScore}, F24: ${finalF24Score}`);
+
+  if (finalPagopaScore > finalF24Score && finalPagopaScore >= 2) {
+    const confidence = Math.min(finalPagopaScore / 8, 1);
+    const indicators = pagopaIndicators.filter(i => allText.includes(i));
+    console.log(`[detectPDFFormat] Detected PAGOPA with confidence ${confidence}`);
+    return { format: "PAGOPA", confidence, indicators };
   }
   
-  return {
-    format: 'UNKNOWN',
-    confidence: 0,
-    indicators: []
-  };
+  if (finalF24Score > finalPagopaScore && finalF24Score >= 2) {
+    const confidence = Math.min(finalF24Score / 5, 1);
+    const indicators = f24Indicators.filter(i => allText.includes(i));
+    console.log(`[detectPDFFormat] Detected F24 with confidence ${confidence}`);
+    return { format: "F24", confidence, indicators };
+  }
+
+  console.log(`[detectPDFFormat] No clear format detected, returning UNKNOWN`);
+  return { format: "UNKNOWN", confidence: 0, indicators: [] };
 }
 
 /**

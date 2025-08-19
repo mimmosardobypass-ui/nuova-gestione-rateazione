@@ -142,9 +142,9 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
 
       let rateTable: Rata[] = [];
 
-      // 🧠 Parse with hybrid parser for ALL formats
+      // 🧠 Smart parsing: try both parsers if format is uncertain
       if (detection.format === 'PAGOPA') {
-        // Use PagoPA hybrid parser
+        console.log(`[PDFImportTab] Using PagoPA parser (confidence: ${detection.confidence})`);
         toast({
           title: "Parser PagoPA",
           description: "Utilizzando parser ibrido per Agenzia delle Entrate",
@@ -158,21 +158,72 @@ export const PDFImportTab = ({ onInstallmentsParsed, onCancel }: PDFImportTabPro
           },
           onProgress: (p) => setProgress(p),
         });
-      } else {
-        // Use F24/ADR hybrid parser for F24/UNKNOWN
+      } else if (detection.format === 'F24') {
+        console.log(`[PDFImportTab] Using F24 parser (confidence: ${detection.confidence})`);
         toast({
           title: "Parser F24",
           description: "Utilizzando parser ibrido per F24/Commercialista",
         });
         
         rateTable = await extractAdrRates(fileToProcess, {
-          minExpected: detection.format === "F24" ? 8 : 5,
+          minExpected: 8,
           onPhase: (phase) => {
             setCurrentPhase(phase);
             setStep(phase === "ocr" ? "ocr" : "text");
           },
           onProgress: (p) => setProgress(p),
         });
+      } else {
+        // UNKNOWN format - try both parsers as fallback
+        console.log(`[PDFImportTab] Unknown format, trying PagoPA parser first...`);
+        toast({
+          title: "Formato incerto",
+          description: "Provo parser PagoPA come primo tentativo...",
+        });
+        
+        try {
+          rateTable = await extractPagopaRates(fileToProcess, {
+            minExpected: 5, // Lower threshold for unknown format
+            onPhase: (phase) => {
+              setCurrentPhase(phase);
+              setStep(phase === "ocr" ? "ocr" : "text");
+            },
+            onProgress: (p) => setProgress(p),
+          });
+          
+          console.log(`[PDFImportTab] PagoPA parser found ${rateTable.length} rates`);
+          
+          // If PagoPA parser fails, try F24 parser
+          if (rateTable.length < 3) {
+            console.log(`[PDFImportTab] PagoPA parser insufficient, trying F24 parser...`);
+            toast({
+              title: "Fallback F24",
+              description: "Provo parser F24 come alternativa...",
+            });
+            
+            rateTable = await extractAdrRates(fileToProcess, {
+              minExpected: 3,
+              onPhase: (phase) => {
+                setCurrentPhase(phase);
+                setStep(phase === "ocr" ? "ocr" : "text");
+              },
+              onProgress: (p) => setProgress(p),
+            });
+            
+            console.log(`[PDFImportTab] F24 parser found ${rateTable.length} rates`);
+          }
+        } catch (error) {
+          console.warn(`[PDFImportTab] PagoPA parser failed, trying F24:`, error);
+          
+          rateTable = await extractAdrRates(fileToProcess, {
+            minExpected: 3,
+            onPhase: (phase) => {
+              setCurrentPhase(phase);
+              setStep(phase === "ocr" ? "ocr" : "text");
+            },
+            onProgress: (p) => setProgress(p),
+          });
+        }
       }
 
       console.log(`[PDFImportTab] Parser found ${rateTable.length} rates:`, rateTable);
