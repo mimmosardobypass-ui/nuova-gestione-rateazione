@@ -185,9 +185,9 @@ export function DeadlineFilters({ filters, onFiltersChange }: DeadlineFiltersPro
       <div className="space-y-2">
         <Label>Tipo</Label>
         <Select
-          value={filters.typeIds?.join(',') || ''}
+          value={filters.typeIds?.join(',') || 'all'}
           onValueChange={(value) => {
-            if (value) {
+            if (value && value !== 'all') {
               onFiltersChange({ 
                 ...filters, 
                 typeIds: value.split(',').map(Number) 
@@ -201,7 +201,7 @@ export function DeadlineFilters({ filters, onFiltersChange }: DeadlineFiltersPro
             <SelectValue placeholder="Tutti i tipi" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti i tipi</SelectItem>
+            <SelectItem value="all">Tutti i tipi</SelectItem>
             {rateationTypes.map((type) => (
               <SelectItem key={type.id} value={type.id.toString()}>
                 {type.name}
