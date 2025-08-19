@@ -37,6 +37,21 @@ export default function RiepilogoReport() {
     loadData();
   }, []);
 
+  // Auto-print robusto
+  useEffect(() => {
+    if (!loading) {
+      const go = async () => {
+        try { await (document as any).fonts?.ready; } catch {}
+        // piccolo buffer per QR/logo/font
+        setTimeout(() => {
+          window.focus();
+          window.print();
+        }, 250);
+      };
+      go();
+    }
+  }, [loading]);
+
   const loadData = async () => {
     try {
       const { data } = await supabase

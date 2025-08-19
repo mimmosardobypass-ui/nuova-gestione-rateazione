@@ -1,111 +1,126 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export interface PrintOptions {
-  theme?: "bn" | "color";
-  density?: "compact" | "normal";
-  logo?: string;
+export type PrintOptions = {
+  theme?: 'bn' | 'color';
+  density?: 'compact' | 'normal';
   from?: string;
   to?: string;
-  type?: string;
-  state?: "open" | "late" | "paid";
-}
+  logo?: string;
+};
 
 export class PrintService {
-  private static getDefaultOptions(): PrintOptions {
-    const currentYear = new Date().getFullYear();
+  // Default comodi: B/N, denso, anno corrente
+  static getDefaultOptions(): PrintOptions {
+    const y = new Date().getFullYear();
     return {
-      theme: 'bn',          // bianco/nero
-      density: 'compact',   // tabella compatta  
-      from: `${currentYear}-01-01`,
-      to: `${currentYear}-12-31`,
+      theme: 'bn',
+      density: 'compact',
+      from: `${y}-01-01`,
+      to: `${y}-12-31`,
     };
   }
 
-  private static buildQueryString(options: PrintOptions): string {
-    const params = new URLSearchParams();
-    
-    Object.entries(options).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, String(value));
-      }
-    });
-    
-    return params.toString() ? `?${params.toString()}` : "";
+  private static buildQueryString(opt: PrintOptions) {
+    const p = new URLSearchParams();
+    if (opt.theme) p.set('theme', opt.theme);
+    if (opt.density) p.set('density', opt.density);
+    if (opt.from) p.set('from', opt.from);
+    if (opt.to) p.set('to', opt.to);
+    if (opt.logo) p.set('logo', opt.logo);
+    const s = p.toString();
+    return s ? `?${s}` : '';
   }
 
-  /**
-   * Open print preview in new tab for summary report
-   */
-  static openRiepilogoPreview(options: PrintOptions = {}) {
-    const mergedOptions = { ...this.getDefaultOptions(), ...options };
-    const queryString = this.buildQueryString(mergedOptions);
-    const url = `/print/riepilogo${queryString}`;
-    window.open(url, "_blank");
-  }
-
-  /**
-   * Open print preview in new tab for rateation detail
-   */
-  static openSchedaPreview(rateationId: string, options: PrintOptions = {}) {
-    const mergedOptions = { ...this.getDefaultOptions(), ...options };
-    const queryString = this.buildQueryString(mergedOptions);
-    const url = `/print/rateazione/${rateationId}${queryString}`;
-    window.open(url, "_blank");
-  }
-
-  /**
-   * Generate PDF using the edge function
-   */
-  static async generatePDF(url: string, filename: string): Promise<void> {
-    try {
-      const fullUrl = `${window.location.origin}${url}`;
-      
-      const { data, error } = await supabase.functions.invoke('generate-pdf', {
-        body: { url: fullUrl, filename }
-      });
-
-      if (error) throw error;
-
-      // For now, since we're using client-side PDF generation,
-      // we'll open the print URL and let the browser handle it
-      if (data.printUrl) {
-        const printWindow = window.open(data.printUrl, "_blank");
-        if (printWindow) {
-          printWindow.focus();
-          // Add a small delay to ensure the page loads before printing
-          setTimeout(() => {
-            printWindow.print();
-          }, 1000);
-        }
-      }
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      throw new Error("Errore nella generazione del PDF");
+  /** Pre-apre una finestra (sincrona al click) per evitare i popup blocker */
+  private static preOpenWindow(): Window | null {
+    const w = window.open('about:blank', '_blank');
+    if (w) {
+      try {
+        w.document.write(`
+          <html><head><title>Preparazione…</title></head>
+          <body style="font:14px system-ui;padding:24px">
+            Preparazione documento di stampa…
+          </body></html>`);
+        w.document.close();
+      } catch {}
     }
+    return w;
+  }
+
+  /** Naviga la finestra preaperta verso un path/URL assoluto in modo sicuro */
+  private static navigate(win: Window, pathOrUrl: string) {
+    const absolute = /^https?:\/\//i.test(pathOrUrl)
+      ? pathOrUrl
+      : `${window.location.origin}${pathOrUrl}`;
+    setTimeout(() => win.location.replace(absolute), 80);
+  }
+
+  /** Anteprima riepilogo: apertura immediata (client-side) */
+  static openRiepilogoPreview(options: PrintOptions = {}) {
+    const q = this.buildQueryString({ ...this.getDefaultOptions(), ...options });
+    const url = `/print/riepilogo${q}`;
+    const win = this.preOpenWindow();
+    if (!win) {
+      window.location.assign(url); // fallback se il popup è bloccato
+      return;
+    }
+    this.navigate(win, url);
+  }
+
+  /** Anteprima scheda rateazione: apertura immediata (client-side) */
+  static openSchedaPreview(rateationId: string, options: PrintOptions = {}) {
+    const q = this.buildQueryString({ ...this.getDefaultOptions(), ...options });
+    const url = `/print/rateazione/${rateationId}${q}`;
+    const win = this.preOpenWindow();
+    if (!win) {
+      window.location.assign(url);
+      return;
+    }
+    this.navigate(win, url);
   }
 
   /**
-   * Generate PDF for summary report
+   * Generazione PDF (edge function opzionale).
+   * Manteniamo la chiamata, ma l'apertura è SEMPRE via finestra preaperta.
    */
-  static async generateRiepilogoPDF(options: PrintOptions = {}): Promise<void> {
-    const mergedOptions = { ...this.getDefaultOptions(), ...options };
-    const queryString = this.buildQueryString(mergedOptions);
-    const url = `/print/riepilogo${queryString}`;
-    const filename = `riepilogo-rateazioni-${new Date().toISOString().split('T')[0]}.pdf`;
-    
-    return this.generatePDF(url, filename);
+  static async generateRiepilogoPDF(options: PrintOptions = {}) {
+    const q = this.buildQueryString({ ...this.getDefaultOptions(), ...options });
+    const path = `/print/riepilogo${q}`;
+    const win = this.preOpenWindow();
+    if (!win) {
+      window.location.assign(path);
+      return;
+    }
+    try {
+      await supabase.functions.invoke('generate-pdf', {
+        body: {
+          url: `${window.location.origin}${path}`,
+          filename: `riepilogo-rateazioni-${new Date().toISOString().slice(0,10)}.pdf`,
+        },
+      });
+    } catch {
+      // Silenzioso: non blocchiamo l'apertura
+    }
+    this.navigate(win, path);
   }
 
-  /**
-   * Generate PDF for rateation detail
-   */
-  static async generateSchedaPDF(rateationId: string, options: PrintOptions = {}): Promise<void> {
-    const mergedOptions = { ...this.getDefaultOptions(), ...options };
-    const queryString = this.buildQueryString(mergedOptions);
-    const url = `/print/rateazione/${rateationId}${queryString}`;
-    const filename = `rateazione-${rateationId}-${new Date().toISOString().split('T')[0]}.pdf`;
-    
-    return this.generatePDF(url, filename);
+  static async generateSchedaPDF(rateationId: string, options: PrintOptions = {}) {
+    const q = this.buildQueryString({ ...this.getDefaultOptions(), ...options });
+    const path = `/print/rateazione/${rateationId}${q}`;
+    const win = this.preOpenWindow();
+    if (!win) {
+      window.location.assign(path);
+      return;
+    }
+    try {
+      await supabase.functions.invoke('generate-pdf', {
+        body: {
+          url: `${window.location.origin}${path}`,
+          filename: `rateazione-${rateationId}-${new Date().toISOString().slice(0,10)}.pdf`,
+        },
+      });
+    } catch {}
+    this.navigate(win, path);
   }
 
   /**

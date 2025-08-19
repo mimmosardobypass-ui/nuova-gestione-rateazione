@@ -60,6 +60,21 @@ export default function SchedaRateazione() {
     }
   }, [id]);
 
+  // Auto-print robusto
+  useEffect(() => {
+    if (!loading && header) {
+      const go = async () => {
+        try { await (document as any).fonts?.ready; } catch {}
+        // piccolo buffer per QR/logo/font
+        setTimeout(() => {
+          window.focus();
+          window.print();
+        }, 250);
+      };
+      go();
+    }
+  }, [loading, header]);
+
   const loadData = async () => {
     try {
       // Load header data
