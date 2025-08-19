@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 interface RateationFiltersProps {
   onComparazione: () => void;
   onStats: () => void;
+  onDeadlines: () => void;
 }
 
-export function RateationFilters({ onComparazione, onStats }: RateationFiltersProps) {
+export function RateationFilters({ onComparazione, onStats, onDeadlines }: RateationFiltersProps) {
   return (
     <Card className="mb-6">
       <CardContent className="pt-6">
@@ -52,6 +53,9 @@ export function RateationFilters({ onComparazione, onStats }: RateationFiltersPr
         <div className="flex gap-2">
           <Button variant="outline" onClick={onComparazione}>
             Comparazione annuale
+          </Button>
+          <Button variant="outline" onClick={onDeadlines}>
+            Scadenze
           </Button>
           <Button variant="outline" onClick={onStats}>
             Statistiche avanzate

@@ -16,6 +16,12 @@ import { KpiCards } from "@/features/rateations/components/KpiCards";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// View components
+import { RateList } from "@/features/rateations/components/views/RateList";
+import { AnnualComparison } from "@/features/rateations/components/views/AnnualComparison";
+import { Deadlines } from "@/features/rateations/components/views/Deadlines";
+import { AdvancedStats } from "@/features/rateations/components/views/AdvancedStats";
+
 
 export default function Rateations() {
   const navigate = useNavigate();
@@ -68,12 +74,23 @@ export default function Rateations() {
     // setShowHomeBack(true);
   };
 
+  type View = 'list' | 'annual' | 'deadlines' | 'advanced';
+  const [currentView, setCurrentView] = React.useState<View>('list');
+
+  const handleViewChange = (view: View) => {
+    setCurrentView(view);
+  };
+
   const openComparazione = () => {
-    // TODO: Implement comparazione annuale
+    setCurrentView('annual');
+  };
+
+  const openDeadlines = () => {
+    setCurrentView('deadlines');
   };
 
   const openStats = () => {
-    // TODO: Implement statistiche avanzate
+    setCurrentView('advanced');
   };
 
   // Show loading screen while auth is initializing
@@ -133,102 +150,48 @@ export default function Rateations() {
         </div>
       )}
 
-      <Card className="card-elevated">
-        <CardContent className="pt-6">
-          <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">Tutte</TabsTrigger>
-              <TabsTrigger value="attive">Attive</TabsTrigger>
-              <TabsTrigger value="completate">Completate</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="space-y-4">
-              <RateationFilters 
-                onComparazione={openComparazione}
-                onStats={openStats}
-              />
+      {/* View Content */}
+      {currentView === 'list' && (
+        <RateList 
+          rows={rows}
+          loading={loading}
+          error={error}
+          online={online}
+          onDelete={(id) => handleDelete(id, debouncedReloadStats)}
+          deleting={deleting}
+          onRefresh={() => {
+            debouncedReload();
+            setRefreshKey(prev => prev + 1);
+          }}
+          onDataChanged={debouncedReloadStats}
+          refreshKey={refreshKey}
+          onViewChange={handleViewChange}
+        />
+      )}
 
-              <RateationsTablePro 
-                key={refreshKey}
-                rows={(() => {
-                  const processedRows = rows.map(row => ({
-                    ...row,
-                    importoRitardo: row.importoRitardo || 0,
-                    rateInRitardo: row.rateInRitardo || 0
-                  } as RateationRowPro));
-                  console.log("[Rateations] Passing rows to table:", { 
-                    originalRows: rows.length, 
-                    processedRows: processedRows.length,
-                    rowsData: processedRows 
-                  });
-                  return processedRows;
-                })()}
-                loading={loading}
-                error={error}
-                online={online}
-                onDelete={(id) => handleDelete(id, debouncedReloadStats)}
-                deleting={deleting}
-                onRefresh={() => {
-                  debouncedReload();
-                  setRefreshKey(prev => prev + 1);
-                }}
-                onDataChanged={debouncedReloadStats}
-              />
-            </TabsContent>
-            
-            <TabsContent value="attive" className="space-y-4">
-              <RateationFilters 
-                onComparazione={openComparazione}
-                onStats={openStats}
-              />
+      {currentView === 'annual' && (
+        <AnnualComparison 
+          rows={rows}
+          loading={loading}
+          onBack={() => setCurrentView('list')}
+        />
+      )}
 
-              <RateationsTablePro 
-                key={refreshKey}
-                rows={rows.filter(row => row.residuo > 0).map(row => ({
-                  ...row,
-                  importoRitardo: row.importoRitardo || 0,
-                  rateInRitardo: row.rateInRitardo || 0
-                } as RateationRowPro))}
-                loading={loading}
-                error={error}
-                online={online}
-                onDelete={(id) => handleDelete(id, debouncedReloadStats)}
-                deleting={deleting}
-                onRefresh={() => {
-                  debouncedReload();
-                  setRefreshKey(prev => prev + 1);
-                }}
-                onDataChanged={debouncedReloadStats}
-              />
-            </TabsContent>
-            
-            <TabsContent value="completate" className="space-y-4">
-              <RateationFilters 
-                onComparazione={openComparazione}
-                onStats={openStats}
-              />
+      {currentView === 'deadlines' && (
+        <Deadlines 
+          rows={rows}
+          loading={loading}
+          onBack={() => setCurrentView('list')}
+        />
+      )}
 
-              <RateationsTablePro 
-                key={refreshKey}
-                rows={rows.filter(row => row.residuo === 0).map(row => ({
-                  ...row,
-                  importoRitardo: row.importoRitardo || 0,
-                  rateInRitardo: row.rateInRitardo || 0
-                } as RateationRowPro))}
-                loading={loading}
-                error={error}
-                online={online}
-                onDelete={(id) => handleDelete(id, debouncedReloadStats)}
-                deleting={deleting}
-                onRefresh={() => {
-                  debouncedReload();
-                  setRefreshKey(prev => prev + 1);
-                }}
-                onDataChanged={debouncedReloadStats}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      {currentView === 'advanced' && (
+        <AdvancedStats 
+          rows={rows}
+          loading={loading}
+          onBack={() => setCurrentView('list')}
+        />
+      )}
     </main>
   );
 }
