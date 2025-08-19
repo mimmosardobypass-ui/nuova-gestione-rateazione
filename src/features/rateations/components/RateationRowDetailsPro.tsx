@@ -5,6 +5,7 @@ import { AttachmentsPanel } from "./AttachmentsPanel";
 import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
 import { InstallmentStatusBadge } from "./InstallmentStatusBadge";
 import { PrintButtons } from "@/components/print/PrintButtons";
+import EditScheduleModal from "./EditScheduleModal";
 import type { InstallmentUI } from "../types";
 import {
   Table,
@@ -30,6 +31,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
+  const [editScheduleOpen, setEditScheduleOpen] = useState(false);
   const { toast } = useToast();
   const online = useOnline();
 
@@ -190,12 +192,22 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
         {/* Print Actions & Allegati */}
         <div className="space-y-3">
           <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">Stampa Scheda</div>
-            <PrintButtons 
-              rateationId={rateationId}
-              showDetailOptions={true}
-              showSummaryOptions={false}
-            />
+            <div className="text-sm text-muted-foreground">Azioni</div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setEditScheduleOpen(true)}
+                className="text-xs"
+              >
+                Modifica scadenze
+              </Button>
+              <PrintButtons 
+                rateationId={rateationId}
+                showDetailOptions={true}
+                showSummaryOptions={false}
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground">Allegati</div>
@@ -302,6 +314,16 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
           </Table>
         </div>
       </div>
+
+      <EditScheduleModal
+        rateationId={rateationId}
+        open={editScheduleOpen}
+        onOpenChange={setEditScheduleOpen}
+        onSaved={() => {
+          load();
+          onDataChanged?.();
+        }}
+      />
     </div>
   );
 }

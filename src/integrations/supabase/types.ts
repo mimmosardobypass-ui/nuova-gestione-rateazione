@@ -733,6 +733,10 @@ export type Database = {
       }
     }
     Functions: {
+      apply_rateation_edits: {
+        Args: { p_rateation_id: number; p_rows: Json }
+        Returns: undefined
+      }
       apply_ravvedimento: {
         Args: {
           p_installment_id: number
@@ -890,6 +894,10 @@ export type Database = {
           p_penalty?: number
           p_total_paid: number
         }
+        Returns: undefined
+      }
+      recompute_rateation_caches: {
+        Args: { p_rateation_id: number }
         Returns: undefined
       }
       unmark_installment_paid: {
