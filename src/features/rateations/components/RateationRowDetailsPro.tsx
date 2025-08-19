@@ -187,10 +187,20 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
           </div>
         </div>
         
-        {/* Allegati compatto */}
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">Allegati</div>
-          <AttachmentsPanel rateationId={rateationId} />
+        {/* Print Actions & Allegati */}
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">Stampa Scheda</div>
+            <PrintButtons 
+              rateationId={rateationId}
+              showDetailOptions={true}
+              showSummaryOptions={false}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">Allegati</div>
+            <AttachmentsPanel rateationId={rateationId} />
+          </div>
         </div>
       </div>
 

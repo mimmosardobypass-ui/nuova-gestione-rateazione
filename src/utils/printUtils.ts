@@ -11,6 +11,16 @@ export interface PrintOptions {
 }
 
 export class PrintService {
+  private static getDefaultOptions(): PrintOptions {
+    const currentYear = new Date().getFullYear();
+    return {
+      theme: 'bn',          // bianco/nero
+      density: 'compact',   // tabella compatta  
+      from: `${currentYear}-01-01`,
+      to: `${currentYear}-12-31`,
+    };
+  }
+
   private static buildQueryString(options: PrintOptions): string {
     const params = new URLSearchParams();
     
@@ -27,7 +37,8 @@ export class PrintService {
    * Open print preview in new tab for summary report
    */
   static openRiepilogoPreview(options: PrintOptions = {}) {
-    const queryString = this.buildQueryString(options);
+    const mergedOptions = { ...this.getDefaultOptions(), ...options };
+    const queryString = this.buildQueryString(mergedOptions);
     const url = `/print/riepilogo${queryString}`;
     window.open(url, "_blank");
   }
@@ -36,7 +47,8 @@ export class PrintService {
    * Open print preview in new tab for rateation detail
    */
   static openSchedaPreview(rateationId: string, options: PrintOptions = {}) {
-    const queryString = this.buildQueryString(options);
+    const mergedOptions = { ...this.getDefaultOptions(), ...options };
+    const queryString = this.buildQueryString(mergedOptions);
     const url = `/print/rateazione/${rateationId}${queryString}`;
     window.open(url, "_blank");
   }
@@ -76,7 +88,8 @@ export class PrintService {
    * Generate PDF for summary report
    */
   static async generateRiepilogoPDF(options: PrintOptions = {}): Promise<void> {
-    const queryString = this.buildQueryString(options);
+    const mergedOptions = { ...this.getDefaultOptions(), ...options };
+    const queryString = this.buildQueryString(mergedOptions);
     const url = `/print/riepilogo${queryString}`;
     const filename = `riepilogo-rateazioni-${new Date().toISOString().split('T')[0]}.pdf`;
     
@@ -87,7 +100,8 @@ export class PrintService {
    * Generate PDF for rateation detail
    */
   static async generateSchedaPDF(rateationId: string, options: PrintOptions = {}): Promise<void> {
-    const queryString = this.buildQueryString(options);
+    const mergedOptions = { ...this.getDefaultOptions(), ...options };
+    const queryString = this.buildQueryString(mergedOptions);
     const url = `/print/rateazione/${rateationId}${queryString}`;
     const filename = `rateazione-${rateationId}-${new Date().toISOString().split('T')[0]}.pdf`;
     
