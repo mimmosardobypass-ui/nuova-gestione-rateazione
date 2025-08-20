@@ -85,6 +85,37 @@ export const getTotalPaidAmount = (installment: InstallmentUI): number => {
   return principal + interest + penalty;
 };
 
+// Helpers interni
+const toMidnight = (d: string | Date) => {
+  const dt = new Date(d);
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const diffDays = (a: Date, b: Date) =>
+  Math.floor((a.getTime() - b.getTime()) / 86_400_000);
+
+/**
+ * Giorni di ritardo:
+ * - se pagata: paid_date vs due_date
+ * - se non pagata: today vs due_date
+ * Restituisce 0 se non in ritardo.
+ */
+export const getDaysLate = (inst: InstallmentUI): number => {
+  if (!inst?.due_date) return 0;
+  const due = toMidnight(inst.due_date);
+
+  if (isInstallmentPaid(inst)) {
+    const paidStr = getPaymentDate(inst);
+    if (!paidStr) return 0;
+    const paid = toMidnight(paidStr);
+    return paid > due ? diffDays(paid, due) : 0;
+  }
+
+  const today = toMidnight(new Date());
+  return today > due ? diffDays(today, due) : 0;
+};
+
 /**
  * Format payment status for display
  */

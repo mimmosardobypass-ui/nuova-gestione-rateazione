@@ -9,7 +9,7 @@ import { PrintButtons } from "@/components/print/PrintButtons";
 import { DecadenceAlert } from "./DecadenceAlert";
 import { DecadenceStatusBadge } from "./DecadenceStatusBadge";
 import EditScheduleModal from "./EditScheduleModal";
-import { isInstallmentPaid, getPaymentDate } from "../lib/installmentState";
+import { isInstallmentPaid, getPaymentDate, getDaysLate } from "../lib/installmentState";
 import type { InstallmentUI, RateationStatus } from "../types";
 import {
   Table,
@@ -261,40 +261,14 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               di cui in ritardo: <span className="font-medium">
-                {items.filter(it => {
-                  if (!isInstallmentPaid(it)) return false;
-                  if (!it.due_date) return false;
-                  const paidDate = getPaymentDate(it);
-                  if (!paidDate) return false;
-                  const due = new Date(it.due_date);
-                  due.setHours(0, 0, 0, 0);
-                  const paid = new Date(paidDate);
-                  paid.setHours(0, 0, 0, 0);
-                  return paid > due;
-                }).length}
+                {items.filter(it => isInstallmentPaid(it) && getDaysLate(it) > 0).length}
               </span>
             </div>
           </div>
           <div className="text-center p-2 bg-red-50 rounded-md">
             <div className="text-xs text-muted-foreground">In ritardo</div>
             <div className="font-semibold text-red-700">
-              {items.filter(it => {
-                // Non pagate in ritardo
-                if (!isInstallmentPaid(it) && it.due_date) {
-                  const today = new Date();
-                  const due = new Date(it.due_date);
-                  return today > due;
-                }
-                // Pagate in ritardo
-                if (isInstallmentPaid(it) && it.due_date) {
-                  const paidDate = getPaymentDate(it);
-                  if (!paidDate) return false;
-                  const due = new Date(it.due_date);
-                  const paid = new Date(paidDate);
-                  return paid > due;
-                }
-                return false;
-              }).length}
+              {items.filter(it => !isInstallmentPaid(it) && getDaysLate(it) > 0).length}
             </div>
           </div>
         </div>
@@ -343,11 +317,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             </TableHeader>
             <TableBody>
               {items.map((it) => {
-                const today = new Date();
-                const dueDate = it.due_date ? new Date(it.due_date) : null;
-                const daysLate = dueDate && !isInstallmentPaid(it) && today > dueDate
-                  ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
-                  : 0;
+                const daysLate = getDaysLate(it);
 
                 // Show ravvedimento total if available, otherwise original amount
                 const displayAmount = it.paid_total_cents 

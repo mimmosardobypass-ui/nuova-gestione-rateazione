@@ -6,6 +6,8 @@ import { formatEuro } from "@/lib/formatters";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import QRCode from "qrcode";
+import { getDaysLate, getPaymentDate } from "@/features/rateations/lib/installmentState";
+import type { InstallmentUI } from "@/features/rateations/types";
 
 interface RateationHeader {
   id: string;
@@ -33,6 +35,10 @@ interface InstallmentDetail {
   extra_interest: number;
   extra_penalty: number;
   days_overdue: number;
+  // Compatibility with InstallmentUI
+  is_paid?: boolean;
+  paid_at?: string | null;
+  postponed?: boolean;
 }
 
 interface MonthlyForecast {
@@ -171,7 +177,7 @@ export default function SchedaRateazione() {
             <th>Pagata il</th>
             <th className="text-right">Extra ravv.</th>
             <th className="text-right">Totale versato</th>
-            <th className="text-right">Giorni ritardo</th>
+            <th className="text-right" title="Pagate: differenza tra data pagamento e scadenza. Non pagate: differenza tra oggi e scadenza.">Giorni ritardo</th>
           </tr>
         </thead>
         <tbody>
@@ -180,6 +186,16 @@ export default function SchedaRateazione() {
             const totale = Number(inst.amount) + extra;
             const stato = getStatusLabel(inst);
 
+            // Create minimal compatibility object for utility functions
+            const installmentForCalc = {
+              is_paid: inst.status === "paid",
+              paid_date: inst.paid_date,
+              paid_at: inst.paid_date,
+              due_date: inst.due_date,
+              amount: inst.amount,
+              seq: inst.seq
+            };
+
             return (
               <tr key={inst.id} className="avoid-break">
                 <td>{inst.seq}</td>
@@ -187,8 +203,8 @@ export default function SchedaRateazione() {
                 <td className="text-right">{formatEuro(inst.amount)}</td>
                 <td>{stato}</td>
                 <td>
-                  {inst.paid_date ? 
-                    format(new Date(inst.paid_date), "dd/MM/yyyy", { locale: it }) : 
+                  {getPaymentDate(installmentForCalc as any) ? 
+                    format(new Date(getPaymentDate(installmentForCalc as any)!), "dd/MM/yyyy", { locale: it }) : 
                     "—"
                   }
                 </td>
@@ -196,7 +212,7 @@ export default function SchedaRateazione() {
                 <td className="text-right">
                   {inst.status === "paid" ? formatEuro(totale) : "-"}
                 </td>
-                <td className="text-right">{inst.days_overdue || "-"}</td>
+                <td className="text-right">{getDaysLate(installmentForCalc as any)}</td>
               </tr>
             );
           })}
