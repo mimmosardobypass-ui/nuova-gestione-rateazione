@@ -1036,9 +1036,22 @@ export type Database = {
         }
         Returns: number
       }
+      fn_detect_payment_inconsistencies: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          details: Json
+          installment_id: number
+          issue_type: string
+          rateation_id: number
+        }[]
+      }
       fn_postpone_installment: {
         Args: { p_new_due: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
+      }
+      fn_realign_rateation_totals: {
+        Args: { p_rateation_id: number }
+        Returns: Json
       }
       fn_recalc_rateation_status: {
         Args: { p_rateation_id: number }
@@ -1054,6 +1067,10 @@ export type Database = {
         Returns: undefined
       }
       installment_cancel_payment: {
+        Args: { p_installment_id: number; p_reason?: string }
+        Returns: undefined
+      }
+      installment_cancel_payment_enhanced: {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
       }
