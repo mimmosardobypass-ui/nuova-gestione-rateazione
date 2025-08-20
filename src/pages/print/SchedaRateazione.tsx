@@ -3,6 +3,8 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
 import { formatEuro } from "@/lib/formatters";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
 import QRCode from "qrcode";
 
 interface RateationHeader {
@@ -186,8 +188,8 @@ export default function SchedaRateazione() {
                 <td>{stato}</td>
                 <td>
                   {inst.paid_date ? 
-                    new Date(inst.paid_date).toLocaleDateString("it-IT") : 
-                    "-"
+                    format(new Date(inst.paid_date), "dd/MM/yyyy", { locale: it }) : 
+                    "—"
                   }
                 </td>
                 <td className="text-right">{extra ? formatEuro(extra) : "-"}</td>

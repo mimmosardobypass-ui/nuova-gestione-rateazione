@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatEuro } from "@/lib/formatters";
 import { markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
 import { RavvedimentoModal } from "./RavvedimentoModal";
+import { getPaymentDate } from "../lib/installmentState";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentPaymentActionsProps {
@@ -34,16 +35,13 @@ export function InstallmentPaymentActions({
   const [unpaying, setUnpaying] = useState(false);
   const [showRavvedimento, setShowRavvedimento] = useState(false);
 
-  // Default to current date, or use existing paid_date/paid_at
+  // Use getPaymentDate for consistent payment date retrieval
   const currentPaymentDate = useMemo(() => {
-    if (installment.paid_date || installment.paid_at) {
-      return installment.paid_date || installment.paid_at;
-    }
-    return format(new Date(), "yyyy-MM-dd");
-  }, [installment.paid_date, installment.paid_at]);
+    return getPaymentDate(installment) || format(new Date(), "yyyy-MM-dd");
+  }, [installment]);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    (installment.paid_date || installment.paid_at) ? new Date(installment.paid_date || installment.paid_at!) : new Date()
+    getPaymentDate(installment) ? new Date(getPaymentDate(installment)!) : new Date()
   );
 
   const handleMarkPaidOrdinary = async (date: Date) => {

@@ -1,22 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DecadenceDashboard, DecadenceDetail } from "../types";
 
-// Fetch decadence dashboard data
+// Fetch decadence dashboard data (converts from cents to euros)
 export async function fetchDecadenceDashboard(signal?: AbortSignal): Promise<DecadenceDashboard> {
   const { data, error } = await supabase
     .from('v_dashboard_decaduto')
-    .select('*')
+    .select('gross_decayed_cents, transferred_cents, net_to_transfer_cents')
     .abortSignal(signal)
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to fetch decadence dashboard: ${error.message}`);
   }
 
   return {
-    gross_decayed: data?.gross_decayed || 0,
-    transferred: data?.transferred || 0,
-    net_to_transfer: data?.net_to_transfer || 0,
+    gross_decayed: (data?.gross_decayed_cents ?? 0) / 100,
+    transferred: (data?.transferred_cents ?? 0) / 100,
+    net_to_transfer: (data?.net_to_transfer_cents ?? 0) / 100,
   };
 }
 

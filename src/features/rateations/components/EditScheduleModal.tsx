@@ -342,7 +342,10 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
                         <div className="text-right">
                           {isPaid ? (
                             <span className="text-xs text-muted-foreground">
-                              Pagata il {format(new Date(r.paid_at!), "dd/MM/yyyy", { locale: it })}
+                              Pagata il {r.paid_at ? 
+                                format(new Date(r.paid_at), "dd/MM/yyyy", { locale: it }) : 
+                                '—'
+                              }
                             </span>
                           ) : (
                             <Button 

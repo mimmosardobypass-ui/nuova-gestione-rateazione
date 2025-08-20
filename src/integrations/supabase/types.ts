@@ -456,9 +456,9 @@ export type Database = {
     Views: {
       v_dashboard_decaduto: {
         Row: {
-          gross_decayed: number | null
-          net_to_transfer: number | null
-          transferred: number | null
+          gross_decayed_cents: number | null
+          net_to_transfer_cents: number | null
+          transferred_cents: number | null
         }
         Relationships: []
       }
@@ -1071,6 +1071,10 @@ export type Database = {
         Returns: undefined
       }
       installment_cancel_payment_enhanced: {
+        Args: { p_installment_id: number; p_reason?: string }
+        Returns: undefined
+      }
+      installment_cancel_payment_enhanced_v2: {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
       }
