@@ -34,7 +34,7 @@ function buildHeat(value: number, max: number): string {
   return "bg-gray-500";
 }
 
-export default function AnnualMatrix() {
+export default function AnnualMatrixPrint() {
   const [search] = useSearchParams();
   const { data, years, loading, error } = useMonthlyMatrix();
 
