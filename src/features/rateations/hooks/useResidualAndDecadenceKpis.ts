@@ -1,9 +1,9 @@
 import * as React from "react";
-import { fetchKpiStats } from "@/features/rateations/api/kpi";
+import { fetchResidualEuro } from "@/features/rateations/api/kpi";
 import { fetchDecadenceDashboardEuros } from "@/features/rateations/api/decadence";
 
 export function useResidualAndDecadenceKpis() {
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const [residualEuro, setResidualEuro] = React.useState(0);
@@ -15,23 +15,22 @@ export function useResidualAndDecadenceKpis() {
     try {
       setLoading(true);
       setError(null);
-      const [kpi, dec] = await Promise.all([
-        fetchKpiStats(signal),
+
+      const [resid, dec] = await Promise.all([
+        fetchResidualEuro(signal),
         fetchDecadenceDashboardEuros(signal),
       ]);
-      setResidualEuro(kpi.residualEuro);
-      setDecNetEuro(dec.netToTransferEuro);
-      setDecGrossEuro(dec.grossDecayedEuro);
-      setDecTransferredEuro(dec.transferredEuro);
+
+      setResidualEuro(resid || 0);
+      setDecNetEuro(dec.netToTransferEuro || 0);
+      setDecGrossEuro(dec.grossDecayedEuro || 0);
+      setDecTransferredEuro(dec.transferredEuro || 0);
     } catch (e: any) {
-      if (signal?.aborted || (e instanceof Error && e.message === 'AbortError')) {
-        return;
-      }
+      if (signal?.aborted || (e?.message === "AbortError")) return;
+      console.warn("useResidualAndDecadenceKpis.load error:", e);
       setError(e?.message || "Errore caricamento KPI");
     } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 

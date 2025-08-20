@@ -1,43 +1,44 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Simplified KPI stats wrapper that normalizes residual amounts to euros
-export async function fetchKpiStats(signal?: AbortSignal): Promise<{ residualEuro: number }> {
-  // Get current user first
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("User not authenticated");
+/**
+ * Ritorna il totale residuo in euro, leggendo valori consolidati dal DB.
+ * - Preferisce campi *_cents se presenti
+ * - Esclude i piani 'decaduta'
+ * - Non usa supabase.auth.getUser() (lasciamo lavorare la RLS)
+ */
+export async function fetchResidualEuro(signal?: AbortSignal): Promise<number> {
+  // 1) Vista unica (se esiste): v_kpi_rateations con campo residual_amount_cents
+  try {
+    const { data, error } = await supabase
+      .from("v_kpi_rateations")
+      .select("residual_amount_cents")
+      .abortSignal(signal)
+      .maybeSingle();
 
-  if (signal?.aborted) throw new Error("AbortError");
-
-  // Fetch all rateations and their installments to calculate residual
-  const { data: rateations, error: rateationsError } = await supabase
-    .from("rateations")
-    .select("id, total_amount")
-    .eq("owner_uid", user.id)
-    .abortSignal(signal);
-
-  if (rateationsError) throw new Error(`fetchKpiStats: ${rateationsError.message}`);
-
-  if (!rateations || rateations.length === 0) {
-    return { residualEuro: 0 };
+    if (!error && data && typeof data.residual_amount_cents === "number") {
+      return data.residual_amount_cents / 100;
+    }
+  } catch (e) {
+    // prosegui con il fallback
+    console.warn("fetchResidualEuro: fallback aggregazione per tabella rateations", e);
   }
 
-  const rateationIds = rateations.map(r => r.id);
-
-  // Fetch installments to calculate what's paid
-  const { data: installments, error: installmentsError } = await supabase
-    .from("installments")
-    .select("amount, is_paid")
-    .in("rateation_id", rateationIds)
+  // 2) Fallback: somma dai piani, escludendo le decadute
+  const { data: rows, error: e2 } = await supabase
+    .from("rateations")
+    .select("residual_amount_cents, residual_amount, status")
+    .neq("status", "decaduta")
     .abortSignal(signal);
 
-  if (installmentsError) throw new Error(`fetchKpiStats: ${installmentsError.message}`);
+  if (e2) throw new Error(`fetchResidualEuro: ${e2.message}`);
 
-  const totalDue = rateations.reduce((sum, r) => sum + Number(r.total_amount || 0), 0);
-  const totalPaid = (installments || [])
-    .filter(i => i.is_paid)
-    .reduce((sum, i) => sum + Number(i.amount || 0), 0);
-
-  const residualEuro = Math.max(0, totalDue - totalPaid);
-
-  return { residualEuro };
+  let totalCents = 0;
+  for (const r of rows ?? []) {
+    if (typeof r?.residual_amount_cents === "number") {
+      totalCents += r.residual_amount_cents;
+    } else if (typeof r?.residual_amount === "number") {
+      totalCents += Math.round(r.residual_amount * 100);
+    }
+  }
+  return totalCents / 100;
 }
