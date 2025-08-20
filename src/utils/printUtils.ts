@@ -42,14 +42,14 @@ export class PrintService {
 
   /** Pre-apre una finestra (sincrona al click) per evitare i popup blocker */
   private static preOpenWindow(): Window | null {
-    const w = window.open('about:blank', '_blank');
+    const w = window.open("about:blank", "_blank");
     if (w) {
       try {
         w.document.write(`
           <html><head><title>Preparazione…</title></head>
-          <body style="font:14px system-ui;padding:24px">
-            Preparazione documento di stampa…
-          </body></html>`);
+          <body style="font-family:system-ui;padding:16px;">Preparazione documento di stampa…</body>
+          </html>
+        `);
         w.document.close();
       } catch {}
     }
@@ -132,20 +132,21 @@ export class PrintService {
     this.navigate(win, path);
   }
 
-  /** Anteprima matrice annuale: apertura immediata (client-side) */
-  static openAnnualMatrixPreview(opts: { metric?: 'paid'|'due'|'overdue'|'extra_ravv'; yoy?: boolean } & PrintOptions = {}) {
+  /** Anteprima matrice annuale (client-side, con anti-popup) */
+  static openAnnualMatrixPreview(
+    opts: { metric: "paid" | "due" | "overdue" | "extra_ravv"; yoy?: boolean } & PrintOptions = { metric: "paid" }
+  ) {
     const { metric, yoy, ...printOpts } = opts;
-    const def = { theme: 'bn' as const, density: 'compact' as const }; // Matrix defaults (no from/to)
+    const def = { theme: "bn" as const, density: "compact" as const }; // per la matrice non servono from/to
     const q = this.buildQuery({
       theme: printOpts.theme ?? def.theme,
       density: printOpts.density ?? def.density,
       logo: printOpts.logo ?? undefined,
-      metric: metric || 'paid',
+      metric: metric || "paid",
       yoy: yoy ? 1 : undefined,
     });
     const path = `/print/annual-matrix${q}`;
 
-    // pre-open per aggirare popup blocker (allineato agli altri report)
     const w = this.preOpenWindow();
     if (!w) {
       window.location.assign(path);
