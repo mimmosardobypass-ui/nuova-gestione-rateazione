@@ -496,6 +496,20 @@ export type Database = {
           },
         ]
       }
+      v_monthly_metrics: {
+        Row: {
+          due_amount: number | null
+          extra_ravv_amount: number | null
+          installments_count: number | null
+          month: number | null
+          overdue_amount: number | null
+          owner_uid: string | null
+          paid_amount: number | null
+          paid_count: number | null
+          year: number | null
+        }
+        Relationships: []
+      }
       v_monthly_totals: {
         Row: {
           amount_due: number | null

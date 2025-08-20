@@ -19,7 +19,7 @@ import { PrintButtons } from "@/components/print/PrintButtons";
 
 // View components
 import { RateList } from "@/features/rateations/components/views/RateList";
-import { AnnualComparison } from "@/features/rateations/components/views/AnnualComparison";
+import AnnualMatrix from "@/features/rateations/components/AnnualMatrix";
 import { Deadlines } from "@/features/rateations/components/views/Deadlines";
 import { AdvancedStats } from "@/features/rateations/components/views/AdvancedStats";
 
@@ -172,9 +172,7 @@ export default function Rateations() {
       )}
 
       {currentView === 'annual' && (
-        <AnnualComparison 
-          rows={rows}
-          loading={loading}
+        <AnnualMatrix 
           onBack={() => setCurrentView('list')}
         />
       )}
