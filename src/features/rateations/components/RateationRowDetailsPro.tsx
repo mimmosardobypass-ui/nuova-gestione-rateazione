@@ -74,9 +74,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
       if (rateationError) {
         console.warn('Failed to load rateation info:', rateationError.message);
       } else {
-        const typeName = Array.isArray(rateationData.rateation_types) 
-          ? rateationData.rateation_types[0]?.name || ''
-          : rateationData.rateation_types?.name || '';
+        const typeName = (rateationData as any).rateation_types?.[0]?.name || 
+                         (rateationData as any).rateation_types?.name || '';
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
           status: rateationData.status || 'active',

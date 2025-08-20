@@ -64,11 +64,16 @@ export default function Rateations() {
     }
   }, []);
 
-  // Global reloader for decadence data
+  // Global event listener for KPI reloads
   React.useEffect(() => {
-    (window as any).__reloadDecadence = loadDecadenceData;
-    return () => { delete (window as any).__reloadDecadence; };
-  }, [loadDecadenceData]);
+    const handleKpiReload = () => {
+      reloadStats();          // Reload KPI stats
+      loadDecadenceData();    // Reload Saldo Decaduto
+    };
+    
+    window.addEventListener('rateations:reload-kpis', handleKpiReload);
+    return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
+  }, [reloadStats, loadDecadenceData]);
 
   // Cleanup timeouts on unmount
   React.useEffect(() => cleanup, [cleanup]);
