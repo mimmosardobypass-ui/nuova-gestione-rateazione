@@ -20,6 +20,42 @@ export async function fetchDecadenceDashboard(signal?: AbortSignal): Promise<Dec
   };
 }
 
+// Enhanced dashboard decaduto CONVERSION to euros (supports both cents and euro fields)
+export async function fetchDecadenceDashboardEuros(signal?: AbortSignal): Promise<{
+  netToTransferEuro: number;
+  grossDecayedEuro: number;
+  transferredEuro: number;
+}> {
+  const { data, error } = await supabase
+    .from("v_dashboard_decaduto")
+    .select("gross_decayed_cents, transferred_cents, net_to_transfer_cents, gross_decayed, transferred, net_to_transfer")
+    .abortSignal(signal)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`fetchDecadenceDashboardEuros: ${error.message}`);
+  }
+
+  // If cents fields exist, convert. If euro fields exist, use those.
+  const gross = typeof data?.gross_decayed_cents === "number"
+    ? data.gross_decayed_cents / 100
+    : Number(data?.gross_decayed ?? 0);
+
+  const transf = typeof data?.transferred_cents === "number"
+    ? data.transferred_cents / 100
+    : Number(data?.transferred ?? 0);
+
+  const net = typeof data?.net_to_transfer_cents === "number"
+    ? data.net_to_transfer_cents / 100
+    : Number(data?.net_to_transfer ?? 0);
+
+  return {
+    netToTransferEuro: net,
+    grossDecayedEuro: gross,
+    transferredEuro: transf,
+  };
+}
+
 // Fetch decadence details
 export async function fetchDecadenceDetails(signal?: AbortSignal): Promise<DecadenceDetail[]> {
   const { data, error } = await supabase

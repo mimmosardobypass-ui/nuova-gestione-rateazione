@@ -23,6 +23,7 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import ResidualDecadenceSection from "@/pages/dashboard/ResidualDecadenceSection";
 
 type Installment = {
   id: number;
@@ -209,6 +210,9 @@ export default function Dashboard() {
           <Stat label="In ritardo" value={euro(totalOverdue)} />
           <Stat label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
         </div>
+
+        {/* Compact KPI Cards */}
+        <ResidualDecadenceSection />
 
         {/* Link per vedere dettagli completi */}
         <div className="mt-6 p-4 bg-muted rounded-lg">
