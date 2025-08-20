@@ -39,9 +39,10 @@ export interface DecadenceDashboard {
   net_to_transfer: number;
 }
 
+// NEW: combined UI data structure
 export interface DecadenceUIData {
   dashboard: DecadenceDashboard | null;
-  preview_cents: number;
+  preview_cents: number;     // potenziale in cents
 }
 
 export interface DecadenceDetail {

@@ -66,7 +66,7 @@ export async function fetchDecadencePreview(signal?: AbortSignal): Promise<numbe
     .from('v_dashboard_decaduto_preview')
     .select('potential_gross_decayed_cents')
     .abortSignal(signal)
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to fetch decadence preview: ${error.message}`);

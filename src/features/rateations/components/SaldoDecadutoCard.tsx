@@ -6,7 +6,7 @@ import { DecadenceDashboard } from "../types";
 
 interface SaldoDecadutoCardProps {
   data: DecadenceDashboard;
-  previewCents?: number;
+  previewCents?: number;  // NEW: potenziale in cents
   onClick?: () => void;
 }
 
@@ -36,7 +36,7 @@ export function SaldoDecadutoCard({ data, previewCents = 0, onClick }: SaldoDeca
             </p>
           </div>
 
-          {/* Pills for gross and transferred */}
+          {/* Pills for gross, transferred, and preview */}
           <div className="flex flex-wrap gap-2">
             <Badge variant="destructive" className="text-xs">
               <ArrowDown className="h-3 w-3 mr-1" />
