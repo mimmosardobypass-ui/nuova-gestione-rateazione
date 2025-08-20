@@ -1,33 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { MonthlyMetric, MatrixData } from '@/features/rateations/types/monthly-matrix';
 
-export interface MonthlyMetric {
-  owner_uid: string;
-  year: number;
-  month: number;
-  due_amount: number;
-  paid_amount: number;
-  overdue_amount: number;
-  extra_ravv_amount: number;
-  installments_count: number;
-  paid_count: number;
-}
-
-export interface MatrixData {
-  [year: number]: {
-    [month: number]: MonthlyMetric;
-  };
-}
-
-export interface MonthlyMatrixResult {
-  data: MatrixData;
-  years: number[];
-  loading: boolean;
-  error: string | null;
-}
-
-export const useMonthlyMatrix = (): MonthlyMatrixResult => {
+export function useMonthlyMatrix() {
   const [data, setData] = useState<MatrixData>({});
   const [years, setYears] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +16,7 @@ export const useMonthlyMatrix = (): MonthlyMatrixResult => {
       return;
     }
 
-    const fetchData = async () => {
+    (async () => {
       try {
         setLoading(true);
         setError(null);
@@ -51,33 +27,45 @@ export const useMonthlyMatrix = (): MonthlyMatrixResult => {
           .order('year', { ascending: true })
           .order('month', { ascending: true });
 
-        if (fetchError) {
-          throw fetchError;
-        }
+        if (fetchError) throw fetchError;
 
-        // Transform flat data into nested structure
-        const matrixData: MatrixData = {};
-        const uniqueYears = new Set<number>();
+        const matrix: MatrixData = {};
+        let minYear = Infinity;
+        let maxYear = -Infinity;
 
-        metricsData?.forEach((metric: MonthlyMetric) => {
-          const { year, month } = metric;
-          
-          if (!matrixData[year]) {
-            matrixData[year] = {};
-          }
-          
-          matrixData[year][month] = metric;
-          uniqueYears.add(year);
+        (metricsData || []).forEach((m: any) => {
+          const metric: MonthlyMetric = {
+            year: Number(m.year),
+            month: Number(m.month),
+            due_amount: Number(m.due_amount || 0),
+            paid_amount: Number(m.paid_amount || 0),
+            overdue_amount: Number(m.overdue_amount || 0),
+            extra_ravv_amount: Number(m.extra_ravv_amount || 0),
+            installments_count: Number(m.installments_count || 0),
+            paid_count: Number(m.paid_count || 0),
+          };
+          if (!matrix[metric.year]) matrix[metric.year] = {};
+          matrix[metric.year][metric.month] = metric;
+
+          minYear = Math.min(minYear, metric.year);
+          maxYear = Math.max(maxYear, metric.year);
         });
 
-        // Fill missing months with empty data for complete matrix
-        Array.from(uniqueYears).forEach(year => {
-          for (let month = 1; month <= 12; month++) {
-            if (!matrixData[year][month]) {
-              matrixData[year][month] = {
-                owner_uid: session?.user?.id || '',
-                year,
-                month,
+        // se non ci sono dati, esci "pulito"
+        if (!Number.isFinite(minYear)) {
+          setData({});
+          setYears([]);
+          return;
+        }
+
+        // Rendi il range anni contiguo (minYear..maxYear) e riempi mesi mancanti
+        for (let y = minYear; y <= maxYear; y++) {
+          if (!matrix[y]) matrix[y] = {};
+          for (let m = 1; m <= 12; m++) {
+            if (!matrix[y][m]) {
+              matrix[y][m] = {
+                year: y,
+                month: m,
                 due_amount: 0,
                 paid_amount: 0,
                 overdue_amount: 0,
@@ -87,20 +75,18 @@ export const useMonthlyMatrix = (): MonthlyMatrixResult => {
               };
             }
           }
-        });
+        }
 
-        setData(matrixData);
-        setYears(Array.from(uniqueYears).sort((a, b) => a - b));
-      } catch (err) {
-        console.error('Error fetching monthly matrix data:', err);
-        setError(err instanceof Error ? err.message : 'Error loading data');
+        setData(matrix);
+        setYears(Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i));
+      } catch (err: any) {
+        console.error('useMonthlyMatrix error:', err);
+        setError(err?.message || 'Errore nel caricamento');
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchData();
+    })();
   }, [session]);
 
   return { data, years, loading, error };
-};
+}
