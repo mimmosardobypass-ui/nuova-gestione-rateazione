@@ -651,6 +651,12 @@ export type Database = {
           },
         ]
       }
+      v_kpi_rateations: {
+        Row: {
+          residual_amount_cents: number | null
+        }
+        Relationships: []
+      }
       v_monthly_metrics: {
         Row: {
           due_amount: number | null
