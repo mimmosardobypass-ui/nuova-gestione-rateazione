@@ -28,9 +28,10 @@ export function DecadenceAlert({
   // Find overdue installments (more than 90 days past due)
   const today = new Date();
   const overdueInstallments = installments.filter(inst => {
-    if (inst.paid_date) return false; // Skip paid installments
+    const isPaid = !!inst.paid_at || !!inst.paid_date || !!inst.is_paid;
+    if (isPaid) return false;
     const dueDate = new Date(inst.due_date);
-    const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / 86400000);
     return daysPastDue > 90;
   });
 

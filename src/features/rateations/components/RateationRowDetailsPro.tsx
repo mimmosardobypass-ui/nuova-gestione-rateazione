@@ -110,6 +110,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
       // Reload data
       await load();
       onDataChanged?.();
+      // Reload KPI/Decadence data
+      try { (window as any).__reloadDecadence?.(); } catch {}
     } catch (e: any) {
       toast({ 
         variant: "destructive", 

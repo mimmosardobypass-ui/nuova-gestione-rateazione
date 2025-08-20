@@ -6,41 +6,32 @@ interface InstallmentStatusBadgeProps {
 }
 
 export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgeProps) {
-  // Check for decayed status first
-  if (installment.effective_status === 'decayed') {
-    return <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">Non dovuta (decadenza)</Badge>;
+  // Priority: server-derived status from v_installments_effective view
+  const eff = installment.effective_status;
+  if (eff === 'decayed') return <Badge variant="destructive">Non dovuta (decadenza)</Badge>;
+  if (eff === 'paid') {
+    const isRavvedimento = installment.payment_mode === 'ravvedimento';
+    return <Badge variant="default">Pagata{isRavvedimento ? ' (Rav.)' : ''}</Badge>;
   }
+  if (eff === 'overdue') return <Badge variant="destructive">In ritardo</Badge>;
+  if (eff === 'open') return <Badge variant="secondary">Da pagare</Badge>;
 
-  if (!installment.is_paid) {
-    const today = new Date();
-    const dueDate = new Date(installment.due_date);
-    const isOverdue = today > dueDate;
-
-    if (isOverdue) {
-      return <Badge variant="destructive">In ritardo</Badge>;
-    } else {
-      return <Badge variant="outline">Da pagare</Badge>;
-    }
+  // Fallback legacy (if eff not present)
+  const isPaid = installment.is_paid || !!installment.paid_at || !!installment.paid_date;
+  if (installment.rateation_status === 'decaduta' && !isPaid) {
+    return <Badge variant="destructive">Non dovuta (decadenza)</Badge>;
   }
-
-  // Installment is paid - check payment mode
-  if (installment.payment_mode === 'ravvedimento') {
-    return <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-300">Pagata (Rav.)</Badge>;
+  if (isPaid) {
+    const rav = installment.payment_mode === 'ravvedimento' ||
+                (installment.penalty_amount_cents || 0) > 0 ||
+                (installment.interest_amount_cents || 0) > 0 ||
+                (installment.extra_interest_euro || 0) > 0 ||
+                (installment.extra_penalty_euro || 0) > 0;
+    return <Badge variant="default">Pagata{rav ? ' (Rav.)' : ''}</Badge>;
   }
-
-  if (installment.payment_mode === 'ordinary') {
-    return <Badge variant="secondary">Pagata</Badge>;
-  }
-
-  // Fallback for legacy data - check if has ravvedimento amounts
-  const hasRavvedimento = (installment.penalty_amount_cents && installment.penalty_amount_cents > 0) || 
-                         (installment.interest_amount_cents && installment.interest_amount_cents > 0) ||
-                         (installment.extra_interest_euro && installment.extra_interest_euro > 0) ||
-                         (installment.extra_penalty_euro && installment.extra_penalty_euro > 0);
-
-  if (hasRavvedimento) {
-    return <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-300">Pagata (Rav.)</Badge>;
-  }
-
-  return <Badge variant="secondary">Pagata</Badge>;
+  const today = new Date();
+  const due = new Date(installment.due_date);
+  return today > due
+    ? <Badge variant="destructive">In ritardo</Badge>
+    : <Badge variant="secondary">Da pagare</Badge>;
 }

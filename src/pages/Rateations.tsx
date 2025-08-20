@@ -64,6 +64,12 @@ export default function Rateations() {
     }
   }, []);
 
+  // Global reloader for decadence data
+  React.useEffect(() => {
+    (window as any).__reloadDecadence = loadDecadenceData;
+    return () => { delete (window as any).__reloadDecadence; };
+  }, [loadDecadenceData]);
+
   // Cleanup timeouts on unmount
   React.useEffect(() => cleanup, [cleanup]);
   
@@ -128,13 +134,10 @@ export default function Rateations() {
   };
 
   // Decadence handlers
-  const handleCreatePagoPA = React.useCallback(async (f24Id: number, amount: number) => {
-    // For now, show a toast - in a real implementation, this would open the new rateation dialog with pre-filled amount
-    toast({ 
-      title: "Crea PagoPA", 
-      description: `Implementare: crea nuovo piano PagoPA per €${amount.toFixed(2)} dal piano F24 #${f24Id}` 
-    });
-  }, [toast]);
+  const handleCreatePagoPA = React.useCallback((f24Id: number, amount: number) => {
+    // Navigate to creation with query params
+    navigate(`/rateazioni?new=1&tipo=pagopa&fromDecaduta=${f24Id}&importo=${amount.toFixed(2)}`);
+  }, [navigate]);
 
   const handleOpenRateation = React.useCallback((id: number) => {
     // Navigate to rateation detail view or open in modal
