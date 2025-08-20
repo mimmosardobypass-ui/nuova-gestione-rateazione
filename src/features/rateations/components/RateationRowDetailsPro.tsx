@@ -9,6 +9,7 @@ import { PrintButtons } from "@/components/print/PrintButtons";
 import { DecadenceAlert } from "./DecadenceAlert";
 import { DecadenceStatusBadge } from "./DecadenceStatusBadge";
 import EditScheduleModal from "./EditScheduleModal";
+import { isInstallmentPaid, getPaymentDate } from "../lib/installmentState";
 import type { InstallmentUI, RateationStatus } from "../types";
 import {
   Table,
@@ -256,16 +257,18 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
           <div className="text-center p-2 bg-green-50 rounded-md">
             <div className="text-xs text-muted-foreground">Pagate</div>
             <div className="font-semibold text-green-700">
-              {items.filter(it => it.is_paid).length}
+              {items.filter(it => isInstallmentPaid(it)).length}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               di cui in ritardo: <span className="font-medium">
                 {items.filter(it => {
-                  if (!it.is_paid) return false;
-                  if (!it.due_date || !it.paid_at) return false;
+                  if (!isInstallmentPaid(it)) return false;
+                  if (!it.due_date) return false;
+                  const paidDate = getPaymentDate(it);
+                  if (!paidDate) return false;
                   const due = new Date(it.due_date);
                   due.setHours(0, 0, 0, 0);
-                  const paid = new Date(it.paid_at);
+                  const paid = new Date(paidDate);
                   paid.setHours(0, 0, 0, 0);
                   return paid > due;
                 }).length}
@@ -277,15 +280,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             <div className="font-semibold text-red-700">
               {items.filter(it => {
                 // Non pagate in ritardo
-                if (!it.is_paid && it.due_date) {
+                if (!isInstallmentPaid(it) && it.due_date) {
                   const today = new Date();
                   const due = new Date(it.due_date);
                   return today > due;
                 }
                 // Pagate in ritardo
-                if (it.is_paid && it.due_date && it.paid_at) {
+                if (isInstallmentPaid(it) && it.due_date) {
+                  const paidDate = getPaymentDate(it);
+                  if (!paidDate) return false;
                   const due = new Date(it.due_date);
-                  const paid = new Date(it.paid_at);
+                  const paid = new Date(paidDate);
                   return paid > due;
                 }
                 return false;
@@ -332,6 +337,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                 <TableHead className="text-right">Importo</TableHead>
                 <TableHead>Stato</TableHead>
                 <TableHead>Pagata il</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead className="text-right">Azioni</TableHead>
               </TableRow>
             </TableHeader>
@@ -339,7 +345,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
               {items.map((it) => {
                 const today = new Date();
                 const dueDate = it.due_date ? new Date(it.due_date) : null;
-                const daysLate = dueDate && !it.is_paid && today > dueDate
+                const daysLate = dueDate && !isInstallmentPaid(it) && today > dueDate
                   ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
                   : 0;
 
@@ -373,6 +379,12 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                     </TableCell>
                     <TableCell><InstallmentStatusBadge installment={it} /></TableCell>
                     <TableCell>
+                      {(() => {
+                        const paidDate = getPaymentDate(it);
+                        return paidDate ? new Date(paidDate).toLocaleDateString('it-IT') : '—';
+                      })()}
+                    </TableCell>
+                    <TableCell>
                       <InstallmentPaymentActions
                         rateationId={rateationId}
                         installment={it}
@@ -383,7 +395,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end items-center">
-                        {!it.is_paid && rateationInfo?.status !== 'decaduta' && (
+                        {!isInstallmentPaid(it) && rateationInfo?.status !== 'decaduta' && (
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -412,7 +424,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
               })}
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
                     Nessuna rata presente.
                   </TableCell>
                 </TableRow>

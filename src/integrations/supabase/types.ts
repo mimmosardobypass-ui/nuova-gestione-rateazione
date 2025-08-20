@@ -470,26 +470,6 @@ export type Database = {
           to_transfer: number | null
           transferred_amount: number | null
         }
-        Insert: {
-          decadence_at?: string | null
-          id?: number | null
-          number?: string | null
-          replaced_by_rateation_id?: number | null
-          residual_at_decadence?: number | null
-          taxpayer_name?: string | null
-          to_transfer?: never
-          transferred_amount?: number | null
-        }
-        Update: {
-          decadence_at?: string | null
-          id?: number | null
-          number?: string | null
-          replaced_by_rateation_id?: number | null
-          residual_at_decadence?: number | null
-          taxpayer_name?: string | null
-          to_transfer?: never
-          transferred_amount?: number | null
-        }
         Relationships: []
       }
       v_installments_effective: {
@@ -1053,6 +1033,10 @@ export type Database = {
           p_rateation_id: number
           p_seq: number
         }
+        Returns: undefined
+      }
+      installment_cancel_payment: {
+        Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
       }
       mark_installment_paid: {

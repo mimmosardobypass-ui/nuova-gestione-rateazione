@@ -14,11 +14,13 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
   if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
   
-  // Ensure consistent payment date mapping
+  // Ensure consistent payment date mapping and normalize payment status
   return (data || []).map(row => ({
     ...row,
-    // Map paid_at to paid_date for consistent access
-    paid_date: row.paid_date || row.paid_at || null,
+    // Map paid_at to paid_date for consistent access (but only if actually paid)
+    paid_date: row.is_paid ? (row.paid_date || row.paid_at || null) : null,
+    // Ensure is_paid is boolean
+    is_paid: Boolean(row.is_paid),
   }));
 };
 // LOVABLE:END fetchInstallments
@@ -155,11 +157,19 @@ export const deleteInstallment = async (rateationId: string, seq: number): Promi
 // LOVABLE:END deleteInstallment
 
 // LOVABLE:START cancelInstallmentPayment
-export const cancelInstallmentPayment = async (installmentId: number): Promise<void> => {
-  const { data, error } = await supabase.rpc('cancel_installment_payment', {
+/**
+ * Cancel installment payment using the new atomic RPC function
+ * Triggers KPI reload event automatically
+ */
+export const cancelInstallmentPayment = async (installmentId: number, reason?: string): Promise<void> => {
+  const { error } = await supabase.rpc('installment_cancel_payment', {
     p_installment_id: installmentId,
+    p_reason: reason ?? null,
   });
+  
   if (error) throw error;
-  return data;
+  
+  // Trigger global KPI reload after successful cancellation
+  window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
 };
 // LOVABLE:END cancelInstallmentPayment

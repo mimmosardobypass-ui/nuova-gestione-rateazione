@@ -2,7 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Eye } from "lucide-react";
 import { InstallmentUI, RateationStatus } from "../types";
-import { isInstallmentPaid, getDaysOverdue } from "../utils/paymentDetection";
+import { isInstallmentPaid, getDaysOverdue } from "../lib/installmentState";
 
 interface DecadenceAlertProps {
   rateationId: number;
