@@ -309,9 +309,13 @@ export type Database = {
           is_f24: boolean
           notes: string | null
           number: string
+          overdue_amount_cents: number | null
           owner_uid: string
+          paid_amount_cents: number | null
           replaced_by_rateation_id: number | null
+          residual_amount_cents: number | null
           residual_at_decadence: number
+          residual_at_decadence_cents: number | null
           start_due_date: string | null
           status: string | null
           taxpayer_name: string | null
@@ -331,9 +335,13 @@ export type Database = {
           is_f24?: boolean
           notes?: string | null
           number: string
+          overdue_amount_cents?: number | null
           owner_uid: string
+          paid_amount_cents?: number | null
           replaced_by_rateation_id?: number | null
+          residual_amount_cents?: number | null
           residual_at_decadence?: number
+          residual_at_decadence_cents?: number | null
           start_due_date?: string | null
           status?: string | null
           taxpayer_name?: string | null
@@ -353,9 +361,13 @@ export type Database = {
           is_f24?: boolean
           notes?: string | null
           number?: string
+          overdue_amount_cents?: number | null
           owner_uid?: string
+          paid_amount_cents?: number | null
           replaced_by_rateation_id?: number | null
+          residual_amount_cents?: number | null
           residual_at_decadence?: number
+          residual_at_decadence_cents?: number | null
           start_due_date?: string | null
           status?: string | null
           taxpayer_name?: string | null
@@ -1071,7 +1083,7 @@ export type Database = {
       }
       rateation_confirm_decadence: {
         Args: {
-          p_installment_id: number
+          p_installment_id?: number
           p_rateation_id: number
           p_reason?: string
         }
@@ -1079,6 +1091,10 @@ export type Database = {
       }
       rateation_link_transfer: {
         Args: { p_amount: number; p_f24_id: number; p_pagopa_id: number }
+        Returns: undefined
+      }
+      rateations_recalc_totals: {
+        Args: { p_rateation_id: number }
         Returns: undefined
       }
       recompute_rateation_caches: {
