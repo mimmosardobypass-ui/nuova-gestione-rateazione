@@ -1,12 +1,15 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
+import { confirmDecadence } from "../api/decadence";
 import { AttachmentsPanel } from "./AttachmentsPanel";
 import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
 import { InstallmentStatusBadge } from "./InstallmentStatusBadge";
 import { PrintButtons } from "@/components/print/PrintButtons";
+import { DecadenceAlert } from "./DecadenceAlert";
+import { DecadenceStatusBadge } from "./DecadenceStatusBadge";
 import EditScheduleModal from "./EditScheduleModal";
-import type { InstallmentUI } from "../types";
+import type { InstallmentUI, RateationStatus } from "../types";
 import {
   Table,
   TableBody,
@@ -20,14 +23,24 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RateationRowDetailsProProps {
   rateationId: string;
   onDataChanged?: () => void;
 }
 
+interface RateationInfo {
+  is_f24: boolean;
+  status: RateationStatus;
+  decadence_at?: string | null;
+  taxpayer_name?: string | null;
+  number?: string;
+}
+
 export function RateationRowDetailsPro({ rateationId, onDataChanged }: RateationRowDetailsProProps) {
   const [items, setItems] = useState<InstallmentUI[]>([]);
+  const [rateationInfo, setRateationInfo] = useState<RateationInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
@@ -39,8 +52,28 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     setLoading(true); 
     setError(null);
     try {
+      // Load installments
       const rows = await fetchInstallments(rateationId);
       setItems(rows ?? []);
+
+      // Load rateation info for decadence management
+      const { data: rateationData, error: rateationError } = await supabase
+        .from('rateations')
+        .select('is_f24, status, decadence_at, taxpayer_name, number')
+        .eq('id', rateationId)
+        .single();
+
+      if (rateationError) {
+        console.warn('Failed to load rateation info:', rateationError.message);
+      } else {
+        setRateationInfo({
+          is_f24: rateationData.is_f24 || false,
+          status: rateationData.status || 'active',
+          decadence_at: rateationData.decadence_at,
+          taxpayer_name: rateationData.taxpayer_name,
+          number: rateationData.number
+        });
+      }
     } catch (e: any) {
       setError(e?.message || "Errore nel caricamento rate");
       setItems([]);
@@ -57,6 +90,44 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
   useEffect(() => { 
     load(); 
   }, [load]);
+
+  // Decadence handlers
+  const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {
+    if (!online) {
+      toast({ variant: "destructive", title: "Errore", description: "Connessione assente" });
+      return;
+    }
+
+    try {
+      setProcessing(prev => ({ ...prev, 'decadence': true }));
+      await confirmDecadence(parseInt(rateationId), installmentId, reason);
+      
+      toast({ 
+        title: "Decadenza confermata", 
+        description: "Il piano è stato marcato come decaduto" 
+      });
+      
+      // Reload data
+      await load();
+      onDataChanged?.();
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Errore", 
+        description: e?.message || "Errore nella conferma decadenza" 
+      });
+    } finally {
+      setProcessing(prev => ({ ...prev, 'decadence': false }));
+    }
+  }, [rateationId, online, toast, load, onDataChanged]);
+
+  const handleViewOverdueInstallments = useCallback(() => {
+    // Scroll to the installments table
+    const table = document.querySelector('.border.rounded-lg');
+    if (table) {
+      table.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
 
   const handlePostpone = async (seq: number) => {
@@ -138,11 +209,32 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
 
   return (
     <div className="p-4 space-y-4">
+      {/* Decadence Alert */}
+      {rateationInfo && (
+        <DecadenceAlert
+          rateationId={rateationId}
+          isF24={rateationInfo.is_f24}
+          status={rateationInfo.status}
+          installments={items}
+          onConfirmDecadence={handleConfirmDecadence}
+          onViewOverdueInstallments={handleViewOverdueInstallments}
+        />
+      )}
+
       {/* Header info compatto */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 border-b">
-        {/* Meta info */}
+        {/* Meta info with status badge */}
         <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">Rate Overview</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-muted-foreground">Rate Overview</div>
+            {rateationInfo && (
+              <DecadenceStatusBadge 
+                status={rateationInfo.status}
+                decadenceAt={rateationInfo.decadence_at}
+                isF24={rateationInfo.is_f24}
+              />
+            )}
+          </div>
           <div className="text-sm font-medium">Totale: {items.length}</div>
         </div>
         
@@ -273,12 +365,12 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                         installment={it}
                         onReload={debouncedReload}
                         onStatsReload={debouncedReloadStats}
-                        disabled={!online}
+                        disabled={!online || rateationInfo?.status === 'decaduta'}
                       />
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end items-center">
-                        {!it.is_paid && (
+                        {!it.is_paid && rateationInfo?.status !== 'decaduta' && (
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -289,15 +381,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
                             {processing[`postpone-${it.seq}`] ? "..." : "Posticipa"}
                           </Button>
                         )}
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => handleDelete(it.seq)}
-                          disabled={processing[`delete-${it.seq}`]}
-                          className="h-7 px-2 text-xs"
-                        >
-                          {processing[`delete-${it.seq}`] ? "..." : "Elimina"}
-                        </Button>
+                        {rateationInfo?.status !== 'decaduta' && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDelete(it.seq)}
+                            disabled={processing[`delete-${it.seq}`]}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {processing[`delete-${it.seq}`] ? "..." : "Elimina"}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

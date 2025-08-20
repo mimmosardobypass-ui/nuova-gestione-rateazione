@@ -54,6 +54,13 @@ export type Database = {
             foreignKeyName: "installment_payments_installment_id_fkey"
             columns: ["installment_id"]
             isOneToOne: false
+            referencedRelation: "v_installments_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
             referencedRelation: "v_installments_status"
             referencedColumns: ["id"]
           },
@@ -183,6 +190,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rateation_summary"
             referencedColumns: ["id"]
           },
@@ -286,43 +300,67 @@ export type Database = {
       rateations: {
         Row: {
           created_at: string | null
+          decadence_at: string | null
+          decadence_confirmed_by: string | null
+          decadence_installment_id: number | null
+          decadence_reason: string | null
           frequency: string | null
           id: number
+          is_f24: boolean
           notes: string | null
           number: string
           owner_uid: string
+          replaced_by_rateation_id: number | null
+          residual_at_decadence: number
           start_due_date: string | null
           status: string | null
           taxpayer_name: string | null
           total_amount: number | null
+          transferred_amount: number
           type_id: number
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          decadence_at?: string | null
+          decadence_confirmed_by?: string | null
+          decadence_installment_id?: number | null
+          decadence_reason?: string | null
           frequency?: string | null
           id?: number
+          is_f24?: boolean
           notes?: string | null
           number: string
           owner_uid: string
+          replaced_by_rateation_id?: number | null
+          residual_at_decadence?: number
           start_due_date?: string | null
           status?: string | null
           taxpayer_name?: string | null
           total_amount?: number | null
+          transferred_amount?: number
           type_id: number
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          decadence_at?: string | null
+          decadence_confirmed_by?: string | null
+          decadence_installment_id?: number | null
+          decadence_reason?: string | null
           frequency?: string | null
           id?: number
+          is_f24?: boolean
           notes?: string | null
           number?: string
           owner_uid?: string
+          replaced_by_rateation_id?: number | null
+          residual_at_decadence?: number
           start_due_date?: string | null
           status?: string | null
           taxpayer_name?: string | null
           total_amount?: number | null
+          transferred_amount?: number
           type_id?: number
           updated_at?: string | null
         }
@@ -404,6 +442,14 @@ export type Database = {
       }
     }
     Views: {
+      v_dashboard_decaduto: {
+        Row: {
+          gross_decayed: number | null
+          net_to_transfer: number | null
+          transferred: number | null
+        }
+        Relationships: []
+      }
       v_deadlines_monthly: {
         Row: {
           amount: number | null
@@ -412,6 +458,110 @@ export type Database = {
           owner_uid: string | null
         }
         Relationships: []
+      }
+      v_decadute_dettaglio: {
+        Row: {
+          decadence_at: string | null
+          id: number | null
+          number: string | null
+          replaced_by_rateation_id: number | null
+          residual_at_decadence: number | null
+          taxpayer_name: string | null
+          to_transfer: number | null
+          transferred_amount: number | null
+        }
+        Insert: {
+          decadence_at?: string | null
+          id?: number | null
+          number?: string | null
+          replaced_by_rateation_id?: number | null
+          residual_at_decadence?: number | null
+          taxpayer_name?: string | null
+          to_transfer?: never
+          transferred_amount?: number | null
+        }
+        Update: {
+          decadence_at?: string | null
+          id?: number | null
+          number?: string | null
+          replaced_by_rateation_id?: number | null
+          residual_at_decadence?: number | null
+          taxpayer_name?: string | null
+          to_transfer?: never
+          transferred_amount?: number | null
+        }
+        Relationships: []
+      }
+      v_installments_effective: {
+        Row: {
+          amount: number | null
+          amount_cents: number | null
+          apply_ravvedimento: boolean | null
+          canceled_at: string | null
+          created_at: string | null
+          due_date: string | null
+          effective_status: string | null
+          extra_interest_euro: number | null
+          extra_penalty_euro: number | null
+          id: number | null
+          interest_amount_cents: number | null
+          interest_breakdown: Json | null
+          is_paid: boolean | null
+          late_days: number | null
+          notes: string | null
+          owner_uid: string | null
+          paid_at: string | null
+          paid_date: string | null
+          paid_recorded_at: string | null
+          paid_total_cents: number | null
+          payment_method: string | null
+          payment_mode: string | null
+          penalty_amount_cents: number | null
+          penalty_rule_id: string | null
+          postponed: boolean | null
+          rateation_id: number | null
+          rateation_status: string | null
+          receipt_url: string | null
+          seq: number | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_installments_status: {
         Row: {
@@ -471,6 +621,13 @@ export type Database = {
             columns: ["rateation_id"]
             isOneToOne: false
             referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
           },
           {
@@ -568,6 +725,13 @@ export type Database = {
             columns: ["rateation_id"]
             isOneToOne: false
             referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
           },
           {
@@ -720,6 +884,13 @@ export type Database = {
             columns: ["rateation_id"]
             isOneToOne: false
             referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
           },
           {
@@ -908,6 +1079,22 @@ export type Database = {
           p_penalty?: number
           p_total_paid: number
         }
+        Returns: undefined
+      }
+      rateation_auto_flag_predecadence: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      rateation_confirm_decadence: {
+        Args: {
+          p_installment_id: number
+          p_rateation_id: number
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      rateation_link_transfer: {
+        Args: { p_amount: number; p_f24_id: number; p_pagopa_id: number }
         Returns: undefined
       }
       recompute_rateation_caches: {

@@ -1,5 +1,18 @@
 // Centralized types for rateations feature
 
+// F24 Decadence Management Types
+export type RateationStatus = 'active' | 'decadence_pending' | 'decaduta';
+
+export interface DecadenceInfo {
+  decadence_at?: string | null;
+  decadence_installment_id?: number | null;
+  decadence_confirmed_by?: string | null;
+  decadence_reason?: string | null;
+  residual_at_decadence: number;
+  transferred_amount: number;
+  replaced_by_rateation_id?: number | null;
+}
+
 export interface RateationRow {
   id: string;
   numero: string;
@@ -14,6 +27,27 @@ export interface RateationRow {
   rateNonPagate: number;
   rateInRitardo: number;
   ratePaidLate: number; // NEW: rate pagate in ritardo
+  // F24 Decadence fields
+  is_f24?: boolean;
+  status?: RateationStatus;
+  decadence_info?: DecadenceInfo;
+}
+
+export interface DecadenceDashboard {
+  gross_decayed: number;
+  transferred: number;
+  net_to_transfer: number;
+}
+
+export interface DecadenceDetail {
+  id: number;
+  number: string;
+  taxpayer_name: string | null;
+  decadence_at: string;
+  residual_at_decadence: number;
+  transferred_amount: number;
+  to_transfer: number;
+  replaced_by_rateation_id?: number | null;
 }
 
 export interface InstallmentUI {
@@ -43,6 +77,9 @@ export interface InstallmentUI {
   paid_date?: string | null;
   extra_interest_euro?: number;
   extra_penalty_euro?: number;
+  // Decadence support
+  effective_status?: 'paid' | 'overdue' | 'open' | 'decayed';
+  rateation_status?: RateationStatus;
 }
 
 export interface RavvedimentoCalculation {

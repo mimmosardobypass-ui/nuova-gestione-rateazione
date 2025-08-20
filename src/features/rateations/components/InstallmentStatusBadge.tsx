@@ -6,6 +6,11 @@ interface InstallmentStatusBadgeProps {
 }
 
 export function InstallmentStatusBadge({ installment }: InstallmentStatusBadgeProps) {
+  // Check for decayed status first
+  if (installment.effective_status === 'decayed') {
+    return <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">Non dovuta (decadenza)</Badge>;
+  }
+
   if (!installment.is_paid) {
     const today = new Date();
     const dueDate = new Date(installment.due_date);

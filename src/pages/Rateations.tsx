@@ -13,9 +13,14 @@ import { RateationFilters } from "@/features/rateations/components/RateationFilt
 import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { KpiCards } from "@/features/rateations/components/KpiCards";
+import { SaldoDecadutoCard } from "@/features/rateations/components/SaldoDecadutoCard";
+import { DecadenceDetailView } from "@/features/rateations/components/DecadenceDetailView";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrintButtons } from "@/components/print/PrintButtons";
+import { fetchDecadenceDashboard, fetchDecadenceDetails, linkTransfer } from "@/features/rateations/api/decadence";
+import { useToast } from "@/hooks/use-toast";
+import type { DecadenceDashboard, DecadenceDetail } from "@/features/rateations/types";
 
 // View components
 import { RateList } from "@/features/rateations/components/views/RateList";
@@ -28,22 +33,46 @@ export default function Rateations() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
+  const { toast } = useToast();
   
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
+  
+  // Decadence state
+  const [decadenceDashboard, setDecadenceDashboard] = React.useState<DecadenceDashboard | null>(null);
+  const [decadenceDetails, setDecadenceDetails] = React.useState<DecadenceDetail[]>([]);
+  const [decadenceLoading, setDecadenceLoading] = React.useState(false);
   
   const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
     loadData,
     reloadStats
   });
 
-  // Cleanup timeouts on unmount  
+  // Load decadence data
+  const loadDecadenceData = React.useCallback(async () => {
+    setDecadenceLoading(true);
+    try {
+      const [dashboard, details] = await Promise.all([
+        fetchDecadenceDashboard(),
+        fetchDecadenceDetails()
+      ]);
+      setDecadenceDashboard(dashboard);
+      setDecadenceDetails(details);
+    } catch (e: any) {
+      console.warn('Failed to load decadence data:', e?.message);
+    } finally {
+      setDecadenceLoading(false);
+    }
+  }, []);
+
+  // Cleanup timeouts on unmount
   React.useEffect(() => cleanup, [cleanup]);
   
   React.useEffect(() => {
     if (authLoading) return; // Wait for auth to finish loading
     if (!session) return;    // Don't load data if not authenticated
     loadData();              // Load data only when authenticated
-  }, [authLoading, session, loadData]);
+    loadDecadenceData();     // Load decadence data too
+  }, [authLoading, session, loadData, loadDecadenceData]);
   // Key per far re-render la tabella dopo creazione
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -75,7 +104,7 @@ export default function Rateations() {
     // setShowHomeBack(true);
   };
 
-  type View = 'list' | 'annual' | 'deadlines' | 'advanced';
+  type View = 'list' | 'annual' | 'deadlines' | 'advanced' | 'decadenze';
   const [currentView, setCurrentView] = React.useState<View>('list');
 
   const handleViewChange = (view: View) => {
@@ -93,6 +122,24 @@ export default function Rateations() {
   const openStats = () => {
     setCurrentView('advanced');
   };
+
+  const openDecadenze = () => {
+    setCurrentView('decadenze');
+  };
+
+  // Decadence handlers
+  const handleCreatePagoPA = React.useCallback(async (f24Id: number, amount: number) => {
+    // For now, show a toast - in a real implementation, this would open the new rateation dialog with pre-filled amount
+    toast({ 
+      title: "Crea PagoPA", 
+      description: `Implementare: crea nuovo piano PagoPA per €${amount.toFixed(2)} dal piano F24 #${f24Id}` 
+    });
+  }, [toast]);
+
+  const handleOpenRateation = React.useCallback((id: number) => {
+    // Navigate to rateation detail view or open in modal
+    navigate(`/rateazioni/${id}`);
+  }, [navigate]);
 
   // Show loading screen while auth is initializing
   if (authLoading) {
@@ -139,12 +186,24 @@ export default function Rateations() {
         </div>
       )}
 
-      {/* KPI Cards - Always visible */}
-      <KpiCards 
-        loading={statsLoading} 
-        stats={stats} 
-        previousStats={previousStats}
-      />
+      {/* KPI Cards and Saldo Decaduto - Always visible */}
+      <div className="grid gap-4 mb-6">
+        <KpiCards 
+          loading={statsLoading} 
+          stats={stats} 
+          previousStats={previousStats}
+        />
+        
+        {/* Saldo Decaduto Card */}
+        {decadenceDashboard && (
+          <div className="grid gap-4">
+            <SaldoDecadutoCard 
+              data={decadenceDashboard}
+              onClick={openDecadenze}
+            />
+          </div>
+        )}
+      </div>
 
       {statsError && (
         <div className="mb-4 text-sm text-destructive">
@@ -190,6 +249,15 @@ export default function Rateations() {
           rows={rows}
           loading={loading}
           onBack={() => setCurrentView('list')}
+        />
+      )}
+
+      {currentView === 'decadenze' && (
+        <DecadenceDetailView
+          decadenceDetails={decadenceDetails}
+          onCreatePagoPA={handleCreatePagoPA}
+          onOpenRateation={handleOpenRateation}
+          loading={decadenceLoading}
         />
       )}
     </main>
