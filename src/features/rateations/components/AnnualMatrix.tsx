@@ -141,14 +141,29 @@ export default function AnnualMatrix({ onBack }: Props) {
     );
   }
 
-  // Totali finali colonna "TOTALE" e righe "TOT/MEDIA"
-  const columnTotals = Array.from({ length: 12 }, (_, i) => {
-    const m = i + 1;
-    return years.reduce((s, y) => s + getMetricValue(data[y][m], metric), 0);
-  });
-  const grandTotal = columnTotals.reduce((s, v) => s + v, 0);
-  const columnAverages = columnTotals.map(t => years.length ? t / years.length : 0);
-  const grandAverage = years.length ? grandTotal / years.length : 0;
+  // Totali finali colonna "TOTALE" e righe "TOT/MEDIA" con ottimizzazioni prestazioni
+  const columnTotals = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => {
+      const m = i + 1;
+      return years.reduce((s, y) => s + getMetricValue(data[y][m], metric), 0);
+    }),
+    [years, data, metric]
+  );
+
+  const grandTotal = useMemo(
+    () => columnTotals.reduce((s, v) => s + v, 0),
+    [columnTotals]
+  );
+
+  const columnAverages = useMemo(
+    () => columnTotals.map(t => (years.length ? t / years.length : 0)),
+    [columnTotals, years.length]
+  );
+
+  const grandAverage = useMemo(
+    () => (years.length ? grandTotal / years.length : 0),
+    [grandTotal, years.length]
+  );
 
   return (
     <Card>

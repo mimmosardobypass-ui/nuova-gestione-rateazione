@@ -6,7 +6,7 @@ import type { MonthlyMetric, MatrixData } from '@/features/rateations/types/mont
 export function useMonthlyMatrix() {
   const [data, setData] = useState<MatrixData>({});
   const [years, setYears] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { session } = useAuth();
 
