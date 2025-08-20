@@ -28,8 +28,8 @@ function getMetricValue(monthData: any, metric: MetricType): number {
 }
 
 function buildHeat(value: number, max: number): string {
-  if (!max || max <= 0) return 'bg-muted/20';
-  const r = value / max;
+  if (!max || !Number.isFinite(max)) return 'bg-muted/20';
+  const r = Math.max(0, Math.min(1, value / max)); // clamp 0..1
   if (r === 0) return 'bg-muted/20';
   if (r <= 0.2) return 'bg-primary/20';
   if (r <= 0.4) return 'bg-primary/40';
@@ -69,7 +69,8 @@ export default function AnnualMatrix({ onBack }: Props) {
     const rows: string[] = [];
     rows.push(['Anno', ...MONTH_NAMES, 'Totale'].join(';'));
 
-    years.forEach(y => {
+    // righe per anno
+    years.forEach((y) => {
       let tot = 0;
       const line = [String(y)];
       for (let m = 1; m <= 12; m++) {
@@ -81,31 +82,17 @@ export default function AnnualMatrix({ onBack }: Props) {
       rows.push(line.join(';'));
     });
 
-    // Totali per mese
-    const totalRow = ['TOTALE'];
-    let grand = 0;
-    for (let m = 1; m <= 12; m++) {
-      let mt = 0;
-      years.forEach(y => { mt += getMetricValue(data[y][m], metric); });
-      grand += mt;
-      totalRow.push(mt.toLocaleString('it-IT', { minimumFractionDigits: 2 }));
-    }
-    totalRow.push(grand.toLocaleString('it-IT', { minimumFractionDigits: 2 }));
-    rows.push(totalRow.join(';'));
+    // riga TOTALE (usa columnTotals esistente)
+    rows.push(
+      ['TOTALE', ...columnTotals.map(v => v.toLocaleString('it-IT', { minimumFractionDigits: 2 })), grandTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })]
+        .join(';')
+    );
 
-    // Medie per mese
-    const avgRow = ['MEDIA'];
-    for (let m = 1; m <= 12; m++) {
-      let mt = 0;
-      years.forEach(y => { mt += getMetricValue(data[y][m], metric); });
-      const avg = years.length ? mt / years.length : 0;
-      avgRow.push(avg.toLocaleString('it-IT', { minimumFractionDigits: 2 }));
-    }
-    const grandAvg = years.length
-      ? (totalRow.slice(1, 13).reduce((s, t) => s + Number(String(t).replace(/\./g,'').replace(',','.')), 0) / years.length)
-      : 0;
-    avgRow.push(grandAvg.toLocaleString('it-IT', { minimumFractionDigits: 2 }));
-    rows.push(avgRow.join(';'));
+    // riga MEDIA (usa columnAverages esistente)
+    rows.push(
+      ['MEDIA', ...columnAverages.map(v => v.toLocaleString('it-IT', { minimumFractionDigits: 2 })), grandAverage.toLocaleString('it-IT', { minimumFractionDigits: 2 })]
+        .join(';')
+    );
 
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -193,7 +180,7 @@ export default function AnnualMatrix({ onBack }: Props) {
 
         {/* Header mesi */}
         <div className="grid" style={{ gridTemplateColumns: '100px repeat(12, minmax(64px, 1fr)) 120px' }}>
-          <div className="text-sm font-medium text-muted-foreground">Anno</div>
+          <div className="sticky left-0 bg-background z-10 text-sm font-medium text-muted-foreground">Anno</div>
           {MONTH_NAMES.map((mn) => (
             <div key={mn} className="text-center text-sm font-medium text-muted-foreground">{mn}</div>
           ))}
@@ -209,14 +196,14 @@ export default function AnnualMatrix({ onBack }: Props) {
             return (
               <div key={y} className="grid items-stretch"
                    style={{ gridTemplateColumns: '100px repeat(12, minmax(64px, 1fr)) 120px' }}>
-                <div className="text-sm font-medium">{y}</div>
+                <div className="sticky left-0 bg-background z-10 text-sm font-medium">{y}</div>
 
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                   const v = getMetricValue(data[y][m], metric);
                   const rel = buildHeat(v, maxValue);
                   const yoy = showYoY ? yoyChange(y, m) : null;
                   return (
-                    <div key={`${y}-${m}`} className={`rounded px-2 py-2 text-center ${rel}`}>
+                    <div key={`${y}-${m}`} className={`rounded px-2 py-2 text-center ${rel}`} title={formatEuro(v)}>
                       <div className={`text-xs ${v > maxValue * 0.6 ? 'text-white' : ''}`}>
                         {v > 999 ? `${Math.round(v/1000)}k` : Math.round(v)}
                       </div>
@@ -240,7 +227,7 @@ export default function AnnualMatrix({ onBack }: Props) {
         {/* Righe TOT/MEDIA */}
         <div className="grid items-center"
              style={{ gridTemplateColumns: '100px repeat(12, minmax(64px, 1fr)) 120px' }}>
-          <div className="text-sm font-semibold">TOT</div>
+          <div className="sticky left-0 bg-background z-10 text-sm font-semibold">TOT</div>
           {columnTotals.map((t, i) => (
             <div key={`tot-${i}`} className="text-center text-sm font-semibold">{formatEuro(t)}</div>
           ))}
@@ -249,7 +236,7 @@ export default function AnnualMatrix({ onBack }: Props) {
 
         <div className="grid items-center"
              style={{ gridTemplateColumns: '100px repeat(12, minmax(64px, 1fr)) 120px' }}>
-          <div className="text-sm font-semibold">MEDIA</div>
+          <div className="sticky left-0 bg-background z-10 text-sm font-semibold">MEDIA</div>
           {columnAverages.map((a, i) => (
             <div key={`avg-${i}`} className="text-center text-sm">{formatEuro(a)}</div>
           ))}
