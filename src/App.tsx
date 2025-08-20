@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 // Lazy load print components
 const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport"));
 const SchedaRateazione = React.lazy(() => import("./pages/print/SchedaRateazione"));
+const AnnualMatrix = React.lazy(() => import("./pages/print/AnnualMatrix"));
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,13 @@ const App = () => {
               <ProtectedRoute>
                 <Suspense fallback={<div>Caricamento...</div>}>
                   <SchedaRateazione />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/print/annual-matrix" element={
+              <ProtectedRoute>
+                <Suspense fallback={<div>Caricamento...</div>}>
+                  <AnnualMatrix />
                 </Suspense>
               </ProtectedRoute>
             } />

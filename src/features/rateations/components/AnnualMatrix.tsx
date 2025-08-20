@@ -144,13 +144,23 @@ export default function AnnualMatrix({ onBack }: Props) {
 
   const columnAverages = useMemo(
     () => columnTotals.map(t => (years.length ? t / years.length : 0)),
-    [columnTotals, years.length]
+    [columnTotals, years]
   );
 
   const grandAverage = useMemo(
     () => (years.length ? grandTotal / years.length : 0),
-    [grandTotal, years.length]
+    [grandTotal, years]
   );
+
+  const rowTotals = useMemo(() => {
+    const byYear: Record<number, number> = {};
+    years.forEach(y => {
+      let tot = 0;
+      for (let m = 1; m <= 12; m++) tot += getMetricValue(data[y][m], metric);
+      byYear[y] = tot;
+    });
+    return byYear;
+  }, [data, years, metric]);
 
   return (
     <Card>
@@ -162,7 +172,7 @@ export default function AnnualMatrix({ onBack }: Props) {
         <div className="flex items-center gap-2">
           <Button variant={showYoY ? 'default' : 'outline'} onClick={() => setShowYoY(v => !v)}>YoY</Button>
           <Button variant="outline" onClick={exportCSV}><Download className="mr-2 h-4 w-4" />CSV</Button>
-          <Button variant="outline" onClick={() => PrintService.openRiepilogoPreview()}><Printer className="mr-2 h-4 w-4" />Stampa</Button>
+          <Button variant="outline" onClick={() => PrintService.openAnnualMatrixPreview({ metric, yoy: showYoY })}><Printer className="mr-2 h-4 w-4" />Stampa</Button>
         </div>
       </CardHeader>
 
@@ -189,39 +199,34 @@ export default function AnnualMatrix({ onBack }: Props) {
 
         {/* Righe per anno */}
         <div className="space-y-1">
-          {years.map((y) => {
-            const rowTotal = Array.from({ length: 12 }, (_, i) => i + 1)
-              .reduce((s, m) => s + getMetricValue(data[y][m], metric), 0);
+          {years.map((y) => (
+            <div key={y} className="grid items-stretch"
+                 style={{ gridTemplateColumns: '100px repeat(12, minmax(64px, 1fr)) 120px' }}>
+              <div className="sticky left-0 bg-background z-10 text-sm font-medium">{y}</div>
 
-            return (
-              <div key={y} className="grid items-stretch"
-                   style={{ gridTemplateColumns: '100px repeat(12, minmax(64px, 1fr)) 120px' }}>
-                <div className="sticky left-0 bg-background z-10 text-sm font-medium">{y}</div>
-
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
-                  const v = getMetricValue(data[y][m], metric);
-                  const rel = buildHeat(v, maxValue);
-                  const yoy = showYoY ? yoyChange(y, m) : null;
-                  return (
-                    <div key={`${y}-${m}`} className={`rounded px-2 py-2 text-center ${rel}`} title={formatEuro(v)}>
-                      <div className={`text-xs ${v > maxValue * 0.6 ? 'text-white' : ''}`}>
-                        {v > 999 ? `${Math.round(v/1000)}k` : Math.round(v)}
-                      </div>
-                      {yoy !== null && (
-                        <div className={`text-[10px] font-medium flex items-center justify-center gap-0.5
-                          ${yoy > 0 ? 'text-green-600' : yoy < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                          {yoy > 0 ? <ArrowUp className="h-3 w-3" /> : yoy < 0 ? <ArrowDown className="h-3 w-3" /> : null}
-                          {Math.abs(yoy).toFixed(0)}%
-                        </div>
-                      )}
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+                const v = getMetricValue(data[y][m], metric);
+                const rel = buildHeat(v, maxValue);
+                const yoy = showYoY ? yoyChange(y, m) : null;
+                return (
+                  <div key={`${y}-${m}`} className={`rounded px-2 py-2 text-center ${rel}`} title={formatEuro(v)}>
+                    <div className={`text-xs ${v > maxValue * 0.6 ? 'text-white' : ''}`}>
+                      {v > 999 ? `${Math.round(v/1000)}k` : Math.round(v)}
                     </div>
-                  );
-                })}
+                    {yoy !== null && (
+                      <div className={`text-[10px] font-medium flex items-center justify-center gap-0.5
+                        ${yoy > 0 ? 'text-green-600' : yoy < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                        {yoy > 0 ? <ArrowUp className="h-3 w-3" /> : yoy < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+                        {Math.abs(yoy).toFixed(0)}%
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
-                <div className="text-right text-sm font-semibold">{formatEuro(rowTotal)}</div>
-              </div>
-            );
-          })}
+              <div className="text-right text-sm font-semibold">{formatEuro(rowTotals[y])}</div>
+            </div>
+          ))}
         </div>
 
         {/* Righe TOT/MEDIA */}

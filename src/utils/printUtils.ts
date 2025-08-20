@@ -123,6 +123,33 @@ export class PrintService {
     this.navigate(win, path);
   }
 
+  /** Anteprima matrice annuale: apertura immediata (client-side) */
+  static openAnnualMatrixPreview(options: { metric?: string; yoy?: boolean } & PrintOptions = {}) {
+    const { metric, yoy, ...printOpts } = options;
+    const params = new URLSearchParams();
+    
+    // Print options
+    const defaultOpts = this.getDefaultOptions();
+    const finalOpts = { ...defaultOpts, ...printOpts };
+    if (finalOpts.theme) params.set('theme', finalOpts.theme);
+    if (finalOpts.density) params.set('density', finalOpts.density);
+    if (finalOpts.from) params.set('from', finalOpts.from);
+    if (finalOpts.to) params.set('to', finalOpts.to);
+    if (finalOpts.logo) params.set('logo', finalOpts.logo);
+    
+    // Matrix specific options
+    params.set('metric', metric || 'paid');
+    if (yoy) params.set('yoy', '1');
+    
+    const url = `/print/annual-matrix?${params.toString()}`;
+    const win = this.preOpenWindow();
+    if (!win) {
+      window.location.assign(url);
+      return;
+    }
+    this.navigate(win, url);
+  }
+
   /**
    * Print current page using browser's native print functionality
    */
