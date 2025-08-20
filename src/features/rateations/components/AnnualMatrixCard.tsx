@@ -203,8 +203,8 @@ export default function AnnualMatrixCard({ onBack }: Props) {
 
                 return (
                   <div key={`${y}-${m}`} className={`px-2 py-1 text-center ${rel}`} title={formatEuro(v)}>
-                    <div className={`${v >= maxValue * 0.6 ? "text-white" : ""}`}>
-                      {v > 999 ? `${Math.round(v/1000)}k` : Math.round(v)}
+                    <div className={`leading-tight whitespace-nowrap ${v >= maxValue * 0.6 ? "text-white" : ""}`}>
+                      {formatEuro(v)}
                     </div>
                     {yoy !== null && (
                       <div className={`text-[10px] ${yoy > 0 ? "text-green-600" : yoy < 0 ? "text-red-600" : "text-muted-foreground"}`}>
@@ -236,7 +236,7 @@ export default function AnnualMatrixCard({ onBack }: Props) {
 
         <style>{`
           .grid-cols-14 {
-            grid-template-columns: minmax(60px, 1fr) repeat(12, minmax(40px, 1fr)) minmax(80px, 1fr);
+            grid-template-columns: minmax(60px, 1fr) repeat(12, minmax(56px, 1fr)) minmax(90px, 1fr);
           }
         `}</style>
       </CardContent>
