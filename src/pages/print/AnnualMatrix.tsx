@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMonthlyMatrix } from "@/features/rateations/hooks/useMonthlyMatrix";
 import type { MetricType } from "@/features/rateations/types/monthly-matrix";
 import { formatEuro } from "@/lib/formatters";
-import PrintLayout from "@/components/print/PrintLayout";
 import { ArrowDown, ArrowUp } from "lucide-react";
 
 const MONTH_NAMES = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'] as const;
@@ -38,7 +37,6 @@ function buildHeat(value: number, max: number): string {
 
 export default function AnnualMatrix() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { data, years, loading, error } = useMonthlyMatrix();
 
   const metric = (searchParams.get("metric") as MetricType) || 'paid';
@@ -128,78 +126,63 @@ export default function AnnualMatrix() {
   }
 
   return (
-    <PrintLayout 
-      title={`Matrice Annuale - ${METRIC_LABELS[metric]}`}
-      subtitle={showYoY ? "Con confronto anno su anno (YoY)" : "Valori assoluti"}
-      logoUrl={logoUrl}
-      bodyClass={bodyClass}
-    >
-      {/* Header */}
-      <div className="grid grid-cols-14 gap-1 mb-2 text-xs font-semibold border-b pb-2">
-        <div>Anno</div>
-        {MONTH_NAMES.map((mn) => (
-          <div key={mn} className="text-center">{mn}</div>
-        ))}
-        <div className="text-right">Totale</div>
-      </div>
+    <div className={bodyClass}>
+      <div className="p-6 print:p-0">
+        {/* Header semplice per stampa */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-lg font-semibold">Matrice annuale – {METRIC_LABELS[metric]}</div>
+          <div className="text-sm text-muted-foreground">Generato: {new Date().toLocaleString('it-IT')}</div>
+        </div>
 
-      {/* Data rows */}
-      <div className="space-y-1">
-        {years.map((y) => (
-          <div key={y} className="grid grid-cols-14 gap-1 items-center text-xs">
-            <div className="font-medium">{y}</div>
-            
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
-              const v = getMetricValue(data[y][m], metric);
-              const rel = buildHeat(v, maxValue);
-              const yoy = showYoY ? yoyChange(y, m) : null;
-              
-              return (
-                <div key={`${y}-${m}`} className={`rounded px-1 py-1 text-center ${rel}`}>
-                  <div className="text-xs">
-                    {v > 999 ? `${Math.round(v/1000)}k` : Math.round(v)}
-                  </div>
-                  {yoy !== null && (
-                    <div className={`text-[9px] font-medium flex items-center justify-center gap-0.5
-                      ${yoy > 0 ? 'text-green-700' : yoy < 0 ? 'text-red-700' : 'text-gray-600'}`}>
-                      {yoy > 0 ? <ArrowUp className="h-2 w-2" /> : yoy < 0 ? <ArrowDown className="h-2 w-2" /> : null}
-                      {Math.abs(yoy).toFixed(0)}%
+        {/* Grid */}
+        <div className="grid grid-cols-14 gap-px text-xs">
+          {/* header */}
+          <div className="sticky left-0 bg-background z-10 px-2 py-1 font-medium">Anno</div>
+          {MONTH_NAMES.map(mn => <div key={mn} className="px-2 py-1 font-medium text-center">{mn}</div>)}
+          <div className="px-2 py-1 font-medium text-right">Totale</div>
+
+          {/* righe dati */}
+          {years.map(y => (
+            <React.Fragment key={y}>
+              <div className="sticky left-0 bg-background z-10 px-2 py-1">{y}</div>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+                const v = getMetricValue(data[y][m], metric);
+                const rel = buildHeat(v, maxValue);
+                const yoy = showYoY ? yoyChange(y, m) : null;
+                return (
+                  <div key={`${y}-${m}`} className={`px-2 py-1 text-center ${rel}`} title={formatEuro(v)}>
+                    <div className={`${v >= maxValue * 0.6 ? 'text-white' : ''}`}>
+                      {v > 999 ? `${Math.round(v / 1000)}k` : Math.round(v)}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    {yoy !== null && (
+                      <div className={`text-[10px] ${yoy > 0 ? 'text-green-700' : yoy < 0 ? 'text-red-700' : 'text-gray-600'}`}>
+                        {yoy > 0 ? <ArrowUp className="inline h-3 w-3" /> : yoy < 0 ? <ArrowDown className="inline h-3 w-3" /> : null}
+                        {Math.abs(yoy).toFixed(0)}%
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <div className="px-2 py-1 text-right font-medium">{formatEuro(rowTotals[y])}</div>
+            </React.Fragment>
+          ))}
 
-            <div className="text-right font-semibold">{formatEuro(rowTotals[y])}</div>
-          </div>
-        ))}
-      </div>
+          {/* totali */}
+          <div className="sticky left-0 bg-background z-10 px-2 py-1 font-medium">TOTALE</div>
+          {columnTotals.map((t, i) => <div key={`tot-${i}`} className="px-2 py-1 text-right font-medium">{formatEuro(t)}</div>)}
+          <div className="px-2 py-1 text-right font-semibold">{formatEuro(grandTotal)}</div>
 
-      {/* Totals row */}
-      <div className="grid grid-cols-14 gap-1 items-center text-xs font-semibold border-t pt-2 mt-4">
-        <div>TOTALE</div>
-        {columnTotals.map((t, i) => (
-          <div key={`tot-${i}`} className="text-center">{formatEuro(t)}</div>
-        ))}
-        <div className="text-right">{formatEuro(grandTotal)}</div>
-      </div>
+          {/* medie */}
+          <div className="sticky left-0 bg-background z-10 px-2 py-1 font-medium">MEDIA</div>
+          {columnAverages.map((a, i) => <div key={`avg-${i}`} className="px-2 py-1 text-right font-medium">{formatEuro(a)}</div>)}
+          <div className="px-2 py-1 text-right font-semibold">{formatEuro(grandAverage)}</div>
+        </div>
 
-      {/* Averages row */}
-      <div className="grid grid-cols-14 gap-1 items-center text-xs mt-1">
-        <div className="font-semibold">MEDIA</div>
-        {columnAverages.map((a, i) => (
-          <div key={`avg-${i}`} className="text-center">{formatEuro(a)}</div>
-        ))}
-        <div className="text-right">{formatEuro(grandAverage)}</div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-2 pt-4 text-xs text-gray-600 border-t mt-4">
-        <span>Intensità colore proporzionale al valore:</span>
-        <span className="inline-block h-3 w-6 rounded bg-gray-50 border" />
-        <span>Basso</span>
-        <span className="inline-block h-3 w-6 rounded bg-gray-500" />
-        <span>Alto</span>
+        {/* legenda */}
+        <div className="mt-3 text-xs text-muted-foreground">
+          Intensità colore proporzionale al valore: <span className="inline-block w-3 h-3 bg-gray-100 mx-1" /> basso
+          <span className="inline-block w-3 h-3 bg-gray-500 mx-1" /> alto
+        </div>
       </div>
 
       <style>{`
@@ -207,6 +190,6 @@ export default function AnnualMatrix() {
           grid-template-columns: minmax(60px, 1fr) repeat(12, minmax(40px, 1fr)) minmax(80px, 1fr);
         }
       `}</style>
-    </PrintLayout>
+    </div>
   );
 }

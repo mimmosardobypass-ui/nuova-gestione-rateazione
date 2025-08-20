@@ -20,6 +20,15 @@ export class PrintService {
     };
   }
 
+  private static buildQuery(params: Record<string, string | number | boolean | undefined>) {
+    const p = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') p.set(k, String(v));
+    });
+    const s = p.toString();
+    return s ? `?${s}` : '';
+  }
+
   private static buildQueryString(opt: PrintOptions) {
     const p = new URLSearchParams();
     if (opt.theme) p.set('theme', opt.theme);
@@ -124,30 +133,25 @@ export class PrintService {
   }
 
   /** Anteprima matrice annuale: apertura immediata (client-side) */
-  static openAnnualMatrixPreview(options: { metric?: string; yoy?: boolean } & PrintOptions = {}) {
-    const { metric, yoy, ...printOpts } = options;
-    const params = new URLSearchParams();
-    
-    // Print options
-    const defaultOpts = this.getDefaultOptions();
-    const finalOpts = { ...defaultOpts, ...printOpts };
-    if (finalOpts.theme) params.set('theme', finalOpts.theme);
-    if (finalOpts.density) params.set('density', finalOpts.density);
-    if (finalOpts.from) params.set('from', finalOpts.from);
-    if (finalOpts.to) params.set('to', finalOpts.to);
-    if (finalOpts.logo) params.set('logo', finalOpts.logo);
-    
-    // Matrix specific options
-    params.set('metric', metric || 'paid');
-    if (yoy) params.set('yoy', '1');
-    
-    const url = `/print/annual-matrix?${params.toString()}`;
-    const win = this.preOpenWindow();
-    if (!win) {
-      window.location.assign(url);
+  static openAnnualMatrixPreview(opts: { metric?: 'paid'|'due'|'overdue'|'extra_ravv'; yoy?: boolean } & PrintOptions = {}) {
+    const { metric, yoy, ...printOpts } = opts;
+    const def = { theme: 'bn' as const, density: 'compact' as const }; // Matrix defaults (no from/to)
+    const q = this.buildQuery({
+      theme: printOpts.theme ?? def.theme,
+      density: printOpts.density ?? def.density,
+      logo: printOpts.logo ?? undefined,
+      metric: metric || 'paid',
+      yoy: yoy ? 1 : undefined,
+    });
+    const path = `/print/annual-matrix${q}`;
+
+    // pre-open per aggirare popup blocker (allineato agli altri report)
+    const w = this.preOpenWindow();
+    if (!w) {
+      window.location.assign(path);
       return;
     }
-    this.navigate(win, url);
+    setTimeout(() => w.location.replace(`${window.location.origin}${path}`), 60);
   }
 
   /**
