@@ -36,6 +36,7 @@ interface RateationInfo {
   decadence_at?: string | null;
   taxpayer_name?: string | null;
   number?: string;
+  type_name?: string;
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged }: RateationRowDetailsProProps) {
@@ -56,22 +57,33 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
       const rows = await fetchInstallments(rateationId);
       setItems(rows ?? []);
 
-      // Load rateation info for decadence management
+      // Load rateation info for decadence management with type information
       const { data: rateationData, error: rateationError } = await supabase
         .from('rateations')
-        .select('is_f24, status, decadence_at, taxpayer_name, number')
+        .select(`
+          is_f24, 
+          status, 
+          decadence_at, 
+          taxpayer_name, 
+          number,
+          rateation_types!inner(name)
+        `)
         .eq('id', rateationId)
         .single();
 
       if (rateationError) {
         console.warn('Failed to load rateation info:', rateationError.message);
       } else {
+        const typeName = Array.isArray(rateationData.rateation_types) 
+          ? rateationData.rateation_types[0]?.name || ''
+          : rateationData.rateation_types?.name || '';
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
           status: rateationData.status || 'active',
           decadence_at: rateationData.decadence_at,
           taxpayer_name: rateationData.taxpayer_name,
-          number: rateationData.number
+          number: rateationData.number,
+          type_name: typeName
         });
       }
     } catch (e: any) {
@@ -110,8 +122,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
       // Reload data
       await load();
       onDataChanged?.();
-      // Reload KPI/Decadence data
-      try { (window as any).__reloadDecadence?.(); } catch {}
+      // Trigger global KPI reload
+      window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
     } catch (e: any) {
       toast({ 
         variant: "destructive", 
@@ -214,8 +226,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
       {/* Decadence Alert */}
       {rateationInfo && (
         <DecadenceAlert
-          rateationId={rateationId}
-          isF24={rateationInfo.is_f24}
+          rateationId={parseInt(rateationId)}
+          isF24={Boolean(rateationInfo.is_f24) || String(rateationInfo.type_name).toUpperCase() === 'F24'}
           status={rateationInfo.status}
           installments={items}
           onConfirmDecadence={handleConfirmDecadence}
@@ -233,7 +245,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
               <DecadenceStatusBadge 
                 status={rateationInfo.status}
                 decadenceAt={rateationInfo.decadence_at}
-                isF24={rateationInfo.is_f24}
+                isF24={Boolean(rateationInfo.is_f24) || String(rateationInfo.type_name).toUpperCase() === 'F24'}
               />
             )}
           </div>

@@ -2,9 +2,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Eye } from "lucide-react";
 import { InstallmentUI, RateationStatus } from "../types";
+import { isInstallmentPaid, getDaysOverdue } from "../utils/paymentDetection";
 
 interface DecadenceAlertProps {
-  rateationId: string;
+  rateationId: number;
   isF24: boolean;
   status: RateationStatus;
   installments: InstallmentUI[];
@@ -26,13 +27,9 @@ export function DecadenceAlert({
   }
 
   // Find overdue installments (more than 90 days past due)
-  const today = new Date();
   const overdueInstallments = installments.filter(inst => {
-    const isPaid = !!inst.paid_at || !!inst.paid_date || !!inst.is_paid;
-    if (isPaid) return false;
-    const dueDate = new Date(inst.due_date);
-    const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / 86400000);
-    return daysPastDue > 90;
+    if (isInstallmentPaid(inst)) return false;
+    return getDaysOverdue(inst) > 90;
   });
 
   // Don't show alert if no overdue installments
@@ -41,8 +38,7 @@ export function DecadenceAlert({
   }
 
   const firstOverdueInstallment = overdueInstallments[0];
-  const dueDate = new Date(firstOverdueInstallment.due_date);
-  const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+  const daysPastDue = getDaysOverdue(firstOverdueInstallment);
 
   const handleConfirm = () => {
     const reason = `Decadenza confermata per rata scaduta da ${daysPastDue} giorni`;

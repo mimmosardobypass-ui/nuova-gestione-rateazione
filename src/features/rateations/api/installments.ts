@@ -13,7 +13,13 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
 
   if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
-  return data || [];
+  
+  // Ensure consistent payment date mapping
+  return (data || []).map(row => ({
+    ...row,
+    // Map paid_at to paid_date for consistent access
+    paid_date: row.paid_date || row.paid_at || null,
+  }));
 };
 // LOVABLE:END fetchInstallments
 
