@@ -462,6 +462,12 @@ export type Database = {
         }
         Relationships: []
       }
+      v_dashboard_decaduto_preview: {
+        Row: {
+          potential_gross_decayed_cents: number | null
+        }
+        Relationships: []
+      }
       v_deadlines_monthly: {
         Row: {
           amount: number | null

@@ -6,10 +6,11 @@ import { DecadenceDashboard } from "../types";
 
 interface SaldoDecadutoCardProps {
   data: DecadenceDashboard;
+  previewCents?: number;
   onClick?: () => void;
 }
 
-export function SaldoDecadutoCard({ data, onClick }: SaldoDecadutoCardProps) {
+export function SaldoDecadutoCard({ data, previewCents = 0, onClick }: SaldoDecadutoCardProps) {
   const { gross_decayed, transferred, net_to_transfer } = data;
 
   return (
@@ -46,6 +47,16 @@ export function SaldoDecadutoCard({ data, onClick }: SaldoDecadutoCardProps) {
               <Badge variant="secondary" className="text-xs">
                 <ArrowRight className="h-3 w-3 mr-1" />
                 Trasferito: {formatEuro(transferred)}
+              </Badge>
+            )}
+
+            {previewCents > 0 && (
+              <Badge 
+                variant="outline" 
+                className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                title="F24 con rata >90 giorni non pagata, non ancora confermati"
+              >
+                Potenziale: {formatEuro(previewCents / 100)}
               </Badge>
             )}
           </div>

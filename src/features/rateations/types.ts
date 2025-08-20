@@ -39,6 +39,11 @@ export interface DecadenceDashboard {
   net_to_transfer: number;
 }
 
+export interface DecadenceUIData {
+  dashboard: DecadenceDashboard | null;
+  preview_cents: number;
+}
+
 export interface DecadenceDetail {
   id: number;
   number: string;

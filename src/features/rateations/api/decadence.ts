@@ -60,6 +60,20 @@ export async function confirmDecadence(
   }
 }
 
+// Fetch decadence preview (potential non-confirmed)
+export async function fetchDecadencePreview(signal?: AbortSignal): Promise<number> {
+  const { data, error } = await supabase
+    .from('v_dashboard_decaduto_preview')
+    .select('potential_gross_decayed_cents')
+    .abortSignal(signal)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to fetch decadence preview: ${error.message}`);
+  }
+  return data?.potential_gross_decayed_cents || 0;
+}
+
 // Link transfer from F24 to PagoPA
 export async function linkTransfer(
   f24Id: number,

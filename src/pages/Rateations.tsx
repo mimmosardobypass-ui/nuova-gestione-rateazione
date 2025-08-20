@@ -18,7 +18,7 @@ import { DecadenceDetailView } from "@/features/rateations/components/DecadenceD
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrintButtons } from "@/components/print/PrintButtons";
-import { fetchDecadenceDashboard, fetchDecadenceDetails, linkTransfer } from "@/features/rateations/api/decadence";
+import { fetchDecadenceDashboard, fetchDecadenceDetails, fetchDecadencePreview, linkTransfer } from "@/features/rateations/api/decadence";
 import { useToast } from "@/hooks/use-toast";
 import type { DecadenceDashboard, DecadenceDetail } from "@/features/rateations/types";
 
@@ -40,6 +40,7 @@ export default function Rateations() {
   // Decadence state
   const [decadenceDashboard, setDecadenceDashboard] = React.useState<DecadenceDashboard | null>(null);
   const [decadenceDetails, setDecadenceDetails] = React.useState<DecadenceDetail[]>([]);
+  const [decadencePreviewCents, setDecadencePreviewCents] = React.useState<number>(0);
   const [decadenceLoading, setDecadenceLoading] = React.useState(false);
   
   const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
@@ -51,14 +52,19 @@ export default function Rateations() {
   const loadDecadenceData = React.useCallback(async () => {
     setDecadenceLoading(true);
     try {
-      const [dashboard, details] = await Promise.all([
+      const [dashboard, details, preview] = await Promise.all([
         fetchDecadenceDashboard(),
-        fetchDecadenceDetails()
+        fetchDecadenceDetails(),
+        fetchDecadencePreview()
       ]);
       setDecadenceDashboard(dashboard);
       setDecadenceDetails(details);
+      setDecadencePreviewCents(preview);
     } catch (e: any) {
       console.warn('Failed to load decadence data:', e?.message);
+      // Set fallback values on error
+      setDecadenceDashboard({ gross_decayed: 0, transferred: 0, net_to_transfer: 0 });
+      setDecadencePreviewCents(0);
     } finally {
       setDecadenceLoading(false);
     }
@@ -207,6 +213,7 @@ export default function Rateations() {
           <div className="grid gap-4">
             <SaldoDecadutoCard 
               data={decadenceDashboard}
+              previewCents={decadencePreviewCents}
               onClick={openDecadenze}
             />
           </div>
