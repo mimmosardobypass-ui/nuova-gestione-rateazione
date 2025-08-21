@@ -58,9 +58,11 @@ const PRESET_PERIODS = [
 const BUCKET_OPTIONS = [
   { value: 'Tutte', label: 'Tutte' },
   { value: 'In ritardo', label: 'In ritardo' },
+  { value: 'Oggi', label: 'Scadono oggi' },
   { value: 'Entro 7 giorni', label: 'Entro 7 giorni' },
   { value: 'Entro 30 giorni', label: 'Entro 30 giorni' },
-  { value: 'Futuro', label: 'Futuro' },
+  { value: 'Futuro', label: 'Future' },
+  { value: 'Pagata', label: 'Pagate' },
 ];
 
 export function DeadlineFilters({ filters, onFiltersChange }: DeadlineFiltersProps) {

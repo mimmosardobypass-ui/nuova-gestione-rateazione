@@ -24,6 +24,7 @@ interface DeadlinesProps {
 
 const BUCKET_COLORS = {
   'In ritardo': 'hsl(var(--destructive))',
+  'Oggi': 'hsl(var(--warning-foreground))',
   'Entro 7 giorni': 'hsl(var(--warning))',
   'Entro 30 giorni': 'hsl(var(--accent))',
   'Futuro': 'hsl(var(--primary))',
@@ -55,7 +56,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
     const months = Array.from(new Set(monthlyTrends.map(t => t.due_month))).sort();
     return months.map(month => {
       const monthData = { month };
-      const buckets = ['In ritardo', 'Entro 7 giorni', 'Entro 30 giorni', 'Futuro', 'Pagata'];
+      const buckets = ['In ritardo', 'Oggi', 'Entro 7 giorni', 'Entro 30 giorni', 'Futuro', 'Pagata'];
       buckets.forEach(bucket => {
         const trend = monthlyTrends.find(t => t.due_month === month && t.bucket === bucket);
         monthData[bucket] = trend?.amount || 0;
@@ -240,9 +241,10 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
                         </TableCell>
                         <TableCell>{formatEuro(deadline.amount)}</TableCell>
                         <TableCell>
-                          <Badge 
+                           <Badge 
                             variant={
                               deadline.bucket === 'In ritardo' ? 'destructive' :
+                              deadline.bucket === 'Oggi' ? 'secondary' :
                               deadline.bucket === 'Entro 7 giorni' ? 'secondary' :
                               deadline.bucket === 'Pagata' ? 'default' : 'outline'
                             }

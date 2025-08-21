@@ -25,7 +25,7 @@ export interface DeadlineItem {
   rateation_status: string;
   due_month: string;
   due_week: string;
-  bucket: 'Pagata' | 'In ritardo' | 'Entro 7 giorni' | 'Entro 30 giorni' | 'Futuro';
+  bucket: 'Pagata' | 'In ritardo' | 'Oggi' | 'Entro 7 giorni' | 'Entro 30 giorni' | 'Futuro';
   aging_band: '1–7' | '8–30' | '31–60' | '>60' | null;
   days_overdue: number;
 }
@@ -35,6 +35,8 @@ export interface DeadlineKPIs {
   total_amount: number;
   in_ritardo_count: number;
   in_ritardo_amount: number;
+  oggi_count: number;
+  oggi_amount: number;
   entro_7_count: number;
   entro_7_amount: number;
   entro_30_count: number;
@@ -113,6 +115,8 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
         total_amount: 0,
         in_ritardo_count: 0,
         in_ritardo_amount: 0,
+        oggi_count: 0,
+        oggi_amount: 0,
         entro_7_count: 0,
         entro_7_amount: 0,
         entro_30_count: 0,
@@ -131,6 +135,10 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
           case 'In ritardo':
             kpis.in_ritardo_count++;
             kpis.in_ritardo_amount += item.amount;
+            break;
+          case 'Oggi':
+            kpis.oggi_count++;
+            kpis.oggi_amount += item.amount;
             break;
           case 'Entro 7 giorni':
             kpis.entro_7_count++;
