@@ -11,6 +11,7 @@ import { format, addDays, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useRateationTypes } from '@/features/rateations/hooks/useRateationTypes';
+import { BUCKET_OPTIONS } from '@/features/rateations/constants/buckets';
 import type { DeadlineFilters } from '@/features/rateations/hooks/useDeadlines';
 
 interface DeadlineFiltersProps {
@@ -55,15 +56,6 @@ const PRESET_PERIODS = [
   }},
 ];
 
-const BUCKET_OPTIONS = [
-  { value: 'Tutte', label: 'Tutte' },
-  { value: 'In ritardo', label: 'In ritardo' },
-  { value: 'Oggi', label: 'Scadono oggi' },
-  { value: 'Entro 7 giorni', label: 'Entro 7 giorni' },
-  { value: 'Entro 30 giorni', label: 'Entro 30 giorni' },
-  { value: 'Futuro', label: 'Future' },
-  { value: 'Pagata', label: 'Pagate' },
-];
 
 export function DeadlineFilters({ filters, onFiltersChange }: DeadlineFiltersProps) {
   const { types: rateationTypes = [] } = useRateationTypes();
@@ -215,21 +207,19 @@ export function DeadlineFilters({ filters, onFiltersChange }: DeadlineFiltersPro
 
       {/* Stato/Bucket */}
       <div className="space-y-2">
-        <Label>Stato</Label>
+        <Label>Stato scadenza</Label>
         <Select
-          value={filters.bucket || 'Tutte'}
-          onValueChange={(value) => 
-            onFiltersChange({ ...filters, bucket: value === 'Tutte' ? undefined : value })
+          value={filters.bucket ?? 'all'}
+          onValueChange={(v) =>
+            onFiltersChange({ ...filters, bucket: v === 'all' ? undefined : (v as any) })
           }
         >
           <SelectTrigger>
-            <SelectValue />
+            <SelectValue placeholder="Tutti gli stati" />
           </SelectTrigger>
           <SelectContent>
-            {BUCKET_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
+            {BUCKET_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>

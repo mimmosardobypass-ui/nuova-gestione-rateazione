@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { BucketValue } from '@/features/rateations/constants/buckets';
 
 export interface DeadlineFilters {
   startDate?: string;
@@ -25,7 +26,7 @@ export interface DeadlineItem {
   rateation_status: string;
   due_month: string;
   due_week: string;
-  bucket: 'Pagata' | 'In ritardo' | 'Oggi' | 'Entro 7 giorni' | 'Entro 30 giorni' | 'Futuro';
+  bucket: BucketValue;
   aging_band: '1–7' | '8–30' | '31–60' | '>60' | null;
   days_overdue: number;
 }
@@ -68,8 +69,8 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
         query = query.in('type_id', filters.typeIds);
       }
 
-      if (filters.bucket && filters.bucket !== 'Tutte') {
-        query = query.eq('bucket', filters.bucket);
+      if (filters.bucket && filters.bucket !== 'all') {
+        query = query.eq('bucket', filters.bucket as BucketValue);
       }
 
       if (filters.search) {

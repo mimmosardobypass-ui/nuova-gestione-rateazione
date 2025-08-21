@@ -16,7 +16,7 @@ export function useDeadlineCounts(filters: DeadlineFilters = {}) {
         p_start_date: filters.startDate || null,
         p_end_date: filters.endDate || null,
         p_type_ids: filters.typeIds || null,
-        p_bucket: filters.bucket || null,
+        p_bucket: !filters.bucket || filters.bucket === 'all' ? null : filters.bucket,
         p_search: filters.search || null,
       });
 

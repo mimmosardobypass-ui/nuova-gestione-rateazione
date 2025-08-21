@@ -14,6 +14,7 @@ import { useDeadlineCounts } from '@/features/rateations/hooks/useDeadlineCounts
 import { DeadlineFilters as FilterComponent } from '@/features/rateations/components/DeadlineFilters';
 import { DeadlineKPICards } from '@/features/rateations/components/DeadlineKPICards';
 import { SegmentedPayFilter, type PayFilterValue } from '@/components/SegmentedPayFilter';
+import { BUCKET_COLORS } from '@/features/rateations/constants/buckets';
 import type { RateationRow } from '@/features/rateations/types';
 
 interface DeadlinesProps {
@@ -21,15 +22,6 @@ interface DeadlinesProps {
   loading: boolean;
   onBack: () => void;
 }
-
-const BUCKET_COLORS = {
-  'In ritardo': 'hsl(var(--destructive))',
-  'Oggi': 'hsl(var(--warning-foreground))',
-  'Entro 7 giorni': 'hsl(var(--warning))',
-  'Entro 30 giorni': 'hsl(var(--accent))',
-  'Futuro': 'hsl(var(--primary))',
-  'Pagata': 'hsl(var(--success))',
-};
 
 export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesProps) {
   const [payFilter, setPayFilter] = React.useState<PayFilterValue>('all');
@@ -66,7 +58,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
   }, [monthlyTrends]);
 
   const exportToCSV = () => {
-    const headers = ['Numero', 'Contribuente', 'Rata', 'Scadenza', 'Importo', 'Stato', 'Tipo'];
+    const headers = ['Numero', 'Contribuente', 'Rata', 'Scadenza', 'Importo', 'Stato', 'Tipo', 'Bucket'];
     const csvContent = [
       headers.join(','),
       ...deadlines.map(d => [
@@ -75,8 +67,9 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
         d.seq,
         d.due_date,
         d.amount,
+        d.is_paid ? 'Pagata' : 'Da pagare',
+        d.type_name,
         d.bucket,
-        d.type_name
       ].join(','))
     ].join('\n');
 
@@ -84,7 +77,8 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scadenze-${payFilter}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    const bucketSlug = (filters.bucket ?? 'all').toString().replace(/\s+/g,'-').toLowerCase();
+    a.download = `scadenze-${payFilter}-${bucketSlug}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };

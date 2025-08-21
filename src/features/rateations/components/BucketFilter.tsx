@@ -1,21 +1,12 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BUCKET_OPTIONS, type BucketValue } from '@/features/rateations/constants/buckets';
 
-export type BucketValue = 'Tutte' | 'In ritardo' | 'Oggi' | 'Entro 7 giorni' | 'Entro 30 giorni' | 'Futuro' | 'Pagata';
-
-const BUCKET_OPTIONS: { value: BucketValue; label: string }[] = [
-  { value: 'Tutte', label: 'Tutte le scadenze' },
-  { value: 'In ritardo', label: 'In ritardo' },
-  { value: 'Oggi', label: 'Scadono oggi' },
-  { value: 'Entro 7 giorni', label: 'Entro 7 giorni' },
-  { value: 'Entro 30 giorni', label: 'Entro 30 giorni' },
-  { value: 'Futuro', label: 'Future' },
-  { value: 'Pagata', label: 'Pagate' },
-];
+export type BucketFilterValue = 'all' | BucketValue;
 
 interface BucketFilterProps {
-  value: BucketValue;
-  onChange: (value: BucketValue) => void;
+  value: BucketFilterValue;
+  onChange: (value: BucketFilterValue) => void;
 }
 
 export function BucketFilter({ value, onChange }: BucketFilterProps) {
