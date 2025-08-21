@@ -10,8 +10,10 @@ import { it } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatEuro } from '@/lib/formatters';
 import { useDeadlines, useDeadlineKPIs, useMonthlyTrends, type DeadlineFilters } from '@/features/rateations/hooks/useDeadlines';
+import { useDeadlineCounts } from '@/features/rateations/hooks/useDeadlineCounts';
 import { DeadlineFilters as FilterComponent } from '@/features/rateations/components/DeadlineFilters';
 import { DeadlineKPICards } from '@/features/rateations/components/DeadlineKPICards';
+import { SegmentedPayFilter, type PayFilterValue } from '@/components/SegmentedPayFilter';
 import type { RateationRow } from '@/features/rateations/types';
 
 interface DeadlinesProps {
@@ -29,14 +31,22 @@ const BUCKET_COLORS = {
 };
 
 export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesProps) {
+  const [payFilter, setPayFilter] = React.useState<PayFilterValue>('all');
   const [filters, setFilters] = React.useState<DeadlineFilters>({
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // Next 90 days
+    payFilter: 'all',
   });
+
+  // Update filters when payFilter changes
+  React.useEffect(() => {
+    setFilters(prev => ({ ...prev, payFilter }));
+  }, [payFilter]);
 
   const { data: deadlines = [], isLoading: deadlinesLoading } = useDeadlines(filters);
   const { data: kpis, isLoading: kpisLoading } = useDeadlineKPIs(filters);
   const { data: monthlyTrends = [], isLoading: trendsLoading } = useMonthlyTrends(12);
+  const { data: counts = { paid: 0, unpaid: 0, total: 0 }, isLoading: countsLoading } = useDeadlineCounts(filters);
 
   const loading = parentLoading || deadlinesLoading;
 
@@ -73,7 +83,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scadenze-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `scadenze-${payFilter}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -125,8 +135,19 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters Sidebar */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-4">
           <FilterComponent filters={filters} onFiltersChange={setFilters} />
+          
+          {/* Payment Status Filter */}
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3">Stato Pagamento</h3>
+            <SegmentedPayFilter
+              value={payFilter}
+              onChange={setPayFilter}
+              counts={counts}
+              loading={countsLoading}
+            />
+          </Card>
         </div>
 
         {/* Main Content */}

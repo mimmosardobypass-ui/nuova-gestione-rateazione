@@ -877,6 +877,7 @@ export type Database = {
           paid_at: string | null
           rateation_id: number | null
           rateation_number: string | null
+          rateation_status: string | null
           seq: number | null
           taxpayer_name: string | null
           type_id: number | null
@@ -1013,6 +1014,20 @@ export type Database = {
           p_profile_id?: string
         }
         Returns: Json
+      }
+      deadlines_counts: {
+        Args: {
+          p_bucket?: string
+          p_end_date?: string
+          p_search?: string
+          p_start_date?: string
+          p_type_ids?: number[]
+        }
+        Returns: {
+          paid_count: number
+          total_count: number
+          unpaid_count: number
+        }[]
       }
       debug_rateations_count: {
         Args: Record<PropertyKey, never>

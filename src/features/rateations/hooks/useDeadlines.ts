@@ -7,6 +7,7 @@ export interface DeadlineFilters {
   typeIds?: number[];
   bucket?: string;
   search?: string;
+  payFilter?: 'unpaid' | 'paid' | 'all';
 }
 
 export interface DeadlineItem {
@@ -21,6 +22,7 @@ export interface DeadlineItem {
   taxpayer_name: string | null;
   type_name: string;
   type_id: number;
+  rateation_status: string;
   due_month: string;
   due_week: string;
   bucket: 'Pagata' | 'In ritardo' | 'Entro 7 giorni' | 'Entro 30 giorni' | 'Futuro';
@@ -71,6 +73,14 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
       if (filters.search) {
         query = query.or(`rateation_number.ilike.%${filters.search}%,taxpayer_name.ilike.%${filters.search}%`);
       }
+
+      // Apply payFilter
+      if (filters.payFilter === 'paid') {
+        query = query.eq('is_paid', true);
+      } else if (filters.payFilter === 'unpaid') {
+        query = query.eq('is_paid', false).neq('rateation_status', 'decaduta');
+      }
+      // For 'all' or undefined, no additional filter
 
       const { data, error } = await query.order('due_date', { ascending: true });
 
