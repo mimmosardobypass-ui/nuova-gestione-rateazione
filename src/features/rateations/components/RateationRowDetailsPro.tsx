@@ -105,6 +105,23 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     load(); 
   }, [load]);
 
+  // Memoized calculations for PagoPA skips (must be before early returns)
+  const toMidnight = React.useCallback((d: Date | string) => {
+    const x = new Date(d);
+    x.setHours(0,0,0,0);
+    return x;
+  }, []);
+  
+  const todayMid = React.useMemo(() => toMidnight(new Date()), [toMidnight]);
+
+  const unpaidOverdueToday = React.useMemo(
+    () => items.filter(it => !isInstallmentPaid(it) && toMidnight(it.due_date) < todayMid).length,
+    [items, toMidnight, todayMid]
+  );
+  
+  const skipRemaining = React.useMemo(() => Math.max(0, MAX_PAGOPA_SKIPS - unpaidOverdueToday), [unpaidOverdueToday]);
+  const skipRisk = React.useMemo(() => getSkipRisk(skipRemaining), [skipRemaining]);
+
   // Decadence handlers
   const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {
     if (!online) {
@@ -222,20 +239,6 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
   if (loading) return <div className="p-4 text-sm text-muted-foreground">Caricamento rate…</div>;
   if (error) return <div className="p-4 text-sm text-destructive">{error}</div>;
   if (!items.length) return <div className="p-4 text-sm text-muted-foreground">Nessuna rata trovata.</div>;
-
-  const toMidnight = (d: Date | string) => {
-    const x = new Date(d);
-    x.setHours(0,0,0,0);
-    return x;
-  };
-  const todayMid = toMidnight(new Date());
-
-  const unpaidOverdueToday = React.useMemo(
-    () => items.filter(it => !isInstallmentPaid(it) && toMidnight(it.due_date) < todayMid).length,
-    [items]
-  );
-  const skipRemaining = Math.max(0, MAX_PAGOPA_SKIPS - unpaidOverdueToday);
-  const skipRisk = getSkipRisk(skipRemaining);
 
   return (
     <div className="p-4 space-y-4">
