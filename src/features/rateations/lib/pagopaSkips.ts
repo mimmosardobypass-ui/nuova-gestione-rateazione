@@ -4,6 +4,11 @@ export const DEFAULT_MAX_PAGOPA_SKIPS = 8;
 
 // Normalizza una data alle 00:00 locali
 export function toMidnight(d: Date | string): Date {
+  // Se stringa tipo 'YYYY-MM-DD', parse in locale per evitare drift
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    const [y, m, dd] = d.split('-').map(Number);
+    return new Date(y, (m ?? 1) - 1, dd ?? 1, 0, 0, 0, 0);
+  }
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
