@@ -22,6 +22,10 @@ export type RateationRowPro = {
   rateNonPagate: number;
   rateInRitardo: number;
   ratePaidLate: number;
+  // PagoPA specific fields
+  unpaid_overdue_today?: number;
+  skip_remaining?: number;
+  at_risk_decadence?: boolean;
 };
 
 interface RateationsTableProProps {
@@ -83,7 +87,7 @@ export function RateationsTablePro({
               <TableHead className="text-center">Rate totali</TableHead>
               <TableHead className="text-center">Rate pagate</TableHead>
               <TableHead className="text-center">Rate non pagate</TableHead>
-              <TableHead className="text-center">Rate in ritardo</TableHead>
+              <TableHead className="text-center">Rate in ritardo / Non pagate oggi</TableHead>
               <TableHead>Azioni</TableHead>
             </TableRow>
           </TableHeader>
@@ -118,8 +122,36 @@ export function RateationsTablePro({
                     <TableCell className="text-center">{r.rateTotali}</TableCell>
                     <TableCell className="text-center text-green-600">{r.ratePagate}</TableCell>
                     <TableCell className="text-center">{r.rateNonPagate}</TableCell>
-                     <TableCell className={`text-center ${(r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : ""}`}>
-                       {r.rateInRitardo + (r.ratePaidLate || 0)}
+                     <TableCell className={`text-center ${
+                       r.tipo.toUpperCase() === 'PAGOPA' 
+                         ? (r.unpaid_overdue_today && r.unpaid_overdue_today > 0 ? "text-destructive font-medium" : "")
+                         : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
+                     }`}>
+                       {r.tipo.toUpperCase() === 'PAGOPA' ? (
+                         <div>
+                           <div>{r.unpaid_overdue_today ?? 0}</div>
+                           {r.skip_remaining !== undefined && (
+                             <div className="text-xs mt-1">
+                               <span
+                                 className={`inline-flex items-center rounded px-2 py-0.5 text-xs ${
+                                   (r.skip_remaining ?? 0) === 0
+                                     ? 'bg-red-100 text-red-700'
+                                     : 'bg-gray-100 text-gray-700'
+                                 }`}
+                                 title={
+                                   (r.skip_remaining ?? 0) === 0
+                                     ? 'Attenzione: raggiunto il limite di 8 rate non pagate alla data odierna'
+                                     : 'Numero di "salti" residui su 8 consentiti'
+                                 }
+                               >
+                                 Salti: {r.skip_remaining ?? 8}/8
+                               </span>
+                             </div>
+                           )}
+                         </div>
+                       ) : (
+                         r.rateInRitardo + (r.ratePaidLate || 0)
+                       )}
                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1">

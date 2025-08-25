@@ -178,6 +178,30 @@ export const useRateations = (): UseRateationsReturn => {
       if (typesError) throw typesError;
 
       const typesMap = Object.fromEntries((types || []).map(t => [t.id, t.name as string]));
+
+      // 4) Fetch PagoPA KPIs for relevant rateations
+      const pagopaTypeId = (types || []).find(t => t.name.toUpperCase() === 'PAGOPA')?.id;
+      let pagopaKpis: any[] = [];
+      if (pagopaTypeId) {
+        const pagopaRateationIds = (rateations || [])
+          .filter(r => r.type_id === pagopaTypeId)
+          .map(r => r.id);
+        
+        if (pagopaRateationIds.length > 0) {
+          const { data: kpis, error: kpisError } = await supabase
+            .from("v_pagopa_unpaid_today")
+            .select("*")
+            .in("rateation_id", pagopaRateationIds);
+          
+          if (kpisError) {
+            console.warn("[useRateations] PagoPA KPIs fetch error:", kpisError);
+          } else {
+            pagopaKpis = kpis || [];
+          }
+        }
+      }
+
+      const pagopaKpisMap = Object.fromEntries(pagopaKpis.map(k => [k.rateation_id, k]));
       const today = new Date(); 
       today.setHours(0, 0, 0, 0);
 
@@ -214,6 +238,10 @@ export const useRateations = (): UseRateationsReturn => {
           .filter(i => !i.is_paid && i.due_date && new Date(new Date(i.due_date).setHours(0, 0, 0, 0)) < today)
           .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
+        
+        // Add PagoPA KPIs if available
+        const pagopaKpi = pagopaKpisMap[r.id];
+        const isPagePA = typesMap[r.type_id]?.toUpperCase() === 'PAGOPA';
 
         return {
           id: String(r.id),
@@ -229,6 +257,12 @@ export const useRateations = (): UseRateationsReturn => {
           rateNonPagate,
           rateInRitardo,
           ratePaidLate,
+          // PagoPA specific fields
+          ...(isPagePA && pagopaKpi && {
+            unpaid_overdue_today: pagopaKpi.unpaid_overdue_today,
+            skip_remaining: pagopaKpi.skip_remaining,
+            at_risk_decadence: pagopaKpi.at_risk_decadence,
+          }),
           _createdAt: r.created_at || null,
         };
       });

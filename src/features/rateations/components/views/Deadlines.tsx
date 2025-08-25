@@ -62,14 +62,14 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
     const csvContent = [
       headers.join(','),
       ...deadlines.map(d => [
-        d.rateation_number,
-        d.taxpayer_name || '',
-        d.seq,
-        d.due_date,
-        d.amount,
-        d.is_paid ? 'Pagata' : 'Da pagare',
-        d.type_name,
-        d.bucket,
+        `"${d.rateation_number || ''}"`,
+        `"${d.taxpayer_name || ''}"`,
+        d.seq || '',
+        d.due_date ? format(new Date(d.due_date), 'dd/MM/yyyy') : '',
+        (d.amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 }),
+        d.is_paid ? 'Pagata' : 'Non pagata',
+        `"${d.type_name || ''}"`,
+        `"${d.bucket || ''}"`
       ].join(','))
     ].join('\n');
 

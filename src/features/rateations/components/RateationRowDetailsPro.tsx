@@ -273,6 +273,38 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
           </div>
         </div>
         
+        {/* PagoPA specific KPIs */}
+        {rateationInfo?.type_name?.toUpperCase() === 'PAGOPA' && (
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="text-center p-2 bg-blue-50 rounded-md">
+              <div className="text-xs text-muted-foreground">Non pagate oggi</div>
+              <div className="font-semibold text-blue-700">
+                {items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length}
+              </div>
+            </div>
+            <div className={`text-center p-2 rounded-md ${
+              (8 - items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length) === 0 
+                ? 'bg-red-100 border-red-300' : 'bg-gray-50'
+            }`}>
+              <div className="text-xs text-muted-foreground">Salti residui</div>
+              <div className={`font-semibold ${
+                (8 - items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length) === 0 
+                  ? 'text-red-700' : 'text-gray-700'
+              }`}>
+                {Math.max(0, 8 - items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length)}/8
+              </div>
+            </div>
+            {items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length >= 8 && (
+              <div className="text-center p-2 bg-red-100 border border-red-300 rounded-md">
+                <div className="text-xs text-red-600">Rischio decadenza</div>
+                <div className="text-xs text-red-700">
+                  Limite raggiunto
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Print Actions & Allegati */}
         <div className="space-y-3">
           <div className="space-y-2">

@@ -31,6 +31,10 @@ export interface RateationRow {
   is_f24?: boolean;
   status?: RateationStatus;
   decadence_info?: DecadenceInfo;
+  // PagoPA "8 skips" rule fields
+  unpaid_overdue_today?: number; // Rate non pagate con due_date < current_date
+  skip_remaining?: number;       // GREATEST(0, 8 - unpaid_overdue_today) 
+  at_risk_decadence?: boolean;   // unpaid_overdue_today >= 8
 }
 
 export interface DecadenceDashboard {
