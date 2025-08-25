@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
-import { MAX_PAGOPA_SKIPS } from '@/features/rateations/constants/pagopa';
-import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
+import { DEFAULT_MAX_PAGOPA_SKIPS, toMidnight, calcUnpaidOverdueToday, getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { confirmDecadence } from "../api/decadence";
 import { AttachmentsPanel } from "./AttachmentsPanel";
@@ -45,6 +44,7 @@ interface RateationInfo {
 export function RateationRowDetailsPro({ rateationId, onDataChanged }: RateationRowDetailsProProps) {
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [rateationInfo, setRateationInfo] = useState<RateationInfo | null>(null);
+  const [pagopaMaxSkips, setPagopaMaxSkips] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
@@ -88,6 +88,19 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
           type_name: typeName
         });
       }
+
+      // tenta di leggere max_skips_effective dalla vista v_pagopa_unpaid_today per questo piano
+      try {
+        const { data: kpiRow } = await supabase
+          .from('v_pagopa_unpaid_today')
+          .select('max_skips_effective')
+          .eq('rateation_id', rateationId)
+          .maybeSingle();
+
+        setPagopaMaxSkips(typeof kpiRow?.max_skips_effective === 'number' ? kpiRow.max_skips_effective : null);
+      } catch {
+        setPagopaMaxSkips(null);
+      }
     } catch (e: any) {
       setError(e?.message || "Errore nel caricamento rate");
       setItems([]);
@@ -105,22 +118,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     load(); 
   }, [load]);
 
-  // Memoized calculations for PagoPA skips (must be before early returns)
-  const toMidnight = React.useCallback((d: Date | string) => {
-    const x = new Date(d);
-    x.setHours(0,0,0,0);
-    return x;
-  }, []);
-  
-  const todayMid = React.useMemo(() => toMidnight(new Date()), [toMidnight]);
-
+  // --- calcoli (PRIMA di qualsiasi return) ---
+  const todayMid = React.useMemo(() => toMidnight(new Date()), []);
   const unpaidOverdueToday = React.useMemo(
-    () => items.filter(it => !isInstallmentPaid(it) && toMidnight(it.due_date) < todayMid).length,
-    [items, toMidnight, todayMid]
+    () => calcUnpaidOverdueToday(items, todayMid),
+    [items, todayMid]
   );
-  
-  const skipRemaining = React.useMemo(() => Math.max(0, MAX_PAGOPA_SKIPS - unpaidOverdueToday), [unpaidOverdueToday]);
-  const skipRisk = React.useMemo(() => getSkipRisk(skipRemaining), [skipRemaining]);
+
+  // denominatore dinamico se disponibile, altrimenti fallback 8
+  const skipMax = pagopaMaxSkips ?? DEFAULT_MAX_PAGOPA_SKIPS;
+  const skipRemaining = React.useMemo(() => Math.max(0, skipMax - unpaidOverdueToday), [skipMax, unpaidOverdueToday]);
+  const skipRisk = React.useMemo(() => getSkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax]);
 
   // Decadence handlers
   const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {
@@ -294,28 +302,27 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
         
         {/* PagoPA specific KPIs */}
         {rateationInfo?.type_name?.toUpperCase() === 'PAGOPA' && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-            {/* Non pagate oggi */}
+          <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border bg-card p-3">
               <div className="text-xs text-muted-foreground">Non pagate oggi</div>
               <div className="text-lg font-semibold">{unpaidOverdueToday}</div>
             </div>
 
-            {/* Salti residui con icona */}
-            <div className={`rounded-lg border p-3 ${unpaidOverdueToday >= MAX_PAGOPA_SKIPS ? 'bg-red-50 border-red-200' : 'bg-card'}`}>
+            <div className={`rounded-lg border p-3 ${skipRemaining <= 0 ? 'bg-red-50 border-red-200' : 'bg-card'}`}>
               <div className="text-xs text-muted-foreground">Salti residui</div>
               <div className="text-lg font-semibold inline-flex items-center gap-2">
-                <span>{skipRemaining}/{MAX_PAGOPA_SKIPS}</span>
-                {skipRisk && (
-                  <span className={skipRisk.cls} title={skipRisk.title} aria-label={skipRisk.title}>⚠️</span>
-                )}
+                {skipRemaining}/{skipMax}
+                {skipRisk && <span className={skipRisk.cls} title={skipRisk.title}>⚠️</span>}
               </div>
-
-              {unpaidOverdueToday >= MAX_PAGOPA_SKIPS && (
-                <div className="mt-2 rounded-md border px-2 py-1 text-xs text-red-700 bg-red-50 border-red-200">
-                  Rischio decadenza — limite salti raggiunto
-                </div>
+              {skipRemaining <= 0 && (
+                <div className="mt-1 text-xs text-red-700">Rischio decadenza — limite salti raggiunto</div>
               )}
+            </div>
+
+            {/* spazio per un terzo KPI, oppure lascia vuoto */}
+            <div className="rounded-lg border bg-card p-3">
+              <div className="text-xs text-muted-foreground">Stato</div>
+              <div className="text-sm">{rateationInfo?.status ?? '-'}</div>
             </div>
           </div>
         )}

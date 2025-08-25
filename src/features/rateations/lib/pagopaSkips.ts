@@ -1,5 +1,18 @@
-// src/features/rateations/lib/pagopaSkips.ts
-import { MAX_PAGOPA_SKIPS } from '@/features/rateations/constants/pagopa';
+import type { InstallmentUI } from '@/features/rateations/types';
+
+export const DEFAULT_MAX_PAGOPA_SKIPS = 8;
+
+// Normalizza una data alle 00:00 locali
+export function toMidnight(d: Date | string): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+// Conteggio rate non pagate con due_date < oggi @ 00:00
+export function calcUnpaidOverdueToday(items: InstallmentUI[], todayMid: Date): number {
+  return items.filter(it => !it?.is_paid && it?.due_date && toMidnight(it.due_date) < todayMid).length;
+}
 
 export type SkipRisk =
   | { level: 'limit'; cls: string; title: string }
@@ -7,25 +20,16 @@ export type SkipRisk =
   | { level: 'low';   cls: string; title: string }
   | null;
 
-/**
- * Severità:
- *  - <= 0 : limite raggiunto (rosso)
- *  - == 1 : ultimo salto (ambra)
- *  - == 2 : pre-allerta (giallo)
- */
-export function getSkipRisk(skipRemaining: number | undefined | null): SkipRisk {
-  const n = Number.isFinite(skipRemaining as number)
-    ? (skipRemaining as number)
-    : MAX_PAGOPA_SKIPS;
-
-  if (n <= 0) {
-    return { level: 'limit', cls: 'text-red-600',   title: 'Limite salti raggiunto — rischio decadenza' };
+// warning graduato sui salti rimanenti
+export function getSkipRisk(skipRemaining: number, max?: number): SkipRisk {
+  if (skipRemaining <= 0) {
+    return { level: 'limit', cls: 'text-red-600', title: 'Limite salti raggiunto — rischio decadenza' };
   }
-  if (n === 1) {
-    return { level: 'last',  cls: 'text-amber-600', title: 'Ultimo salto disponibile' };
+  if (skipRemaining === 1) {
+    return { level: 'last', cls: 'text-amber-600', title: 'Ultimo salto disponibile' };
   }
-  if (n === 2) {
-    return { level: 'low',   cls: 'text-yellow-600',title: 'Attenzione: 2 salti residui' };
+  if (skipRemaining === 2) {
+    return { level: 'low', cls: 'text-yellow-600', title: 'Attenzione: 2 salti residui' };
   }
   return null;
 }

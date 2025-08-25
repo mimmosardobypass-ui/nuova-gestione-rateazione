@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import QRCode from "qrcode";
 import { getDaysLate, getPaymentDate } from "@/features/rateations/lib/installmentState";
+import { toMidnight } from "@/features/rateations/lib/pagopaSkips";
 import type { InstallmentUI } from "@/features/rateations/types";
 
 interface RateationHeader {
@@ -55,6 +56,13 @@ export default function SchedaRateazione() {
   const [forecast, setForecast] = useState<MonthlyForecast[]>([]);
   const [qrCode, setQrCode] = useState<string>("");
   const [loading, setLoading] = useState(true);
+
+  // calcolo locale per stampa (in cima al componente)
+  const todayMid = React.useMemo(() => toMidnight(new Date()), []);
+  const unpaidOverdueToday = React.useMemo(
+    () => installments.filter(inst => inst.status !== "paid" && inst.due_date && toMidnight(inst.due_date) < todayMid).length,
+    [installments, todayMid]
+  );
 
   const theme = searchParams.get("theme") === "bn" ? "theme-bn" : "";
   const density = searchParams.get("density") === "compact" ? "density-compact" : "";
@@ -159,6 +167,11 @@ export default function SchedaRateazione() {
             } />
             <InfoField label="Tipo" value={header.type_name || "-"} />
           </div>
+          {header.type_name?.toUpperCase() === 'PAGOPA' && (
+            <div className="mt-2 text-sm">
+              <strong>Non pagate oggi:</strong> {unpaidOverdueToday}
+            </div>
+          )}
         </div>
         <div className="qr-container">
           {qrCode && <img src={qrCode} alt="QR Code" />}
