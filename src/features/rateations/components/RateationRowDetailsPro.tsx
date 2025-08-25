@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
+import { MAX_PAGOPA_SKIPS } from '@/features/rateations/constants/pagopa';
 import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { confirmDecadence } from "../api/decadence";
@@ -222,6 +223,20 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
   if (error) return <div className="p-4 text-sm text-destructive">{error}</div>;
   if (!items.length) return <div className="p-4 text-sm text-muted-foreground">Nessuna rata trovata.</div>;
 
+  const toMidnight = (d: Date | string) => {
+    const x = new Date(d);
+    x.setHours(0,0,0,0);
+    return x;
+  };
+  const todayMid = toMidnight(new Date());
+
+  const unpaidOverdueToday = React.useMemo(
+    () => items.filter(it => !isInstallmentPaid(it) && toMidnight(it.due_date) < todayMid).length,
+    [items]
+  );
+  const skipRemaining = Math.max(0, MAX_PAGOPA_SKIPS - unpaidOverdueToday);
+  const skipRisk = getSkipRisk(skipRemaining);
+
   return (
     <div className="p-4 space-y-4">
       {/* Decadence Alert */}
@@ -280,50 +295,24 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
             {/* Non pagate oggi */}
             <div className="rounded-lg border bg-card p-3">
               <div className="text-xs text-muted-foreground">Non pagate oggi</div>
-              <div className="text-lg font-semibold">
-                {items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)).length}
-              </div>
+              <div className="text-lg font-semibold">{unpaidOverdueToday}</div>
             </div>
 
-            {/* Salti residui con icona di rischio */}
-            <div
-              className={`rounded-lg border p-3 ${
-                (items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)).length) >= 8
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-card'
-              }`}
-            >
+            {/* Salti residui con icona */}
+            <div className={`rounded-lg border p-3 ${unpaidOverdueToday >= MAX_PAGOPA_SKIPS ? 'bg-red-50 border-red-200' : 'bg-card'}`}>
               <div className="text-xs text-muted-foreground">Salti residui</div>
               <div className="text-lg font-semibold inline-flex items-center gap-2">
-                {(() => {
-                  const unpaidOverdueToday = items.filter(
-                    it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
-                  ).length;
-                  const skipRemaining = Math.max(0, 8 - unpaidOverdueToday);
-                  const risk = getSkipRisk(skipRemaining);
-                  return (
-                    <>
-                      <span>{skipRemaining}/8</span>
-                      {risk && (
-                        <span className={risk.cls} title={risk.title} aria-label={risk.title}>
-                          ⚠️
-                        </span>
-                      )}
-                    </>
-                  );
-                })()}
+                <span>{skipRemaining}/{MAX_PAGOPA_SKIPS}</span>
+                {skipRisk && (
+                  <span className={skipRisk.cls} title={skipRisk.title} aria-label={skipRisk.title}>⚠️</span>
+                )}
               </div>
 
-              {(() => {
-                const unpaidOverdueToday = items.filter(
-                  it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
-                ).length;
-                return unpaidOverdueToday >= 8 ? (
-                  <div className="mt-2 rounded-md border px-2 py-1 text-xs text-red-700 bg-red-50 border-red-200">
-                    Rischio decadenza — limite salti raggiunto
-                  </div>
-                ) : null;
-              })()}
+              {unpaidOverdueToday >= MAX_PAGOPA_SKIPS && (
+                <div className="mt-2 rounded-md border px-2 py-1 text-xs text-red-700 bg-red-50 border-red-200">
+                  Rischio decadenza — limite salti raggiunto
+                </div>
+              )}
             </div>
           </div>
         )}

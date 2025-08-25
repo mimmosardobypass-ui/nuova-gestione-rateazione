@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
+import { MAX_PAGOPA_SKIPS } from '@/features/rateations/constants/pagopa';
 import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import {
@@ -128,31 +129,29 @@ export function RateationsTablePro({
                          ? (r.unpaid_overdue_today && r.unpaid_overdue_today > 0 ? "text-destructive font-medium" : "")
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
                       }`}>
-                        {r.tipo.toUpperCase() === 'PAGOPA' ? (
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1">
-                              <span className="text-sm text-muted-foreground">Non pagate oggi:</span>
-                              <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
-                            </span>
+                         {r.tipo.toUpperCase() === 'PAGOPA' ? (
+                           <div className="flex items-center gap-3">
+                             <span className="inline-flex items-center gap-1">
+                               <span className="text-sm text-muted-foreground">Non pagate oggi:</span>
+                               <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
+                             </span>
 
-                            {typeof r.skip_remaining !== 'undefined' && (
-                              <span className="inline-flex items-center gap-1 ml-2">
-                                <span className="text-sm text-muted-foreground">Salti:</span>
-                                <span className="font-medium">{r.skip_remaining ?? 8}/8</span>
-                                {(() => {
-                                  const risk = getSkipRisk(r.skip_remaining);
-                                  return risk ? (
-                                    <span className={`ml-1 ${risk.cls}`} title={risk.title} aria-label={risk.title}>
-                                      ⚠️
-                                    </span>
-                                  ) : null;
-                                })()}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          r.rateInRitardo + (r.ratePaidLate || 0)
-                        )}
+                             {typeof r.skip_remaining !== 'undefined' && (
+                               <span className="inline-flex items-center gap-1">
+                                 <span className="text-sm text-muted-foreground">Salti:</span>
+                                 <span className="font-medium">{r.skip_remaining ?? MAX_PAGOPA_SKIPS}/{MAX_PAGOPA_SKIPS}</span>
+                                 {(() => {
+                                   const risk = getSkipRisk(r.skip_remaining);
+                                   return risk ? (
+                                     <span className={`ml-1 ${risk.cls}`} title={risk.title} aria-label={risk.title}>⚠️</span>
+                                   ) : null;
+                                 })()}
+                               </span>
+                             )}
+                           </div>
+                         ) : (
+                           r.rateInRitardo + (r.ratePaidLate || 0)
+                         )}
                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
