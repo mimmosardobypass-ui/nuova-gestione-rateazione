@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
+import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { confirmDecadence } from "../api/decadence";
 import { AttachmentsPanel } from "./AttachmentsPanel";
@@ -275,33 +276,55 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
         
         {/* PagoPA specific KPIs */}
         {rateationInfo?.type_name?.toUpperCase() === 'PAGOPA' && (
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className="text-center p-2 bg-blue-50 rounded-md">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+            {/* Non pagate oggi */}
+            <div className="rounded-lg border bg-card p-3">
               <div className="text-xs text-muted-foreground">Non pagate oggi</div>
-              <div className="font-semibold text-blue-700">
-                {items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length}
+              <div className="text-lg font-semibold">
+                {items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)).length}
               </div>
             </div>
-            <div className={`text-center p-2 rounded-md ${
-              (8 - items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length) === 0 
-                ? 'bg-red-100 border-red-300' : 'bg-gray-50'
-            }`}>
+
+            {/* Salti residui con icona di rischio */}
+            <div
+              className={`rounded-lg border p-3 ${
+                (items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)).length) >= 8
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-card'
+              }`}
+            >
               <div className="text-xs text-muted-foreground">Salti residui</div>
-              <div className={`font-semibold ${
-                (8 - items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length) === 0 
-                  ? 'text-red-700' : 'text-gray-700'
-              }`}>
-                {Math.max(0, 8 - items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length)}/8
+              <div className="text-lg font-semibold inline-flex items-center gap-2">
+                {(() => {
+                  const unpaidOverdueToday = items.filter(
+                    it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
+                  ).length;
+                  const skipRemaining = Math.max(0, 8 - unpaidOverdueToday);
+                  const risk = getSkipRisk(skipRemaining);
+                  return (
+                    <>
+                      <span>{skipRemaining}/8</span>
+                      {risk && (
+                        <span className={risk.cls} title={risk.title} aria-label={risk.title}>
+                          ⚠️
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
+
+              {(() => {
+                const unpaidOverdueToday = items.filter(
+                  it => !isInstallmentPaid(it) && new Date(it.due_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
+                ).length;
+                return unpaidOverdueToday >= 8 ? (
+                  <div className="mt-2 rounded-md border px-2 py-1 text-xs text-red-700 bg-red-50 border-red-200">
+                    Rischio decadenza — limite salti raggiunto
+                  </div>
+                ) : null;
+              })()}
             </div>
-            {items.filter(it => !isInstallmentPaid(it) && new Date(it.due_date) < new Date(new Date().setHours(0,0,0,0))).length >= 8 && (
-              <div className="text-center p-2 bg-red-100 border border-red-300 rounded-md">
-                <div className="text-xs text-red-600">Rischio decadenza</div>
-                <div className="text-xs text-red-700">
-                  Limite raggiunto
-                </div>
-              </div>
-            )}
           </div>
         )}
         

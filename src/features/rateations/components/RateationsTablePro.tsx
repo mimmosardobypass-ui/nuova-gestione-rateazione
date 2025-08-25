@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
+import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -126,32 +127,32 @@ export function RateationsTablePro({
                        r.tipo.toUpperCase() === 'PAGOPA' 
                          ? (r.unpaid_overdue_today && r.unpaid_overdue_today > 0 ? "text-destructive font-medium" : "")
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
-                     }`}>
-                       {r.tipo.toUpperCase() === 'PAGOPA' ? (
-                         <div>
-                           <div>{r.unpaid_overdue_today ?? 0}</div>
-                           {r.skip_remaining !== undefined && (
-                             <div className="text-xs mt-1">
-                               <span
-                                 className={`inline-flex items-center rounded px-2 py-0.5 text-xs ${
-                                   (r.skip_remaining ?? 0) === 0
-                                     ? 'bg-red-100 text-red-700'
-                                     : 'bg-gray-100 text-gray-700'
-                                 }`}
-                                 title={
-                                   (r.skip_remaining ?? 0) === 0
-                                     ? 'Attenzione: raggiunto il limite di 8 rate non pagate alla data odierna'
-                                     : 'Numero di "salti" residui su 8 consentiti'
-                                 }
-                               >
-                                 Salti: {r.skip_remaining ?? 8}/8
-                               </span>
-                             </div>
-                           )}
-                         </div>
-                       ) : (
-                         r.rateInRitardo + (r.ratePaidLate || 0)
-                       )}
+                      }`}>
+                        {r.tipo.toUpperCase() === 'PAGOPA' ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1">
+                              <span className="text-sm text-muted-foreground">Non pagate oggi:</span>
+                              <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
+                            </span>
+
+                            {typeof r.skip_remaining !== 'undefined' && (
+                              <span className="inline-flex items-center gap-1 ml-2">
+                                <span className="text-sm text-muted-foreground">Salti:</span>
+                                <span className="font-medium">{r.skip_remaining ?? 8}/8</span>
+                                {(() => {
+                                  const risk = getSkipRisk(r.skip_remaining);
+                                  return risk ? (
+                                    <span className={`ml-1 ${risk.cls}`} title={risk.title} aria-label={risk.title}>
+                                      ⚠️
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          r.rateInRitardo + (r.ratePaidLate || 0)
+                        )}
                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
