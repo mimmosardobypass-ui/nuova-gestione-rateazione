@@ -27,7 +27,7 @@ export const useImportProfileManager = () => {
       const mappedProfiles: SavedProfile[] = data.map(profile => ({
         id: profile.id,
         name: profile.name,
-        columnMappings: profile.column_mappings,
+        columnMappings: profile.column_mappings as ParsingProfile['columnMappings'],
         created_at: profile.created_at,
         updated_at: profile.updated_at,
       }));
@@ -53,6 +53,7 @@ export const useImportProfileManager = () => {
           name: profile.name,
           description: `Profilo di mappatura per ${profile.name}`,
           column_mappings: profile.columnMappings,
+          owner_uid: (await supabase.auth.getUser()).data.user?.id,
         })
         .select()
         .single();

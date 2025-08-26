@@ -114,7 +114,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
         const { data, error } = await supabase
           .from("installments")
           .select("id, rateation_id, seq, due_date, amount, paid_at")
-          .eq("rateation_id", rateationId)
+          .eq("rateation_id", parseInt(rateationId))
           .order("seq", { ascending: true });
 
         if (error) throw error;

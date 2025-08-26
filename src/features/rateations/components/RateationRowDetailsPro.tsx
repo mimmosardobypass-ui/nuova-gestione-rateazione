@@ -76,7 +76,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           number,
           rateation_types!inner(name)
         `)
-        .eq('id', rateationId)
+        .eq('id', parseInt(rateationId))
         .single();
 
       if (rateationError) {
@@ -86,7 +86,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                          (rateationData as any).rateation_types?.name || '';
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
-          status: rateationData.status || 'active',
+          status: (rateationData.status || 'active') as RateationStatus,
           decadence_at: rateationData.decadence_at,
           taxpayer_name: rateationData.taxpayer_name,
           number: rateationData.number,

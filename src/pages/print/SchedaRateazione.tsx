@@ -97,14 +97,14 @@ export default function SchedaRateazione() {
       const { data: headerData } = await supabase
         .from("v_rateation_summary")
         .select("*")
-        .eq("id", id!)
+        .eq("id", parseInt(id!))
         .single();
 
       // Load installments
       const { data: installmentsData } = await supabase
         .from("v_rateation_installments")
         .select("*")
-        .eq("rateation_id", id!)
+        .eq("rateation_id", parseInt(id!))
         .order("seq");
 
       // Load forecast (next 12 months)
@@ -115,8 +115,18 @@ export default function SchedaRateazione() {
         .order("month")
         .limit(12);
 
-      setHeader(headerData);
-      setInstallments(installmentsData || []);
+      if (headerData) {
+        setHeader({
+          ...headerData,
+          id: headerData.id.toString()
+        });
+      }
+      
+      const convertedInstallments = (installmentsData || []).map(inst => ({
+        ...inst,
+        id: inst.id.toString()
+      }));
+      setInstallments(convertedInstallments);
       setForecast(forecastData || []);
     } catch (error) {
       console.error("Error loading data:", error);

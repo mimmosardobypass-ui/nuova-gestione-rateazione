@@ -100,7 +100,11 @@ export default function RiepilogoReport() {
         });
       }
 
-      setRows(filteredRows);
+      const convertedRows = filteredRows.map(row => ({
+        ...row,
+        id: row.id.toString()
+      }));
+      setRows(convertedRows);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
