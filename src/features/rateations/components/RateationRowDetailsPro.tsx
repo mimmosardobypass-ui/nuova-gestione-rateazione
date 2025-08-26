@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { supabase } from "@/integrations/supabase/client";
+import { getLegacySkipRisk } from "@/features/rateations/utils/pagopaSkips";
 
 interface RateationRowDetailsProProps {
   rateationId: string;
@@ -116,25 +117,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const skipMax = pagopaKpis?.max_skips_effective ?? 8;
   const skipRemaining = pagopaKpis?.skip_remaining ?? Math.max(0, skipMax - unpaidOverdueToday);
   
-  // Use centralized PagoPA utilities
-  const { calcPagopaKpis, getSkipRisk, getLegacySkipRisk } = React.useMemo(() => {
-    return {
-      calcPagopaKpis: (items: any[], maxSkips?: number) => {
-        const { calcPagopaKpis } = require('@/features/rateations/utils/pagopaSkips');
-        return calcPagopaKpis(items, maxSkips);
-      },
-      getSkipRisk: (remaining: number) => {
-        const { getSkipRisk } = require('@/features/rateations/utils/pagopaSkips');
-        return getSkipRisk(remaining);
-      },
-      getLegacySkipRisk: (remaining: number, max?: number) => {
-        const { getLegacySkipRisk } = require('@/features/rateations/utils/pagopaSkips');
-        return getLegacySkipRisk(remaining, max);
-      }
-    };
-  }, []);
-  
-  const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax, getLegacySkipRisk]);
+  // Calculate skip risk using centralized utility
+  const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax]);
 
   // Decadence handlers
   const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {
