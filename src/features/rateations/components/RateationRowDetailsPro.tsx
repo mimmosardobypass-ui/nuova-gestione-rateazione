@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
-import { DEFAULT_MAX_PAGOPA_SKIPS, toMidnight, calcUnpaidOverdueToday, getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { fetchInstallments, postponeInstallment, deleteInstallment } from "../api/installments";
 import { confirmDecadence } from "../api/decadence";
 import { AttachmentsPanel } from "./AttachmentsPanel";
@@ -30,6 +29,12 @@ import { supabase } from "@/integrations/supabase/client";
 interface RateationRowDetailsProProps {
   rateationId: string;
   onDataChanged?: () => void;
+  // Accept pre-computed PagoPA KPIs from parent
+  pagopaKpis?: {
+    unpaid_overdue_today: number;
+    max_skips_effective: number;
+    skip_remaining: number;
+  };
 }
 
 interface RateationInfo {
@@ -41,10 +46,10 @@ interface RateationInfo {
   type_name?: string;
 }
 
-export function RateationRowDetailsPro({ rateationId, onDataChanged }: RateationRowDetailsProProps) {
+export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis }: RateationRowDetailsProProps) {
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [rateationInfo, setRateationInfo] = useState<RateationInfo | null>(null);
-  const [pagopaMaxSkips, setPagopaMaxSkips] = useState<number | null>(null);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
@@ -89,18 +94,6 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
         });
       }
 
-      // tenta di leggere max_skips_effective dalla vista v_pagopa_unpaid_today per questo piano
-      try {
-        const { data: kpiRow } = await supabase
-          .from('v_pagopa_unpaid_today')
-          .select('max_skips_effective')
-          .eq('rateation_id', rateationId)
-          .maybeSingle();
-
-        setPagopaMaxSkips(typeof kpiRow?.max_skips_effective === 'number' ? kpiRow.max_skips_effective : null);
-      } catch {
-        setPagopaMaxSkips(null);
-      }
     } catch (e: any) {
       setError(e?.message || "Errore nel caricamento rate");
       setItems([]);
@@ -118,17 +111,29 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged }: Rateation
     load(); 
   }, [load]);
 
-  // --- calcoli (PRIMA di qualsiasi return) ---
-  const todayMid = React.useMemo(() => toMidnight(new Date()), []);
-  const unpaidOverdueToday = React.useMemo(
-    () => calcUnpaidOverdueToday(items, todayMid),
-    [items, todayMid]
-  );
-
-  // denominatore dinamico se disponibile, altrimenti fallback 8
-  const skipMax = pagopaMaxSkips ?? DEFAULT_MAX_PAGOPA_SKIPS;
-  const skipRemaining = React.useMemo(() => Math.max(0, skipMax - unpaidOverdueToday), [skipMax, unpaidOverdueToday]);
-  const skipRisk = React.useMemo(() => getSkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax]);
+  // Use pre-computed PagoPA KPIs from parent or local fallbacks
+  const unpaidOverdueToday = pagopaKpis?.unpaid_overdue_today ?? 0;
+  const skipMax = pagopaKpis?.max_skips_effective ?? 8;
+  const skipRemaining = pagopaKpis?.skip_remaining ?? Math.max(0, skipMax - unpaidOverdueToday);
+  
+  // Import getSkipRisk for risk calculation
+  const { getSkipRisk } = React.useMemo(() => {
+    const getSkipRisk = (skipRemaining: number, max?: number) => {
+      if (skipRemaining <= 0) {
+        return { level: 'limit', cls: 'text-red-600', title: 'Limite salti raggiunto — rischio decadenza' };
+      }
+      if (skipRemaining === 1) {
+        return { level: 'last', cls: 'text-amber-600', title: 'Ultimo salto disponibile' };
+      }
+      if (skipRemaining === 2) {
+        return { level: 'low', cls: 'text-yellow-600', title: 'Attenzione: 2 salti residui' };
+      }
+      return null;
+    };
+    return { getSkipRisk };
+  }, []);
+  
+  const skipRisk = React.useMemo(() => getSkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax, getSkipRisk]);
 
   // Decadence handlers
   const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {

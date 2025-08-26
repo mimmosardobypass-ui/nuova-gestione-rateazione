@@ -127,12 +127,12 @@ export const useRateations = (): UseRateationsReturn => {
 
       if (controller.signal.aborted) return;
 
-      // 1) Fetch rateations with owner_uid filter
+      // 1) Fetch rateations with owner_uid filter, include max_pagopa_skips
       const t0 = performance.now?.() ?? Date.now();
       console.debug("[useRateations] Fetching rateations for user:", userId);
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
-        .select("id, number, type_id, taxpayer_name, created_at")
+        .select("id, number, type_id, taxpayer_name, created_at, max_pagopa_skips")
         .eq("owner_uid", userId);
       const t1 = performance.now?.() ?? Date.now();
       
@@ -179,38 +179,9 @@ export const useRateations = (): UseRateationsReturn => {
 
       const typesMap = Object.fromEntries((types || []).map(t => [t.id, t.name as string]));
 
-      // 4) Fetch PagoPA KPIs for relevant rateations using new view
-      const pagopaIds = (rateations ?? [])
-        .filter(r => (typesMap[r.type_id] ?? '').toUpperCase() === 'PAGOPA')
-        .map(r => r.id);
-
-      let kpiMap: Record<number, {
-        unpaid_overdue_today: number;
-        skip_remaining: number;
-        max_skips_effective: number;
-      }> = {};
-
-      if (pagopaIds.length > 0) {
-        const { data: kpis, error: kpiErr } = await supabase
-          .from('v_pagopa_today_kpis')
-          .select('rateation_id, unpaid_overdue_today, skip_remaining, max_skips_effective')
-          .in('rateation_id', pagopaIds);
-
-        if (!kpiErr && Array.isArray(kpis)) {
-          kpiMap = Object.fromEntries(
-            kpis.map(k => [Number(k.rateation_id), {
-              unpaid_overdue_today: Number(k.unpaid_overdue_today ?? 0),
-              skip_remaining: Number(k.skip_remaining ?? 0),
-              max_skips_effective: Number(k.max_skips_effective ?? 8),
-            }])
-          );
-        } else if (kpiErr) {
-          console.warn("[useRateations] PagoPA KPIs fetch error:", kpiErr);
-        }
-      }
-
-      const today = new Date(); 
-      today.setHours(0, 0, 0, 0);
+      // 4) Timezone-safe today calculation
+      const todayMid = new Date();
+      todayMid.setHours(0, 0, 0, 0);
 
       // Process each rateation with merged KPI data
       const processedRows: (RateationRow & { _createdAt: string | null })[] = (rateations || []).map(r => {
@@ -220,13 +191,13 @@ export const useRateations = (): UseRateationsReturn => {
         const ratePagate = its.filter(i => i.is_paid).length;
         const rateNonPagate = rateTotali - ratePagate;
 
-        // Overdue installments: not paid and past due date
+        // Overdue installments: not paid and past due date (timezone-safe)
         const rateInRitardo = its.filter(i => {
           if (i.is_paid) return false;
           if (!i.due_date) return false;
           const due = new Date(i.due_date);
           due.setHours(0, 0, 0, 0);
-          return due < today;
+          return due < todayMid;
         }).length;
 
         // Paid late installments: paid_at > due_date (historical)
@@ -242,17 +213,21 @@ export const useRateations = (): UseRateationsReturn => {
         const importoTotale = its.reduce((s, i) => s + (i.amount || 0), 0);
         const importoPagato = its.filter(i => i.is_paid).reduce((s, i) => s + (i.amount || 0), 0);
         const importoRitardo = its
-          .filter(i => !i.is_paid && i.due_date && new Date(new Date(i.due_date).setHours(0, 0, 0, 0)) < today)
+          .filter(i => !i.is_paid && i.due_date && new Date(new Date(i.due_date).setHours(0, 0, 0, 0)) < todayMid)
           .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
         
-        // Merge KPI data with consistent fallbacks
-        const k = kpiMap[Number(r.id)];
-        const max = k?.max_skips_effective ?? 8;
-        const overdue = k?.unpaid_overdue_today ?? 0;
-        const remaining = (typeof k?.skip_remaining === 'number')
-          ? k!.skip_remaining
-          : Math.max(0, max - overdue);
+        // Unified local PagoPA KPI calculation (timezone-safe)
+        const unpaidOverdueToday = its.filter(i => {
+          if (i.is_paid) return false;
+          if (!i.due_date) return false;
+          const due = new Date(i.due_date);
+          due.setHours(0, 0, 0, 0);
+          return due < todayMid;
+        }).length;
+
+        const maxSkips = (typeof r.max_pagopa_skips === 'number') ? r.max_pagopa_skips : 8;
+        const skipRemaining = Math.max(0, maxSkips - unpaidOverdueToday);
 
         return {
           id: String(r.id),
@@ -268,10 +243,10 @@ export const useRateations = (): UseRateationsReturn => {
           rateNonPagate,
           rateInRitardo,
           ratePaidLate,
-          // Always include PagoPA KPI fields with fallbacks
-          unpaid_overdue_today: overdue,
-          max_skips_effective: max,
-          skip_remaining: remaining,
+          // Always include PagoPA KPI fields (unified local calculation)
+          unpaid_overdue_today: unpaidOverdueToday,
+          max_skips_effective: maxSkips,
+          skip_remaining: skipRemaining,
           _createdAt: r.created_at || null,
         };
       });

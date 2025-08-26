@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
-import { computeSkips, getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
+import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -138,7 +138,8 @@ export function RateationsTablePro({
                               <div className="text-sm inline-flex items-center gap-2">
                                 <span className="text-muted-foreground">Salti:</span>
                                 {(() => {
-                                  const { remaining, max } = computeSkips(r);
+                                  const remaining = r.skip_remaining ?? 0;
+                                  const max = r.max_skips_effective ?? 8;
                                   const risk = getSkipRisk(remaining, max);
                                   return (
                                     <>
@@ -198,6 +199,11 @@ export function RateationsTablePro({
                           <RateationRowDetailsPro 
                             rateationId={r.id} 
                             onDataChanged={onDataChanged}
+                            pagopaKpis={r.tipo.toUpperCase() === 'PAGOPA' ? {
+                              unpaid_overdue_today: r.unpaid_overdue_today ?? 0,
+                              max_skips_effective: r.max_skips_effective ?? 8,
+                              skip_remaining: r.skip_remaining ?? 0
+                            } : undefined}
                           />
                         </div>
                       </TableCell>
