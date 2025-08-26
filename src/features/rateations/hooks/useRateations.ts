@@ -222,15 +222,41 @@ export const useRateations = (): UseRateationsReturn => {
         let skipRemaining: number = MAX_PAGOPA_SKIPS;
         let maxSkipsEffective: number = MAX_PAGOPA_SKIPS;
 
+        // DEBUG: Special logging for rateation #11 (N.11 PagoPa)
+        const isRateation11 = r.number === '11' || r.number === 'N.11' || r.number.includes('11');
+        if (isRateation11) {
+          console.log(`🔍 [DEBUG] Rateation #11 (ID: ${r.id}) analysis:`);
+          console.log(`  - Raw rateation data:`, r);
+          console.log(`  - Type ID: ${r.type_id}, Type name: "${typesMap[r.type_id]}", isPagoPA: ${isPagoPA}`);
+          console.log(`  - Raw installments (${its.length}):`, its);
+          console.log(`  - Today midnight:`, todayMid);
+          console.log(`  - Rate in ritardo (old logic): ${rateInRitardo}`);
+        }
+
         if (isPagoPA) {
-          const { unpaidOverdueToday: unpaid, skipRemaining: remaining, maxSkips } = calcPagopaKpis(
-            its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date })),
+          const installmentLiteData = its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date }));
+          
+          if (isRateation11) {
+            console.log(`  - Installment lite data for PagoPA calc:`, installmentLiteData);
+          }
+          
+          const pagopaResult = calcPagopaKpis(
+            installmentLiteData,
             MAX_PAGOPA_SKIPS,
             todayMid
           );
-          unpaidOverdueToday = unpaid;
-          skipRemaining = remaining;
-          maxSkipsEffective = maxSkips;
+          
+          if (isRateation11) {
+            console.log(`  - PagoPA calculation result:`, pagopaResult);
+          }
+          
+          unpaidOverdueToday = pagopaResult.unpaidOverdueToday;
+          skipRemaining = pagopaResult.skipRemaining;
+          maxSkipsEffective = pagopaResult.maxSkips;
+          
+          if (isRateation11) {
+            console.log(`  - Final values: unpaidOverdueToday=${unpaidOverdueToday}, skipRemaining=${skipRemaining}, maxSkips=${maxSkipsEffective}`);
+          }
         }
 
         return {
@@ -293,9 +319,28 @@ export const useRateations = (): UseRateationsReturn => {
   }, [online, loadFromCache, saveToCache, clearCache]);
 
   const refresh = useCallback(async () => {
+    console.log('🔄 [DEBUG] Manual refresh triggered - clearing cache and reloading');
     clearCache();
     await loadData();
   }, [loadData, clearCache]);
+
+  // Debug function to manually clear cache for testing
+  const debugClearCache = useCallback(() => {
+    console.log('🗑️ [DEBUG] Manual cache clear');
+    clearCache();
+    // Also clear browser cache for this session
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  }, [clearCache]);
+
+  // Expose debug function globally for testing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).debugClearRateationsCache = debugClearCache;
+      console.log('🔧 [DEBUG] Debug function available: window.debugClearRateationsCache()');
+    }
+  }, [debugClearCache]);
 
   const handleDelete = useCallback(async (id: string, debouncedReloadStats?: () => void) => {
     if (!online) {
