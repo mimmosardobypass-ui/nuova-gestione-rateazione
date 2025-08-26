@@ -197,6 +197,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_unpaid_today"
             referencedColumns: ["rateation_id"]
           },
@@ -549,6 +556,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_unpaid_today"
             referencedColumns: ["rateation_id"]
           },
@@ -646,6 +660,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_unpaid_today"
             referencedColumns: ["rateation_id"]
           },
@@ -698,6 +719,15 @@ export type Database = {
           amount_paid: number | null
           month: string | null
           owner_uid: string | null
+        }
+        Relationships: []
+      }
+      v_pagopa_today_kpis: {
+        Row: {
+          max_skips_effective: number | null
+          rateation_id: number | null
+          skip_remaining: number | null
+          unpaid_overdue_today: number | null
         }
         Relationships: []
       }
@@ -770,6 +800,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
           },
           {
             foreignKeyName: "installments_rateation_id_fkey"
@@ -937,6 +974,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
           },
           {
             foreignKeyName: "installments_rateation_id_fkey"

@@ -179,33 +179,40 @@ export const useRateations = (): UseRateationsReturn => {
 
       const typesMap = Object.fromEntries((types || []).map(t => [t.id, t.name as string]));
 
-      // 4) Fetch PagoPA KPIs for relevant rateations
-      const pagopaTypeId = (types || []).find(t => t.name.toUpperCase() === 'PAGOPA')?.id;
-      let pagopaKpis: any[] = [];
-      if (pagopaTypeId) {
-        const pagopaRateationIds = (rateations || [])
-          .filter(r => r.type_id === pagopaTypeId)
-          .map(r => r.id);
-        
-        if (pagopaRateationIds.length > 0) {
-          const { data: kpis, error: kpisError } = await supabase
-            .from("v_pagopa_unpaid_today")
-            .select("*")
-            .in("rateation_id", pagopaRateationIds);
-          
-          if (kpisError) {
-            console.warn("[useRateations] PagoPA KPIs fetch error:", kpisError);
-          } else {
-            pagopaKpis = kpis || [];
-          }
+      // 4) Fetch PagoPA KPIs for relevant rateations using new view
+      const pagopaIds = (rateations ?? [])
+        .filter(r => (typesMap[r.type_id] ?? '').toUpperCase() === 'PAGOPA')
+        .map(r => r.id);
+
+      let kpiMap: Record<number, {
+        unpaid_overdue_today: number;
+        skip_remaining: number;
+        max_skips_effective: number;
+      }> = {};
+
+      if (pagopaIds.length > 0) {
+        const { data: kpis, error: kpiErr } = await supabase
+          .from('v_pagopa_today_kpis')
+          .select('rateation_id, unpaid_overdue_today, skip_remaining, max_skips_effective')
+          .in('rateation_id', pagopaIds);
+
+        if (!kpiErr && Array.isArray(kpis)) {
+          kpiMap = Object.fromEntries(
+            kpis.map(k => [Number(k.rateation_id), {
+              unpaid_overdue_today: Number(k.unpaid_overdue_today ?? 0),
+              skip_remaining: Number(k.skip_remaining ?? 0),
+              max_skips_effective: Number(k.max_skips_effective ?? 8),
+            }])
+          );
+        } else if (kpiErr) {
+          console.warn("[useRateations] PagoPA KPIs fetch error:", kpiErr);
         }
       }
 
-      const pagopaKpisMap = Object.fromEntries(pagopaKpis.map(k => [k.rateation_id, k]));
       const today = new Date(); 
       today.setHours(0, 0, 0, 0);
 
-      // Process each rateation with custom logic
+      // Process each rateation with merged KPI data
       const processedRows: (RateationRow & { _createdAt: string | null })[] = (rateations || []).map(r => {
         const its = (installments || []).filter(i => i.rateation_id === r.id);
 
@@ -239,9 +246,13 @@ export const useRateations = (): UseRateationsReturn => {
           .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
         
-        // Add PagoPA KPIs if available
-        const pagopaKpi = pagopaKpisMap[r.id];
-        const isPagePA = typesMap[r.type_id]?.toUpperCase() === 'PAGOPA';
+        // Merge KPI data with consistent fallbacks
+        const k = kpiMap[Number(r.id)];
+        const max = k?.max_skips_effective ?? 8;
+        const overdue = k?.unpaid_overdue_today ?? 0;
+        const remaining = (typeof k?.skip_remaining === 'number')
+          ? k!.skip_remaining
+          : Math.max(0, max - overdue);
 
         return {
           id: String(r.id),
@@ -257,12 +268,10 @@ export const useRateations = (): UseRateationsReturn => {
           rateNonPagate,
           rateInRitardo,
           ratePaidLate,
-          // PagoPA specific fields
-          ...(isPagePA && pagopaKpi && {
-            unpaid_overdue_today: pagopaKpi.unpaid_overdue_today,
-            skip_remaining: pagopaKpi.skip_remaining,
-            at_risk_decadence: pagopaKpi.at_risk_decadence,
-          }),
+          // Always include PagoPA KPI fields with fallbacks
+          unpaid_overdue_today: overdue,
+          max_skips_effective: max,
+          skip_remaining: remaining,
           _createdAt: r.created_at || null,
         };
       });
@@ -454,6 +463,18 @@ export const useRateations = (): UseRateationsReturn => {
       }
     };
   }, []); // NO dependencies to avoid loops
+
+  // Event listener for KPI reload
+  useEffect(() => {
+    const handleReloadKpis = () => {
+      console.debug("[useRateations] KPI reload event received");
+      clearCache();
+      loadData().catch(console.error);
+    };
+    
+    window.addEventListener('rateations:reload-kpis', handleReloadKpis);
+    return () => window.removeEventListener('rateations:reload-kpis', handleReloadKpis);
+  }, [loadData, clearCache]);
 
   // Initial load
   useEffect(() => {

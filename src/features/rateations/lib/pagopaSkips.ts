@@ -38,3 +38,17 @@ export function getSkipRisk(skipRemaining: number, max?: number): SkipRisk {
   }
   return null;
 }
+
+// Calcolo coerente per i salti da usare nei componenti
+export function computeSkips(row: {
+  unpaid_overdue_today?: number;
+  max_skips_effective?: number;
+  skip_remaining?: number;
+}) {
+  const max = Number(row.max_skips_effective ?? DEFAULT_MAX_PAGOPA_SKIPS);
+  const overdue = Number(row.unpaid_overdue_today ?? 0);
+  const remaining = (typeof row.skip_remaining === 'number')
+    ? Number(row.skip_remaining)
+    : Math.max(0, max - overdue);
+  return { remaining, max, overdue };
+}
