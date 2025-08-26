@@ -128,12 +128,12 @@ export const useRateations = (): UseRateationsReturn => {
 
       if (controller.signal.aborted) return;
 
-      // 1) Fetch rateations with owner_uid filter, include max_pagopa_skips
+      // 1) Fetch rateations with owner_uid filter
       const t0 = performance.now?.() ?? Date.now();
       console.debug("[useRateations] Fetching rateations for user:", userId);
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
-        .select("id, number, type_id, taxpayer_name, created_at, max_pagopa_skips")
+        .select("id, number, type_id, taxpayer_name, created_at")
         .eq("owner_uid", userId);
       const t1 = performance.now?.() ?? Date.now();
       
@@ -218,7 +218,7 @@ export const useRateations = (): UseRateationsReturn => {
           return toMidnightLocal(i.due_date) < todayMid;
         }).length;
 
-        const maxSkips = (typeof r.max_pagopa_skips === 'number') ? r.max_pagopa_skips : 8;
+        const maxSkips = 8; // PagoPA default max skips (hardcoded since column doesn't exist)
         const skipRemaining = Math.max(0, maxSkips - unpaidOverdueToday);
 
         return {

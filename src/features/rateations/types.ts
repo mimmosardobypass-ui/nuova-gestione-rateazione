@@ -33,8 +33,9 @@ export interface RateationRow {
   decadence_info?: DecadenceInfo;
   // PagoPA "8 skips" rule fields
   unpaid_overdue_today?: number; // Rate non pagate con due_date < current_date
-  skip_remaining?: number;       // GREATEST(0, 8 - unpaid_overdue_today) 
-  at_risk_decadence?: boolean;   // unpaid_overdue_today >= 8
+  max_skips_effective?: number;  // Effective max skips (default 8)
+  skip_remaining?: number;       // GREATEST(0, max_skips_effective - unpaid_overdue_today) 
+  at_risk_decadence?: boolean;   // unpaid_overdue_today >= max_skips_effective
 }
 
 export interface DecadenceDashboard {
