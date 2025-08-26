@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import QRCode from "qrcode";
 import { getDaysLate, getPaymentDate } from "@/features/rateations/lib/installmentState";
-import { toMidnight } from "@/features/rateations/lib/pagopaSkips";
+import { toMidnightLocal as toMidnight } from "@/features/rateations/utils/pagopaSkips";
 import type { InstallmentUI } from "@/features/rateations/types";
 import { ensureStringId } from "@/lib/utils/ids";
 

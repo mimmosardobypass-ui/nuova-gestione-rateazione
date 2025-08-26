@@ -3,7 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { supabase, safeSupabaseOperation } from "@/integrations/supabase/client-resilient";
-import { toMidnightLocal } from "../lib/pagopaSkips";
+import { calcPagopaKpis, MAX_PAGOPA_SKIPS, toMidnightLocal } from "@/features/rateations/utils/pagopaSkips";
 
 interface UseRateationsReturn {
   rows: RateationRow[];
@@ -216,15 +216,22 @@ export const useRateations = (): UseRateationsReturn => {
           .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
         
-        // Unified local PagoPA KPI calculation (timezone-safe)
-        const unpaidOverdueToday = its.filter(i => {
-          if (i.is_paid) return false;
-          if (!i.due_date) return false;
-          return toMidnightLocal(i.due_date) < todayMid;
-        }).length;
+        // PagoPA KPI calculation using centralized utility
+        const isPagoPA = (typesMap[r.type_id] ?? '').toUpperCase() === 'PAGOPA';
+        let unpaidOverdueToday: number = 0;
+        let skipRemaining: number = MAX_PAGOPA_SKIPS;
+        let maxSkipsEffective: number = MAX_PAGOPA_SKIPS;
 
-        const maxSkips = 8; // PagoPA default max skips (hardcoded since column doesn't exist)
-        const skipRemaining = Math.max(0, maxSkips - unpaidOverdueToday);
+        if (isPagoPA) {
+          const { unpaidOverdueToday: unpaid, skipRemaining: remaining, maxSkips } = calcPagopaKpis(
+            its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date })),
+            MAX_PAGOPA_SKIPS,
+            todayMid
+          );
+          unpaidOverdueToday = unpaid;
+          skipRemaining = remaining;
+          maxSkipsEffective = maxSkips;
+        }
 
         return {
           id: String(r.id),
@@ -242,7 +249,7 @@ export const useRateations = (): UseRateationsReturn => {
           ratePaidLate,
           // Always include PagoPA KPI fields (unified local calculation)
           unpaid_overdue_today: unpaidOverdueToday,
-          max_skips_effective: maxSkips,
+          max_skips_effective: maxSkipsEffective,
           skip_remaining: skipRemaining,
           _createdAt: r.created_at || null,
         };

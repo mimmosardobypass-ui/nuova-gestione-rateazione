@@ -116,24 +116,25 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const skipMax = pagopaKpis?.max_skips_effective ?? 8;
   const skipRemaining = pagopaKpis?.skip_remaining ?? Math.max(0, skipMax - unpaidOverdueToday);
   
-  // Import getSkipRisk for risk calculation
-  const { getSkipRisk } = React.useMemo(() => {
-    const getSkipRisk = (skipRemaining: number, max?: number) => {
-      if (skipRemaining <= 0) {
-        return { level: 'limit', cls: 'text-red-600', title: 'Limite salti raggiunto — rischio decadenza' };
+  // Use centralized PagoPA utilities
+  const { calcPagopaKpis, getSkipRisk, getLegacySkipRisk } = React.useMemo(() => {
+    return {
+      calcPagopaKpis: (items: any[], maxSkips?: number) => {
+        const { calcPagopaKpis } = require('@/features/rateations/utils/pagopaSkips');
+        return calcPagopaKpis(items, maxSkips);
+      },
+      getSkipRisk: (remaining: number) => {
+        const { getSkipRisk } = require('@/features/rateations/utils/pagopaSkips');
+        return getSkipRisk(remaining);
+      },
+      getLegacySkipRisk: (remaining: number, max?: number) => {
+        const { getLegacySkipRisk } = require('@/features/rateations/utils/pagopaSkips');
+        return getLegacySkipRisk(remaining, max);
       }
-      if (skipRemaining === 1) {
-        return { level: 'last', cls: 'text-amber-600', title: 'Ultimo salto disponibile' };
-      }
-      if (skipRemaining === 2) {
-        return { level: 'low', cls: 'text-yellow-600', title: 'Attenzione: 2 salti residui' };
-      }
-      return null;
     };
-    return { getSkipRisk };
   }, []);
   
-  const skipRisk = React.useMemo(() => getSkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax, getSkipRisk]);
+  const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax, getLegacySkipRisk]);
 
   // Decadence handlers
   const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {

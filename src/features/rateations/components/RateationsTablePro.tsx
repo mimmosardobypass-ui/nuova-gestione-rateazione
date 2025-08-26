@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
-import { getSkipRisk } from '@/features/rateations/lib/pagopaSkips';
+import { getLegacySkipRisk } from '@/features/rateations/utils/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -140,7 +140,7 @@ export function RateationsTablePro({
                                 {(() => {
                                   const remaining = r.skip_remaining ?? 0;
                                   const max = r.max_skips_effective ?? 8;
-                                  const risk = getSkipRisk(remaining, max);
+                                  const risk = getLegacySkipRisk(remaining, max);
                                   return (
                                     <>
                                       <span className="font-medium">{remaining}/{max}</span>
