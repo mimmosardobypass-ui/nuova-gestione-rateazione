@@ -2,12 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { ParsingProfile } from './types';
 import { useToast } from '@/hooks/use-toast';
+import { mapProfile, type SavedProfile } from '@/lib/mappers/parsingProfile';
 
-export interface SavedProfile extends ParsingProfile {
-  id: string;
-  created_at: string;
-  updated_at: string;
-}
+// SavedProfile is now imported from the mapper
 
 export const useImportProfileManager = () => {
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
@@ -24,13 +21,7 @@ export const useImportProfileManager = () => {
 
       if (error) throw error;
 
-      const mappedProfiles: SavedProfile[] = data.map(profile => ({
-        id: profile.id,
-        name: profile.name,
-        columnMappings: profile.column_mappings as ParsingProfile['columnMappings'],
-        created_at: profile.created_at,
-        updated_at: profile.updated_at,
-      }));
+      const mappedProfiles = (data || []).map(mapProfile);
 
       setProfiles(mappedProfiles);
     } catch (error) {

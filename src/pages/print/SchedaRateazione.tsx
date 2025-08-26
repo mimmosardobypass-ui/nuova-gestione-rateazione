@@ -9,6 +9,7 @@ import QRCode from "qrcode";
 import { getDaysLate, getPaymentDate } from "@/features/rateations/lib/installmentState";
 import { toMidnight } from "@/features/rateations/lib/pagopaSkips";
 import type { InstallmentUI } from "@/features/rateations/types";
+import { ensureStringId } from "@/lib/utils/ids";
 
 interface RateationHeader {
   id: string;
@@ -118,13 +119,13 @@ export default function SchedaRateazione() {
       if (headerData) {
         setHeader({
           ...headerData,
-          id: headerData.id.toString()
+          id: ensureStringId(headerData.id)
         });
       }
       
       const convertedInstallments = (installmentsData || []).map(inst => ({
         ...inst,
-        id: inst.id.toString()
+        id: ensureStringId(inst.id),
       }));
       setInstallments(convertedInstallments);
       setForecast(forecastData || []);

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
 import { PrintKpi } from "@/components/print/PrintKpi";
 import { formatEuro } from "@/lib/formatters";
+import { ensureStringId } from "@/lib/utils/ids";
 
 interface RiepilogoRow {
   id: string;
@@ -102,7 +103,7 @@ export default function RiepilogoReport() {
 
       const convertedRows = filteredRows.map(row => ({
         ...row,
-        id: row.id.toString()
+        id: ensureStringId(row.id),
       }));
       setRows(convertedRows);
     } catch (error) {
