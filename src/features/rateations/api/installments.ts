@@ -1,9 +1,14 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-resilient";
 import type { InstallmentUI } from "../types";
 
 // LOVABLE:START fetchInstallments
 export const fetchInstallments = async (rateationId: string, signal?: AbortSignal): Promise<InstallmentUI[]> => {
   if (signal?.aborted) throw new Error('AbortError');
+  
+  if (!supabase) {
+    console.warn('Supabase client not available, returning empty installments');
+    return [];
+  }
   
   const { data, error } = await supabase
     .from("installments")

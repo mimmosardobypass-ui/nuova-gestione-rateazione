@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client-resilient';
 import { BucketValue } from '@/features/rateations/constants/buckets';
 
 export interface DeadlineFilters {
@@ -59,6 +59,10 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
   return useQuery({
     queryKey: ['deadlines', filters],
     queryFn: async (): Promise<DeadlineItem[]> => {
+      if (!supabase) {
+        return [];
+      }
+      
       let query = supabase.from('v_scadenze').select('*');
 
       if (filters.startDate && filters.endDate) {

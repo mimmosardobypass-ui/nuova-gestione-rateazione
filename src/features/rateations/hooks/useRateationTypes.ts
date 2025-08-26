@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import type { RateationType } from "../types";
 import { fetchRateationTypes } from "../api/rateations";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-resilient";
 
 export const useRateationTypes = () => {
   const [types, setTypes] = useState<RateationType[]>([]);

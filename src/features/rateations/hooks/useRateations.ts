@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, safeSupabaseOperation } from "@/integrations/supabase/client-resilient";
 import { toMidnightLocal } from "../lib/pagopaSkips";
 
 interface UseRateationsReturn {
@@ -126,9 +126,14 @@ export const useRateations = (): UseRateationsReturn => {
         setLoading(false); // Show cached data immediately
       }
 
-      if (controller.signal.aborted) return;
+      if (!supabase) {
+        console.warn("[useRateations] Supabase client not available");
+        setError("Database non disponibile");
+        setLoading(false);
+        return;
+      }
 
-      // 1) Fetch rateations with owner_uid filter
+      if (controller.signal.aborted) return;
       const t0 = performance.now?.() ?? Date.now();
       console.debug("[useRateations] Fetching rateations for user:", userId);
       const { data: rateations, error: rateationsError } = await supabase

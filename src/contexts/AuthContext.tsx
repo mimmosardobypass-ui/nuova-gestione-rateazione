@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, safeSupabaseOperation } from '@/integrations/supabase/client-resilient';
 
 interface AuthContextType {
   user: User | null;
@@ -43,6 +43,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Funzione per gestire il bootstrap della sessione
     const initializeAuth = async () => {
       try {
+        if (!supabase) {
+          console.warn('Supabase client not available during auth initialization');
+          if (!mounted) return;
+          initialized = true;
+          setAuthReady(true);
+          setLoading(false);
+          return;
+        }
+        
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
         
@@ -61,31 +70,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Only set loading to false if we've completed initialization
-        // This prevents premature false negatives during app startup
-        if (initialized) {
-          setAuthReady(true);
-          setLoading(false);
+    let subscription: any = null;
+    if (supabase) {
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (!mounted) return;
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // Only set loading to false if we've completed initialization
+          // This prevents premature false negatives during app startup
+          if (initialized) {
+            setAuthReady(true);
+            setLoading(false);
+          }
         }
-      }
-    );
+      );
+      subscription = sub;
+    }
 
     // Initialize auth
     initializeAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: { message: 'Supabase non disponibile' } };
+    }
+    
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -99,6 +116,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: { message: 'Supabase non disponibile' } };
+    }
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -107,6 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    if (!supabase) {
+      console.warn('Cannot sign out: Supabase not available');
+      return;
+    }
+    
     await supabase.auth.signOut();
     // Il redirect verrà gestito automaticamente da onAuthStateChange
   };

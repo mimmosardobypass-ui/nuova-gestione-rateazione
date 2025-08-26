@@ -1,10 +1,14 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-resilient";
 
 /**
  * Totale residuo in euro (somma dei piani NON 'decaduta').
  * Legge la vista v_kpi_rateations che ritorna sempre 1 riga.
  */
 export async function fetchResidualEuro(signal?: AbortSignal): Promise<number> {
+  if (!supabase) {
+    return 0;
+  }
+  
   const { data, error } = await supabase
     .from("v_kpi_rateations")
     .select("residual_amount_cents")

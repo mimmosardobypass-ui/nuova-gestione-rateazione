@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client-resilient';
 import type { DeadlineFilters } from './useDeadlines';
 
 interface DeadlineCounts {
@@ -12,6 +12,10 @@ export function useDeadlineCounts(filters: DeadlineFilters = {}) {
   return useQuery({
     queryKey: ['deadline-counts', filters],
     queryFn: async (): Promise<DeadlineCounts> => {
+      if (!supabase) {
+        return { paid: 0, unpaid: 0, total: 0 };
+      }
+      
       const { data, error } = await supabase.rpc('deadlines_counts', {
         p_start_date: filters.startDate || null,
         p_end_date: filters.endDate || null,

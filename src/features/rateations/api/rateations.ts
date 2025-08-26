@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-resilient";
 import type { CreateRateationAutoParams, CreateRateationManualParams, RateationType } from "../types";
 
 // LOVABLE:START fetchRateations

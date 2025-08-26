@@ -3,7 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { deleteRateation } from "../api/rateations";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-resilient";
 
 export const useRateations = () => {
   const [rows, setRows] = useState<RateationRow[]>([]);

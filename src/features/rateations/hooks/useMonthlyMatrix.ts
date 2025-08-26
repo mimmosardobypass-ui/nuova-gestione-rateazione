@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client-resilient';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MonthlyMetric, MatrixData } from '@/features/rateations/types/monthly-matrix';
 
@@ -20,6 +20,13 @@ export function useMonthlyMatrix() {
       try {
         setLoading(true);
         setError(null);
+
+        if (!supabase) {
+          console.warn('Supabase client not available');
+          setData({});
+          setYears([]);
+          return;
+        }
 
         const { data: metricsData, error: fetchError } = await supabase
           .from('v_monthly_metrics')

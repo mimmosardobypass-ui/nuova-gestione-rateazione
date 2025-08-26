@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-resilient";
 
 export interface RateationSummaryEnhanced {
   id: string;
@@ -19,6 +19,11 @@ export interface RateationSummaryEnhanced {
 
 export const fetchRateationsSummaryEnhanced = async (signal?: AbortSignal): Promise<RateationSummaryEnhanced[]> => {
   if (signal?.aborted) throw new Error('AbortError');
+  
+  if (!supabase) {
+    console.warn('Supabase client not available, returning empty data');
+    return [];
+  }
   
   // Get authenticated user first
   const { data: { user }, error: authError } = await supabase.auth.getUser();
