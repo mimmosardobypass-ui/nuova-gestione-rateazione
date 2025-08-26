@@ -25,6 +25,20 @@ export type SkipRisk =
   | { level: 'low';   cls: string; title: string }
   | null;
 
+// Calcolo coerente per la cella della tabella
+export function computeSkips(row: {
+  unpaid_overdue_today?: number;
+  max_skips_effective?: number;
+  skip_remaining?: number;
+}) {
+  const max = Number(row.max_skips_effective ?? 8);
+  const overdue = Number(row.unpaid_overdue_today ?? 0);
+  const remaining = (typeof row.skip_remaining === 'number')
+    ? Number(row.skip_remaining)
+    : Math.max(0, max - overdue);
+  return { remaining, max, overdue };
+}
+
 // warning graduato sui salti rimanenti
 export function getSkipRisk(skipRemaining: number, max?: number): SkipRisk {
   if (skipRemaining <= 0) {
@@ -37,18 +51,4 @@ export function getSkipRisk(skipRemaining: number, max?: number): SkipRisk {
     return { level: 'low', cls: 'text-yellow-600', title: 'Attenzione: 2 salti residui' };
   }
   return null;
-}
-
-// Calcolo coerente per i salti da usare nei componenti
-export function computeSkips(row: {
-  unpaid_overdue_today?: number;
-  max_skips_effective?: number;
-  skip_remaining?: number;
-}) {
-  const max = Number(row.max_skips_effective ?? DEFAULT_MAX_PAGOPA_SKIPS);
-  const overdue = Number(row.unpaid_overdue_today ?? 0);
-  const remaining = (typeof row.skip_remaining === 'number')
-    ? Number(row.skip_remaining)
-    : Math.max(0, max - overdue);
-  return { remaining, max, overdue };
 }
