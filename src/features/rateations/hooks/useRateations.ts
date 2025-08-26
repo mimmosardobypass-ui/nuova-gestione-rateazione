@@ -3,6 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { supabase } from "@/integrations/supabase/client";
+import { toMidnightLocal } from "../lib/pagopaSkips";
 
 interface UseRateationsReturn {
   rows: RateationRow[];
@@ -179,9 +180,8 @@ export const useRateations = (): UseRateationsReturn => {
 
       const typesMap = Object.fromEntries((types || []).map(t => [t.id, t.name as string]));
 
-      // 4) Timezone-safe today calculation
-      const todayMid = new Date();
-      todayMid.setHours(0, 0, 0, 0);
+      // 4) Timezone-safe today calculation using unified helper
+      const todayMid = toMidnightLocal(new Date());
 
       // Process each rateation with merged KPI data
       const processedRows: (RateationRow & { _createdAt: string | null })[] = (rateations || []).map(r => {
@@ -195,25 +195,19 @@ export const useRateations = (): UseRateationsReturn => {
         const rateInRitardo = its.filter(i => {
           if (i.is_paid) return false;
           if (!i.due_date) return false;
-          const due = new Date(i.due_date);
-          due.setHours(0, 0, 0, 0);
-          return due < todayMid;
+          return toMidnightLocal(i.due_date) < todayMid;
         }).length;
 
         // Paid late installments: paid_at > due_date (historical)
         const ratePaidLate = its.filter(i => {
           if (!i.is_paid || !i.due_date || !i.paid_at) return false;
-          const due = new Date(i.due_date);
-          due.setHours(0, 0, 0, 0);
-          const paid = new Date(i.paid_at);
-          paid.setHours(0, 0, 0, 0);
-          return paid > due;
+          return toMidnightLocal(i.paid_at) > toMidnightLocal(i.due_date);
         }).length;
 
         const importoTotale = its.reduce((s, i) => s + (i.amount || 0), 0);
         const importoPagato = its.filter(i => i.is_paid).reduce((s, i) => s + (i.amount || 0), 0);
         const importoRitardo = its
-          .filter(i => !i.is_paid && i.due_date && new Date(new Date(i.due_date).setHours(0, 0, 0, 0)) < todayMid)
+          .filter(i => !i.is_paid && i.due_date && toMidnightLocal(i.due_date) < todayMid)
           .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
         
@@ -221,9 +215,7 @@ export const useRateations = (): UseRateationsReturn => {
         const unpaidOverdueToday = its.filter(i => {
           if (i.is_paid) return false;
           if (!i.due_date) return false;
-          const due = new Date(i.due_date);
-          due.setHours(0, 0, 0, 0);
-          return due < todayMid;
+          return toMidnightLocal(i.due_date) < todayMid;
         }).length;
 
         const maxSkips = (typeof r.max_pagopa_skips === 'number') ? r.max_pagopa_skips : 8;
