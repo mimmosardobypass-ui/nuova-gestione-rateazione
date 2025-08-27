@@ -89,6 +89,38 @@ export const useRateations = (): UseRateationsReturn => {
     }
   }, []);
 
+  // Sanity check function to validate KPI consistency post-mapping
+  const sanityCheckRows = useCallback((rows: RateationRow[]) => {
+    rows.forEach(r => {
+      const max = r.max_skips_effective ?? 8;
+      const overdue = r.unpaid_overdue_today ?? 0;
+      const remaining = r.skip_remaining ?? 8;
+      const expected = Math.max(0, Math.min(max, max - overdue));
+      
+      if (remaining !== expected) {
+        console.warn('[KPI-MISMATCH]', { 
+          id: r.id, 
+          tipo: r.tipo, 
+          overdue, 
+          remaining, 
+          expected, 
+          max,
+          message: `Skip remaining (${remaining}) doesn't match expected (${expected})`
+        });
+      }
+      
+      if (r.is_pagopa && (r.at_risk_decadence === true) !== (overdue >= max)) {
+        console.warn('[KPI-BANNER-MISMATCH]', { 
+          id: r.id, 
+          overdue, 
+          max, 
+          at_risk_decadence: r.at_risk_decadence,
+          message: `Banner risk flag (${r.at_risk_decadence}) doesn't match KPI calculation (${overdue >= max})`
+        });
+      }
+    });
+  }, []);
+
   const loadData = useCallback(async () => {
     console.debug("[useRateations] loadData called - online:", online);
     if (!online) {
@@ -209,6 +241,9 @@ export const useRateations = (): UseRateationsReturn => {
         rischio_decadenza: x.at_risk_decadence ? '⚠️ SI' : '✅ NO'
       })));
       console.groupEnd();
+      
+      // Sanity check KPI consistency
+      sanityCheckRows(finalRows);
       
       if (controller.signal.aborted) return;
       

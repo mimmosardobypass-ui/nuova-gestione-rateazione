@@ -117,7 +117,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const unpaidOverdueToday = pagopaKpis?.unpaid_overdue_today ?? 0;
   const unpaidDueToday = pagopaKpis?.unpaid_due_today ?? 0;
   const skipMax = pagopaKpis?.max_skips_effective ?? 8;
-  const skipRemaining = pagopaKpis?.skip_remaining ?? 0;
+  const skipRemaining = Math.max(0, Math.min(skipMax, pagopaKpis?.skip_remaining ?? 8));
   
   // Calculate skip risk using centralized utility
   const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining), [skipRemaining]);
@@ -251,6 +251,10 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           installments={items}
           onConfirmDecadence={handleConfirmDecadence}
           onViewOverdueInstallments={handleViewOverdueInstallments}
+          tipo={rateationInfo.type_name}
+          at_risk_decadence={pagopaKpis?.unpaid_overdue_today ? pagopaKpis.unpaid_overdue_today >= (pagopaKpis.max_skips_effective ?? 8) : false}
+          unpaid_overdue_today={unpaidOverdueToday}
+          max_skips_effective={skipMax}
         />
       )}
 
@@ -293,7 +297,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
         </div>
         
         {/* PagoPA specific KPIs */}
-        {rateationInfo?.type_name?.toUpperCase() === 'PAGOPA' && (
+        {pagopaKpis && (
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border bg-card p-3">
               <div className="text-xs text-muted-foreground">Non pagate oggi</div>

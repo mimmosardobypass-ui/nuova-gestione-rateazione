@@ -140,12 +140,12 @@ export function RateationsTablePro({
                                 <span className="text-muted-foreground">Scadenti oggi:</span>{' '}
                                 <span className="font-medium">{r.unpaid_due_today ?? 0}</span>
                               </div>
-                              <div className="text-sm inline-flex items-center gap-2">
-                                <span className="text-muted-foreground">Salti:</span>
-                                 {(() => {
-                                   const remaining = r.skip_remaining ?? 8;
-                                   const max = r.max_skips_effective ?? 8;
-                                  const risk = getLegacySkipRisk(remaining);
+                               <div className="text-sm inline-flex items-center gap-2">
+                                 <span className="text-muted-foreground">Salti:</span>
+                                  {(() => {
+                                    const max = r.max_skips_effective ?? 8;
+                                    const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
+                                   const risk = getLegacySkipRisk(remaining);
                                   return (
                                     <>
                                       <span className="font-medium">{remaining}/{max}</span>
@@ -208,7 +208,7 @@ export function RateationsTablePro({
                               unpaid_overdue_today: r.unpaid_overdue_today ?? 0,
                               unpaid_due_today: r.unpaid_due_today,
                               max_skips_effective: r.max_skips_effective ?? 8,
-                              skip_remaining: r.skip_remaining ?? 8
+                              skip_remaining: Math.max(0, Math.min(r.max_skips_effective ?? 8, r.skip_remaining ?? 8))
                             } : undefined}
                           />
                         </div>
