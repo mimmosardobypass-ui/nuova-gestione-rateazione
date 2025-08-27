@@ -174,24 +174,36 @@ export const useRateations = (): UseRateationsReturn => {
         rateInRitardo: r.rate_in_ritardo || 0,
         ratePaidLate: 0,
         
+        // Metadata
+        status: r.status || 'attiva',
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        is_f24: Boolean(r.is_f24),
+        type_id: Number(r.type_id),
+        type_name: r.tipo || 'N/A',
+        
         // PagoPA KPIs from DB - robust fallbacks to avoid "0/8" display issues
-        is_pagopa: !!r.is_pagopa,
+        is_pagopa: !!r.is_pagopa, // Use DB-calculated field directly
         unpaid_overdue_today: r.unpaid_overdue_today || 0,
         unpaid_due_today: r.unpaid_due_today || 0,
-        max_skips_effective: r.max_skips_effective ?? 8,
-        skip_remaining: r.skip_remaining ?? 8,
+        max_skips_effective: r.max_skips_effective ?? 8, // Default 8 if missing
+        skip_remaining: r.skip_remaining ?? 8, // Default 8 prevents false "0/8" warnings
         at_risk_decadence: !!r.at_risk_decadence,
       }));
       
-      // Debug logging for first 10 rows to verify KPIs are correctly read
+      // Debug logging for first 10 rows to verify KPIs are correctly read from canonical view
+      console.group('🔍 PagoPA KPI Debug - DB Source Truth (Europe/Rome timezone)');
       console.table(finalRows.slice(0, 10).map(x => ({
         id: x.id,
+        numero: x.numero,
         tipo: x.tipo,
+        is_pagopa: x.is_pagopa,
         in_ritardo: x.unpaid_overdue_today,
-        oggi: x.unpaid_due_today,
+        scadenti_oggi: x.unpaid_due_today,
         salti: `${x.skip_remaining}/${x.max_skips_effective}`,
-        rischio: x.at_risk_decadence ? '⚠️' : '✅'
+        rischio_decadenza: x.at_risk_decadence ? '⚠️ SI' : '✅ NO'
       })));
+      console.groupEnd();
       
       if (controller.signal.aborted) return;
       
