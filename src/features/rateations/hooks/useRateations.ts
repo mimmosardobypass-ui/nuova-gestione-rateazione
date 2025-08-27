@@ -249,6 +249,7 @@ export const useRateations = (): UseRateationsReturn => {
           unpaid_due_today:     unpaidDueToday,
           max_skips_effective:  maxSkipsEffective,
           skip_remaining:       skipRemaining,
+          at_risk_decadence:    unpaidOverdueToday >= maxSkipsEffective,
           _createdAt: r.created_at || null,
         };
       });
