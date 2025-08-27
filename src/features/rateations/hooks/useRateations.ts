@@ -216,23 +216,19 @@ export const useRateations = (): UseRateationsReturn => {
           .reduce((s, i) => s + (i.amount || 0), 0);
         const residuo = importoTotale - importoPagato;
         
-        // PagoPA KPI calculation using centralized utility
         const isPagoPA = (typesMap[r.type_id] ?? '').toUpperCase() === 'PAGOPA';
         let unpaidOverdueToday: number = 0;
+        let unpaidDueToday: number = 0;
         let skipRemaining: number = MAX_PAGOPA_SKIPS;
         let maxSkipsEffective: number = MAX_PAGOPA_SKIPS;
 
         if (isPagoPA) {
-          const installmentLiteData = its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date }));
-          const pagopaResult = calcPagopaKpis(
-            installmentLiteData,
-            MAX_PAGOPA_SKIPS,
-            todayMid
-          );
-          
-          unpaidOverdueToday = pagopaResult.unpaidOverdueToday;
-          skipRemaining = pagopaResult.skipRemaining;
-          maxSkipsEffective = pagopaResult.maxSkips;
+          const { unpaidOverdueToday: overdue, unpaidDueToday: dueToday, skipRemaining: remaining, maxSkips } =
+            calcPagopaKpis(its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date })), MAX_PAGOPA_SKIPS, todayMid);
+          unpaidOverdueToday = overdue;
+          unpaidDueToday     = dueToday;
+          skipRemaining      = remaining;
+          maxSkipsEffective  = maxSkips;
         }
 
         return {
@@ -249,10 +245,10 @@ export const useRateations = (): UseRateationsReturn => {
           rateNonPagate,
           rateInRitardo,
           ratePaidLate,
-          // Always include PagoPA KPI fields (unified local calculation)
           unpaid_overdue_today: unpaidOverdueToday,
-          max_skips_effective: maxSkipsEffective,
-          skip_remaining: skipRemaining,
+          unpaid_due_today:     unpaidDueToday,
+          max_skips_effective:  maxSkipsEffective,
+          skip_remaining:       skipRemaining,
           _createdAt: r.created_at || null,
         };
       });

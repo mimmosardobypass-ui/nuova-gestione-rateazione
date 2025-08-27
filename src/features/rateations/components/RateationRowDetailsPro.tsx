@@ -33,6 +33,7 @@ interface RateationRowDetailsProProps {
   // Accept pre-computed PagoPA KPIs from parent
   pagopaKpis?: {
     unpaid_overdue_today: number;
+    unpaid_due_today?: number;
     max_skips_effective: number;
     skip_remaining: number;
   };
@@ -112,10 +113,11 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
     load(); 
   }, [load]);
 
-  // Use pre-computed PagoPA KPIs from parent or local fallbacks
+  // Use pre-computed PagoPA KPIs from parent - no recalculation
   const unpaidOverdueToday = pagopaKpis?.unpaid_overdue_today ?? 0;
+  const unpaidDueToday = pagopaKpis?.unpaid_due_today ?? 0;
   const skipMax = pagopaKpis?.max_skips_effective ?? 8;
-  const skipRemaining = pagopaKpis?.skip_remaining ?? Math.max(0, skipMax - unpaidOverdueToday);
+  const skipRemaining = pagopaKpis?.skip_remaining ?? 0;
   
   // Calculate skip risk using centralized utility
   const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining), [skipRemaining]);

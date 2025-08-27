@@ -25,6 +25,7 @@ export type RateationRowPro = {
   ratePaidLate: number;
   // PagoPA specific fields
   unpaid_overdue_today?: number;
+  unpaid_due_today?: number;
   skip_remaining?: number;
   max_skips_effective?: number;
   at_risk_decadence?: boolean;
@@ -132,8 +133,12 @@ export function RateationsTablePro({
                           {r.tipo.toUpperCase() === 'PAGOPA' ? (
                             <div className="flex flex-col gap-1">
                               <div className="text-sm">
-                                <span className="text-muted-foreground">Non pagate oggi:</span>{' '}
+                                <span className="text-muted-foreground">In ritardo:</span>{' '}
                                 <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Scadenti oggi:</span>{' '}
+                                <span className="font-medium">{r.unpaid_due_today ?? 0}</span>
                               </div>
                               <div className="text-sm inline-flex items-center gap-2">
                                 <span className="text-muted-foreground">Salti:</span>
@@ -201,6 +206,7 @@ export function RateationsTablePro({
                             onDataChanged={onDataChanged}
                             pagopaKpis={r.tipo.toUpperCase() === 'PAGOPA' ? {
                               unpaid_overdue_today: r.unpaid_overdue_today ?? 0,
+                              unpaid_due_today: r.unpaid_due_today,
                               max_skips_effective: r.max_skips_effective ?? 8,
                               skip_remaining: r.skip_remaining ?? 0
                             } : undefined}
