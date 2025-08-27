@@ -22,7 +22,7 @@ interface UseRateationsReturn {
   deleteRateation: (id: string) => Promise<void>;
 }
 
-const CACHE_KEY = "rateations_cache_v2_view"; // Updated for view-based approach
+const CACHE_KEY = "rateations_cache_v3_kpis"; // Updated for KPI alignment
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -64,7 +64,12 @@ export const useRateations = (): UseRateationsReturn => {
       const isExpired = Date.now() - cacheData.timestamp > CACHE_TTL;
       const isWrongUser = cacheData.userId !== userId;
       
-      if (isExpired || isWrongUser) {
+      // Validate cache has KPI fields
+      const hasKpiFields = Array.isArray(cacheData.rows) && cacheData.rows.every(r => 
+        r && 'skip_remaining' in r && 'unpaid_overdue_today' in r && 'max_skips_effective' in r
+      );
+      
+      if (isExpired || isWrongUser || !hasKpiFields) {
         localStorage.removeItem(CACHE_KEY);
         return null;
       }

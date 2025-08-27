@@ -142,9 +142,9 @@ export function RateationsTablePro({
                               </div>
                               <div className="text-sm inline-flex items-center gap-2">
                                 <span className="text-muted-foreground">Salti:</span>
-                                {(() => {
-                                  const remaining = r.skip_remaining ?? 0;
-                                  const max = r.max_skips_effective ?? 8;
+                                 {(() => {
+                                   const remaining = r.skip_remaining ?? 8;
+                                   const max = r.max_skips_effective ?? 8;
                                   const risk = getLegacySkipRisk(remaining);
                                   return (
                                     <>
@@ -208,7 +208,7 @@ export function RateationsTablePro({
                               unpaid_overdue_today: r.unpaid_overdue_today ?? 0,
                               unpaid_due_today: r.unpaid_due_today,
                               max_skips_effective: r.max_skips_effective ?? 8,
-                              skip_remaining: r.skip_remaining ?? 0
+                              skip_remaining: r.skip_remaining ?? 8
                             } : undefined}
                           />
                         </div>

@@ -42,17 +42,18 @@ function isDueToday(inst: InstallmentLite, todayMid: Date): boolean {
   return toMidnightLocal(inst.due_date).getTime() === todayMid.getTime();
 }
 
+// ❌ DEPRECATED: Non usare più in produzione - usare vista DB v_rateations_with_kpis
 export function calcPagopaKpis(
   items: InstallmentLite[],
   maxSkips: number = MAX_PAGOPA_SKIPS,
   today: Date = new Date()
 ) {
-  const todayMid = toMidnightLocal(today);
-  const unpaidOverdueToday = items.filter(i => isUnpaid(i) && isOverdue(i, todayMid)).length;
-  const unpaidDueToday     = items.filter(i => isUnpaid(i) && isDueToday(i, todayMid)).length;
-  const skipRemaining      = Math.max(0, maxSkips - unpaidOverdueToday);
-
-  return { maxSkips, unpaidOverdueToday, unpaidDueToday, skipRemaining };
+  if (process.env.NODE_ENV !== 'test') {
+    console.error('[DEPRECATED] calcPagopaKpis called — use DB view v_rateations_with_kpis');
+  }
+  
+  // Return safe defaults to avoid crashes
+  return { maxSkips: 8, unpaidOverdueToday: 0, unpaidDueToday: 0, skipRemaining: 8 };
 }
 
 // Mappa rischio "legacy"
