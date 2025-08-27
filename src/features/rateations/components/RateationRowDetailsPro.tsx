@@ -36,6 +36,8 @@ interface RateationRowDetailsProProps {
     unpaid_due_today?: number;
     max_skips_effective: number;
     skip_remaining: number;
+    is_pagopa?: boolean;
+    at_risk_decadence?: boolean;
   };
 }
 
@@ -252,7 +254,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           onConfirmDecadence={handleConfirmDecadence}
           onViewOverdueInstallments={handleViewOverdueInstallments}
           tipo={rateationInfo.type_name}
-          at_risk_decadence={pagopaKpis?.unpaid_overdue_today ? pagopaKpis.unpaid_overdue_today >= (pagopaKpis.max_skips_effective ?? 8) : false}
+          at_risk_decadence={pagopaKpis?.at_risk_decadence ?? false}
           unpaid_overdue_today={unpaidOverdueToday}
           max_skips_effective={skipMax}
         />

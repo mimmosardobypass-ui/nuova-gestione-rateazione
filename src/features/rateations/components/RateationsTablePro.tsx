@@ -24,6 +24,7 @@ export type RateationRowPro = {
   rateInRitardo: number;
   ratePaidLate: number;
   // PagoPA specific fields
+  is_pagopa?: boolean;
   unpaid_overdue_today?: number;
   unpaid_due_today?: number;
   skip_remaining?: number;
@@ -126,11 +127,11 @@ export function RateationsTablePro({
                     <TableCell className="text-center text-green-600">{r.ratePagate}</TableCell>
                     <TableCell className="text-center">{r.rateNonPagate}</TableCell>
                      <TableCell className={`text-center ${
-                       r.tipo.toUpperCase() === 'PAGOPA' 
+                       r.is_pagopa 
                          ? (r.unpaid_overdue_today && r.unpaid_overdue_today > 0 ? "text-destructive font-medium" : "")
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
                       }`}>
-                          {r.tipo.toUpperCase() === 'PAGOPA' ? (
+                          {r.is_pagopa ? (
                             <div className="flex flex-col gap-1">
                               <div className="text-sm">
                                 <span className="text-muted-foreground">In ritardo:</span>{' '}
@@ -204,11 +205,13 @@ export function RateationsTablePro({
                           <RateationRowDetailsPro 
                             rateationId={r.id} 
                             onDataChanged={onDataChanged}
-                            pagopaKpis={r.tipo.toUpperCase() === 'PAGOPA' ? {
+                            pagopaKpis={r.is_pagopa ? {
                               unpaid_overdue_today: r.unpaid_overdue_today ?? 0,
                               unpaid_due_today: r.unpaid_due_today,
                               max_skips_effective: r.max_skips_effective ?? 8,
-                              skip_remaining: Math.max(0, Math.min(r.max_skips_effective ?? 8, r.skip_remaining ?? 8))
+                              skip_remaining: Math.max(0, Math.min(r.max_skips_effective ?? 8, r.skip_remaining ?? 8)),
+                              is_pagopa: r.is_pagopa,
+                              at_risk_decadence: r.at_risk_decadence
                             } : undefined}
                           />
                         </div>

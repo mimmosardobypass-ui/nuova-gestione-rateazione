@@ -35,7 +35,8 @@ export function RateList({
     sourceRows.map(row => ({
       ...row,
       importoRitardo: row.importoRitardo || 0,
-      rateInRitardo: row.rateInRitardo || 0
+      rateInRitardo: row.rateInRitardo || 0,
+      is_pagopa: row.is_pagopa
     } as RateationRowPro));
 
   return (
