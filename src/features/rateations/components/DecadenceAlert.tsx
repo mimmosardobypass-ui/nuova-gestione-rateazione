@@ -11,6 +11,11 @@ interface DecadenceAlertProps {
   installments: InstallmentUI[];
   onConfirmDecadence: (installmentId: number, reason?: string) => void;
   onViewOverdueInstallments: () => void;
+  // PagoPA specific props
+  tipo?: string;
+  at_risk_decadence?: boolean;
+  unpaid_overdue_today?: number;
+  max_skips_effective?: number;
 }
 
 export function DecadenceAlert({
@@ -19,10 +24,80 @@ export function DecadenceAlert({
   status,
   installments,
   onConfirmDecadence,
-  onViewOverdueInstallments
+  onViewOverdueInstallments,
+  tipo,
+  at_risk_decadence,
+  unpaid_overdue_today,
+  max_skips_effective
 }: DecadenceAlertProps) {
-  // Only show for F24 plans that are not already decayed
-  if (!isF24 || status === 'decaduta') {
+  // Don't show for already decayed plans
+  if (status === 'decaduta') {
+    return null;
+  }
+
+  const isPagoPA = tipo?.toUpperCase() === 'PAGOPA';
+
+  // PagoPA decadence logic: show banner when at_risk_decadence is true
+  if (isPagoPA && at_risk_decadence) {
+    const handleConfirmPagoPA = () => {
+      const reason = `Decadenza confermata per PagoPA - limite salti raggiunto (${unpaid_overdue_today}/${max_skips_effective})`;
+      // For PagoPA, we don't have a specific installment, use first overdue one
+      const firstOverdueInstallment = installments.find(inst => 
+        !isInstallmentPaid(inst) && getDaysOverdue(inst) > 0
+      );
+      if (firstOverdueInstallment) {
+        onConfirmDecadence(firstOverdueInstallment.id, reason);
+      }
+    };
+
+    return (
+      <Alert className="border-destructive/50 bg-destructive/5">
+        <AlertTriangle className="h-4 w-4 text-destructive" />
+        <AlertTitle className="text-destructive">
+          Pre-decadenza PagoPA rilevata
+        </AlertTitle>
+        <AlertDescription className="space-y-3">
+          <p>
+            Rilevate rate non pagate ≥ {max_skips_effective || 8} (attualmente {unpaid_overdue_today}). 
+            Il limite di salti consentiti per PagoPA è stato raggiunto. 
+            Confermi la decadenza del piano?
+          </p>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={handleConfirmPagoPA}
+            >
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Conferma decadenza
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onViewOverdueInstallments}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Vedi rate in ritardo
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-muted-foreground"
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              Rimanda
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // F24 decadence logic (existing)
+  if (!isF24) {
     return null;
   }
 
@@ -40,7 +115,7 @@ export function DecadenceAlert({
   const firstOverdueInstallment = overdueInstallments[0];
   const daysPastDue = getDaysOverdue(firstOverdueInstallment);
 
-  const handleConfirm = () => {
+  const handleConfirmF24 = () => {
     const reason = `Decadenza confermata per rata scaduta da ${daysPastDue} giorni`;
     onConfirmDecadence(firstOverdueInstallment.id, reason);
   };
@@ -49,7 +124,7 @@ export function DecadenceAlert({
     <Alert className="border-destructive/50 bg-destructive/5">
       <AlertTriangle className="h-4 w-4 text-destructive" />
       <AlertTitle className="text-destructive">
-        Pre-decadenza rilevata
+        Pre-decadenza F24 rilevata
       </AlertTitle>
       <AlertDescription className="space-y-3">
         <p>
@@ -62,7 +137,7 @@ export function DecadenceAlert({
           <Button 
             variant="destructive" 
             size="sm"
-            onClick={handleConfirm}
+            onClick={handleConfirmF24}
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
             Conferma decadenza

@@ -228,6 +228,13 @@ export type Database = {
             referencedRelation: "v_rateations_summary_enhanced"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
         ]
       }
       legal_interest_rates: {
@@ -587,6 +594,13 @@ export type Database = {
             referencedRelation: "v_rateations_summary_enhanced"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
         ]
       }
       v_installments_status: {
@@ -689,6 +703,13 @@ export type Database = {
             columns: ["rateation_id"]
             isOneToOne: false
             referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
           },
         ]
@@ -836,6 +857,13 @@ export type Database = {
             referencedRelation: "v_rateations_summary_enhanced"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
         ]
       }
       v_rateation_summary: {
@@ -939,6 +967,50 @@ export type Database = {
           },
         ]
       }
+      v_rateations_with_kpis: {
+        Row: {
+          at_risk_decadence: boolean | null
+          created_at: string | null
+          id: number | null
+          is_f24: boolean | null
+          max_skips_effective: number | null
+          number: string | null
+          overdue_amount_cents: number | null
+          owner_uid: string | null
+          paid_amount_cents: number | null
+          rate_in_ritardo: number | null
+          rate_pagate: number | null
+          rate_totali: number | null
+          residual_amount_cents: number | null
+          residuo: number | null
+          skip_remaining: number | null
+          status: string | null
+          taxpayer_name: string | null
+          tipo: string | null
+          total_amount: number | null
+          type_id: number | null
+          type_name: string | null
+          unpaid_due_today: number | null
+          unpaid_overdue_today: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rateations_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "rateation_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "v_scadenze"
+            referencedColumns: ["type_id"]
+          },
+        ]
+      }
       v_scadenze: {
         Row: {
           aging_band: string | null
@@ -1008,6 +1080,13 @@ export type Database = {
             columns: ["rateation_id"]
             isOneToOne: false
             referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
           },
         ]

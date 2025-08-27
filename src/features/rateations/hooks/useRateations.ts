@@ -3,7 +3,6 @@ import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { supabase, safeSupabaseOperation } from "@/integrations/supabase/client-resilient";
-import { calcPagopaKpis, MAX_PAGOPA_SKIPS, toMidnightLocal } from "@/features/rateations/utils/pagopaSkips";
 
 interface UseRateationsReturn {
   rows: RateationRow[];
@@ -23,7 +22,7 @@ interface UseRateationsReturn {
   deleteRateation: (id: string) => Promise<void>;
 }
 
-const CACHE_KEY = "rateations_cache_v1";
+const CACHE_KEY = "rateations_cache_v2_view"; // Updated for view-based approach
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -133,29 +132,20 @@ export const useRateations = (): UseRateationsReturn => {
         return;
       }
 
-      if (controller.signal.aborted) return;
-      const t0 = performance.now?.() ?? Date.now();
-      console.debug("[useRateations] Fetching rateations for user:", userId);
+      // Fetch rateations with pre-calculated KPIs from the canonical view
       const { data: rateations, error: rateationsError } = await supabase
-        .from("rateations")
-        .select("id, number, type_id, taxpayer_name, created_at")
-        .eq("owner_uid", userId);
-      const t1 = performance.now?.() ?? Date.now();
+        .from('v_rateations_with_kpis')
+        .select('*')
+        .eq('owner_uid', userId)
+        .order('created_at', { ascending: false });
       
-      console.debug("[useRateations] Raw rateations response:", { rateations, error: rateationsError });
+      console.debug("[useRateations] View response:", { rateations, error: rateationsError });
       if (rateationsError) {
-        console.error("[useRateations] Rateations fetch error:", rateationsError);
+        console.error("[useRateations] View fetch error:", rateationsError);
         throw rateationsError;
       }
 
-      const rateationIds = (rateations || []).map(r => r.id);
-      console.debug("[useRateations] rateations fetched:", {
-        userId,
-        count: rateations?.length ?? 0,
-        ms: Math.round(t1 - t0),
-      });
-
-      if (rateationIds.length === 0) {
+      if ((rateations || []).length === 0) {
         console.warn("[useRateations] No rateations found for user. Check owner_uid backfill/RLS.");
         const emptyResult: RateationRow[] = [];
         setRows(emptyResult);
@@ -164,107 +154,31 @@ export const useRateations = (): UseRateationsReturn => {
         return;
       }
 
-      // 2) Fetch installments for user's rateations
-      const t2 = performance.now?.() ?? Date.now();
-      const { data: installments, error: installmentsError } = await supabase
-        .from("installments")
-        .select("rateation_id, amount, is_paid, due_date, paid_at")
-        .in("rateation_id", rateationIds);
-      const t3 = performance.now?.() ?? Date.now();
-      if (installmentsError) throw installmentsError;
-      console.debug("[useRateations] installments fetched:", {
-        count: installments?.length ?? 0,
-        ms: Math.round(t3 - t2),
-      });
-
-      // 3) Fetch types
-      const { data: types, error: typesError } = await supabase
-        .from("rateation_types")
-        .select("id, name");
-      if (typesError) throw typesError;
-
-      const typesMap = Object.fromEntries((types || []).map(t => [t.id, t.name as string]));
-
-      // 4) Timezone-safe today calculation using unified helper
-      const todayMid = toMidnightLocal(new Date());
-
-      // Process each rateation with merged KPI data
-      const processedRows: (RateationRow & { _createdAt: string | null })[] = (rateations || []).map(r => {
-        const its = (installments || []).filter(i => i.rateation_id === r.id);
-
-        const rateTotali = its.length;
-        const ratePagate = its.filter(i => i.is_paid).length;
-        const rateNonPagate = rateTotali - ratePagate;
-
-        // Overdue installments: not paid and past due date (timezone-safe)
-        const rateInRitardo = its.filter(i => {
-          if (i.is_paid) return false;
-          if (!i.due_date) return false;
-          return toMidnightLocal(i.due_date) < todayMid;
-        }).length;
-
-        // Paid late installments: paid_at > due_date (historical)
-        const ratePaidLate = its.filter(i => {
-          if (!i.is_paid || !i.due_date || !i.paid_at) return false;
-          return toMidnightLocal(i.paid_at) > toMidnightLocal(i.due_date);
-        }).length;
-
-        const importoTotale = its.reduce((s, i) => s + (i.amount || 0), 0);
-        const importoPagato = its.filter(i => i.is_paid).reduce((s, i) => s + (i.amount || 0), 0);
-        const importoRitardo = its
-          .filter(i => !i.is_paid && i.due_date && toMidnightLocal(i.due_date) < todayMid)
-          .reduce((s, i) => s + (i.amount || 0), 0);
-        const residuo = importoTotale - importoPagato;
-        
-        const isPagoPA = (typesMap[r.type_id] ?? '').toUpperCase() === 'PAGOPA';
-        let unpaidOverdueToday: number = 0;
-        let unpaidDueToday: number = 0;
-        let skipRemaining: number = MAX_PAGOPA_SKIPS;
-        let maxSkipsEffective: number = MAX_PAGOPA_SKIPS;
-
-        if (isPagoPA) {
-          const { unpaidOverdueToday: overdue, unpaidDueToday: dueToday, skipRemaining: remaining, maxSkips } =
-            calcPagopaKpis(its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date })), MAX_PAGOPA_SKIPS, todayMid);
-          unpaidOverdueToday = overdue;
-          unpaidDueToday     = dueToday;
-          skipRemaining      = remaining;
-          maxSkipsEffective  = maxSkips;
-        }
-
-        return {
-          id: String(r.id),
-          numero: r.number || "",
-          tipo: typesMap[r.type_id] || "N/A",
-          contribuente: r.taxpayer_name || "",
-          importoTotale,
-          importoPagato,
-          importoRitardo,
-          residuo,
-          rateTotali,
-          ratePagate,
-          rateNonPagate,
-          rateInRitardo,
-          ratePaidLate,
-          unpaid_overdue_today: unpaidOverdueToday,
-          unpaid_due_today:     unpaidDueToday,
-          max_skips_effective:  maxSkipsEffective,
-          skip_remaining:       skipRemaining,
-          at_risk_decadence:    unpaidOverdueToday >= maxSkipsEffective,
-          _createdAt: r.created_at || null,
-        };
-      });
-
-      // Sort by created_at descending
-      processedRows.sort((a, b) => {
-        const da = a._createdAt ? new Date(a._createdAt).getTime() : 0;
-        const db = b._createdAt ? new Date(b._createdAt).getTime() : 0;
-        return db - da;
-      });
+      // Map view results directly to UI types (all KPIs pre-calculated)
+      const finalRows: RateationRow[] = (rateations || []).map(r => ({
+        id: String(r.id),
+        numero: r.number || "",
+        tipo: r.tipo || "N/A",
+        contribuente: r.taxpayer_name || "",
+        importoTotale: r.total_amount || 0,
+        importoPagato: (r.paid_amount_cents || 0) / 100,
+        importoRitardo: (r.overdue_amount_cents || 0) / 100,
+        residuo: r.residuo || 0,
+        rateTotali: r.rate_totali || 0,
+        ratePagate: r.rate_pagate || 0,
+        rateNonPagate: (r.rate_totali || 0) - (r.rate_pagate || 0),
+        rateInRitardo: r.rate_in_ritardo || 0,
+        ratePaidLate: 0,
+        // Pre-calculated PagoPA KPIs from the view
+        unpaid_overdue_today: r.unpaid_overdue_today || 0,
+        unpaid_due_today: r.unpaid_due_today || 0,
+        max_skips_effective: r.max_skips_effective || 8,
+        skip_remaining: Math.max(0, r.skip_remaining || 0),
+        at_risk_decadence: !!r.at_risk_decadence,
+      }));
       
       if (controller.signal.aborted) return;
       
-      // Remove auxiliary property and update state
-      const finalRows = processedRows.map(({ _createdAt, ...rest }) => rest);
       setRows(finalRows);
       saveToCache(finalRows, userId);
       setLastUpdatedAt(new Date().toISOString());
