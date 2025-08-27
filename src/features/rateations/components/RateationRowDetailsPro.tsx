@@ -117,33 +117,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const skipMax = pagopaKpis?.max_skips_effective ?? 8;
   const skipRemaining = pagopaKpis?.skip_remaining ?? Math.max(0, skipMax - unpaidOverdueToday);
   
-  // DEBUG: Special logging for rateation #11 detail view
-  React.useEffect(() => {
-    if (rateationInfo && (rateationInfo.number === '11' || rateationInfo.number === 'N.11' || rateationInfo.number?.includes('11'))) {
-      console.log(`🔍 [DEBUG DETAIL] Rateation #11 (ID: ${rateationId}) detail view:`);
-      console.log(`  - RateationInfo data:`, rateationInfo);
-      console.log(`  - pagopaKpis from props:`, pagopaKpis);
-      console.log(`  - unpaidOverdueToday: ${unpaidOverdueToday}`);
-      console.log(`  - skipMax: ${skipMax}, skipRemaining: ${skipRemaining}`);
-      
-      if (items?.length) {
-        console.log(`  - Raw installments in detail (${items.length}):`, items);
-        const todayMid = new Date();
-        todayMid.setHours(0, 0, 0, 0);
-        const overdueCounts = items.filter(i => {
-          if (i.is_paid) return false;
-          if (!i.due_date) return false;
-          const dueDate = new Date(i.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return dueDate < todayMid;
-        });
-        console.log(`  - Manual overdue count in detail: ${overdueCounts.length}`, overdueCounts);
-      }
-    }
-  }, [rateationInfo, unpaidOverdueToday, skipMax, skipRemaining, items, rateationId, pagopaKpis]);
-  
   // Calculate skip risk using centralized utility
-  const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining, skipMax), [skipRemaining, skipMax]);
+  const skipRisk = React.useMemo(() => getLegacySkipRisk(skipRemaining), [skipRemaining]);
 
   // Decadence handlers
   const handleConfirmDecadence = useCallback(async (installmentId: number, reason?: string) => {

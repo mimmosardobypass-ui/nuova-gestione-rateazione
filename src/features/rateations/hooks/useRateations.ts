@@ -222,41 +222,17 @@ export const useRateations = (): UseRateationsReturn => {
         let skipRemaining: number = MAX_PAGOPA_SKIPS;
         let maxSkipsEffective: number = MAX_PAGOPA_SKIPS;
 
-        // DEBUG: Special logging for rateation #11 (N.11 PagoPa)
-        const isRateation11 = r.number === '11' || r.number === 'N.11' || r.number.includes('11');
-        if (isRateation11) {
-          console.log(`🔍 [DEBUG] Rateation #11 (ID: ${r.id}) analysis:`);
-          console.log(`  - Raw rateation data:`, r);
-          console.log(`  - Type ID: ${r.type_id}, Type name: "${typesMap[r.type_id]}", isPagoPA: ${isPagoPA}`);
-          console.log(`  - Raw installments (${its.length}):`, its);
-          console.log(`  - Today midnight:`, todayMid);
-          console.log(`  - Rate in ritardo (old logic): ${rateInRitardo}`);
-        }
-
         if (isPagoPA) {
           const installmentLiteData = its.map(i => ({ is_paid: i.is_paid, due_date: i.due_date }));
-          
-          if (isRateation11) {
-            console.log(`  - Installment lite data for PagoPA calc:`, installmentLiteData);
-          }
-          
           const pagopaResult = calcPagopaKpis(
             installmentLiteData,
             MAX_PAGOPA_SKIPS,
             todayMid
           );
           
-          if (isRateation11) {
-            console.log(`  - PagoPA calculation result:`, pagopaResult);
-          }
-          
           unpaidOverdueToday = pagopaResult.unpaidOverdueToday;
           skipRemaining = pagopaResult.skipRemaining;
           maxSkipsEffective = pagopaResult.maxSkips;
-          
-          if (isRateation11) {
-            console.log(`  - Final values: unpaidOverdueToday=${unpaidOverdueToday}, skipRemaining=${skipRemaining}, maxSkips=${maxSkipsEffective}`);
-          }
         }
 
         return {

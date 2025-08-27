@@ -140,7 +140,7 @@ export function RateationsTablePro({
                                 {(() => {
                                   const remaining = r.skip_remaining ?? 0;
                                   const max = r.max_skips_effective ?? 8;
-                                  const risk = getLegacySkipRisk(remaining, max);
+                                  const risk = getLegacySkipRisk(remaining);
                                   return (
                                     <>
                                       <span className="font-medium">{remaining}/{max}</span>

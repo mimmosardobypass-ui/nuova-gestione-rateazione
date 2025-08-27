@@ -10,14 +10,19 @@ export type InstallmentLite = {
 };
 
 export function toMidnightLocal(d: Date | string): Date {
-  // Se stringa tipo 'YYYY-MM-DD', parse come data locale per evitare drift timezone
-  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-    const [y, m, dd] = d.split('-').map(Number);
-    return new Date(y, (m ?? 1) - 1, dd ?? 1, 0, 0, 0, 0);
+  // Se è già un Date, usa costruttore locale per evitare timezone drift
+  if (d instanceof Date) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
   }
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+  // Se stringa tipo 'YYYY-MM-DD', parse come data locale
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (m) {
+    const [, y, mo, da] = m;
+    return new Date(Number(y), Number(mo) - 1, Number(da), 0, 0, 0, 0);
+  }
+  // Fallback: parse e poi converti a mezzanotte locale
+  const dd = new Date(d);
+  return new Date(dd.getFullYear(), dd.getMonth(), dd.getDate(), 0, 0, 0, 0);
 }
 
 export function isUnpaidOverdue(inst: InstallmentLite, todayMid: Date): boolean {
@@ -66,7 +71,7 @@ export function calcPagopaKpis(
 export { toMidnightLocal as toMidnight };
 
 // Legacy risk object format helper
-export function getLegacySkipRisk(skipRemaining: number, max?: number): { level: string; cls: string; title: string } | null {
+export function getLegacySkipRisk(skipRemaining: number): { level: string; cls: string; title: string } | null {
   const risk = getSkipRisk(skipRemaining);
   if (!risk) return null;
   
