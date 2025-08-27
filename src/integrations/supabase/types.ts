@@ -973,12 +973,14 @@ export type Database = {
           created_at: string | null
           id: number | null
           is_f24: boolean | null
+          is_pagopa: boolean | null
           max_skips_effective: number | null
           number: string | null
           overdue_amount_cents: number | null
           owner_uid: string | null
           paid_amount_cents: number | null
           rate_in_ritardo: number | null
+          rate_non_pagate: number | null
           rate_pagate: number | null
           rate_totali: number | null
           residual_amount_cents: number | null
@@ -988,8 +990,8 @@ export type Database = {
           taxpayer_name: string | null
           tipo: string | null
           total_amount: number | null
+          total_amount_cents: number | null
           type_id: number | null
-          type_name: string | null
           unpaid_due_today: number | null
           unpaid_overdue_today: number | null
           updated_at: string | null

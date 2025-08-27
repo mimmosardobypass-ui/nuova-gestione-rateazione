@@ -31,12 +31,13 @@ export interface RateationRow {
   is_f24?: boolean;
   status?: RateationStatus;
   decadence_info?: DecadenceInfo;
-  // PagoPA "8 skips" rule fields
-  unpaid_overdue_today?: number; // Rate non pagate con due_date < current_date
-  unpaid_due_today?: number;     // Rate non pagate con due_date = current_date
-  max_skips_effective?: number;  // Effective max skips (default 8)
-  skip_remaining?: number;       // GREATEST(0, max_skips_effective - unpaid_overdue_today) 
-  at_risk_decadence?: boolean;   // unpaid_overdue_today >= max_skips_effective
+  // PagoPA "8 skips" rule fields 
+  is_pagopa?: boolean;              // Derived from tipo field in DB view
+  unpaid_overdue_today?: number;    // Rate non pagate con due_date < current_date
+  unpaid_due_today?: number;        // Rate non pagate con due_date = current_date
+  max_skips_effective?: number;     // Effective max skips (default 8)
+  skip_remaining?: number;          // GREATEST(0, max_skips_effective - unpaid_overdue_today) 
+  at_risk_decadence?: boolean;      // unpaid_overdue_today >= max_skips_effective
 }
 
 export interface DecadenceDashboard {

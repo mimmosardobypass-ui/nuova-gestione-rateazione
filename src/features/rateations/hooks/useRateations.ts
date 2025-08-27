@@ -154,28 +154,44 @@ export const useRateations = (): UseRateationsReturn => {
         return;
       }
 
-      // Map view results directly to UI types (all KPIs pre-calculated)
+      // Map view results directly to UI types (all KPIs pre-calculated with Europe/Rome timezone)
       const finalRows: RateationRow[] = (rateations || []).map(r => ({
         id: String(r.id),
         numero: r.number || "",
         tipo: r.tipo || "N/A",
         contribuente: r.taxpayer_name || "",
-        importoTotale: r.total_amount || 0,
+        
+        // Use cents-based values for precision (main amounts)
+        importoTotale: (r.total_amount_cents || 0) / 100,
         importoPagato: (r.paid_amount_cents || 0) / 100,
         importoRitardo: (r.overdue_amount_cents || 0) / 100,
-        residuo: r.residuo || 0,
+        residuo: (r.residual_amount_cents || 0) / 100,
+        
+        // Basic counts
         rateTotali: r.rate_totali || 0,
         ratePagate: r.rate_pagate || 0,
         rateNonPagate: (r.rate_totali || 0) - (r.rate_pagate || 0),
         rateInRitardo: r.rate_in_ritardo || 0,
         ratePaidLate: 0,
-        // Pre-calculated PagoPA KPIs from the view
+        
+        // PagoPA KPIs from DB - robust fallbacks to avoid "0/8" display issues
+        is_pagopa: !!r.is_pagopa,
         unpaid_overdue_today: r.unpaid_overdue_today || 0,
         unpaid_due_today: r.unpaid_due_today || 0,
-        max_skips_effective: r.max_skips_effective || 8,
-        skip_remaining: Math.max(0, r.skip_remaining || 0),
+        max_skips_effective: r.max_skips_effective ?? 8,
+        skip_remaining: r.skip_remaining ?? 8,
         at_risk_decadence: !!r.at_risk_decadence,
       }));
+      
+      // Debug logging for first 10 rows to verify KPIs are correctly read
+      console.table(finalRows.slice(0, 10).map(x => ({
+        id: x.id,
+        tipo: x.tipo,
+        in_ritardo: x.unpaid_overdue_today,
+        oggi: x.unpaid_due_today,
+        salti: `${x.skip_remaining}/${x.max_skips_effective}`,
+        rischio: x.at_risk_decadence ? '⚠️' : '✅'
+      })));
       
       if (controller.signal.aborted) return;
       
