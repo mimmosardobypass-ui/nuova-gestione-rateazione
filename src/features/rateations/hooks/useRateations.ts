@@ -165,13 +165,13 @@ export const useRateations = (): UseRateationsReturn => {
         importoTotale: (r.total_amount_cents || 0) / 100,
         importoPagato: (r.paid_amount_cents || 0) / 100,
         importoRitardo: (r.overdue_amount_cents || 0) / 100,
-        residuo: (r.residual_amount_cents || 0) / 100,
+        residuo: ((r.total_amount_cents || 0) - (r.paid_amount_cents || 0)) / 100,
         
         // Basic counts
         rateTotali: r.rate_totali || 0,
         ratePagate: r.rate_pagate || 0,
         rateNonPagate: (r.rate_totali || 0) - (r.rate_pagate || 0),
-        rateInRitardo: r.rate_in_ritardo || 0,
+        rateInRitardo: r.unpaid_overdue_today || 0,
         ratePaidLate: 0,
         
         // Metadata
