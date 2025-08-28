@@ -39,9 +39,9 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
       const { data, error: fetchError } = await supabase
         .from('rateation_debts')
         .select('debt_id, debt:debts!inner(number)')
-        .eq('rateation_id', parseInt(rateation.id))
+        .eq('rateation_id', rateation.id)
         .eq('status', 'migrated_out')
-        .in('debt.number', rateation.migrated_debt_numbers);
+        .in('debts.number', rateation.migrated_debt_numbers);
 
       if (fetchError) {
         throw new Error(`Errore nel recupero cartelle: ${fetchError.message}`);
