@@ -3,6 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { supabase, safeSupabaseOperation } from "@/integrations/supabase/client-resilient";
+import { performKpiSanityChecks, logMigrationOperation } from '../utils/migrationMonitoring';
 
 interface UseRateationsReturn {
   rows: RateationRow[];
@@ -255,8 +256,9 @@ export const useRateations = (): UseRateationsReturn => {
       })));
       console.groupEnd();
       
-      // Sanity check KPI consistency
+      // Sanity check KPI consistency with enhanced monitoring
       sanityCheckRows(finalRows);
+      performKpiSanityChecks(finalRows);
       
       if (controller.signal.aborted) return;
       

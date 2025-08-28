@@ -7,7 +7,7 @@ import { RateationRow } from '../types';
 interface MigrationStatusBadgeProps {
   row: RateationRow;
   onOpenMigration?: () => void;
-  onViewTarget?: (targetId: number) => void;
+  onViewTarget?: (targetId: string) => void;  // Changed to string for type consistency
 }
 
 export const MigrationStatusBadge: React.FC<MigrationStatusBadgeProps> = ({
@@ -37,15 +37,16 @@ export const MigrationStatusBadge: React.FC<MigrationStatusBadgeProps> = ({
           </span>
         )}
         {hasTargets && (
-          <div className="flex items-center gap-1">
-            <ArrowRight className="h-3 w-3" />
+          <div className="flex items-center gap-1 overflow-x-auto max-w-xs">
+            <ArrowRight className="h-3 w-3 flex-shrink-0" />
             {rq_target_ids.map((targetId, index) => (
               <Button
                 key={targetId}
                 variant="ghost"
                 size="sm"
-                className="h-4 px-1 text-xs"
+                className="h-4 px-1 text-xs flex-shrink-0 hover:bg-muted/50"
                 onClick={() => onViewTarget?.(targetId)}
+                title={`Visualizza piano RQ #${targetId}`}
               >
                 RQ #{targetId}
                 <ExternalLink className="ml-1 h-3 w-3" />

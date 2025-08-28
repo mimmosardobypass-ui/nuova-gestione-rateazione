@@ -105,7 +105,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
       toast({
         title: "Successo",
-        description: `Migrate ${selectedDebtIds.length} cartelle verso la rateazione RQ`,
+        description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${targetRateationId}`,
+        duration: 5000
       });
 
       setOpen(false);
@@ -117,10 +118,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       setNote('');
     } catch (error) {
       console.error('Migration error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle";
       toast({
         title: "Errore",
-        description: "Errore durante la migrazione delle cartelle",
-        variant: "destructive"
+        description: errorMessage,
+        variant: "destructive",
+        duration: 8000
       });
     } finally {
       setProcessing(false);
@@ -160,16 +163,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                   <Badge variant={rateation.rq_migration_status === 'full' ? 'default' : 'secondary'}>
                     {rateation.rq_migration_status === 'full' ? 'Completamente migrata' : 'Parzialmente migrata'}
                   </Badge>
-                  {rateation.migrated_debt_numbers && rateation.migrated_debt_numbers.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Cartelle già migrate: {rateation.migrated_debt_numbers.join(', ')}
-                    </div>
-                  )}
-                  {rateation.remaining_debt_numbers && rateation.remaining_debt_numbers.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Cartelle rimanenti: {rateation.remaining_debt_numbers.join(', ')}
-                    </div>
-                  )}
+                   {rateation.migrated_debt_numbers && rateation.migrated_debt_numbers.length > 0 && (
+                     <div className="text-sm text-muted-foreground">
+                       <span className="font-medium">Cartelle già migrate:</span> 
+                       <span className="ml-1 break-words">{rateation.migrated_debt_numbers.join(', ')}</span>
+                     </div>
+                   )}
+                   {rateation.remaining_debt_numbers && rateation.remaining_debt_numbers.length > 0 && (
+                     <div className="text-sm text-muted-foreground">
+                       <span className="font-medium">Cartelle rimanenti:</span> 
+                       <span className="ml-1 break-words">{rateation.remaining_debt_numbers.join(', ')}</span>
+                     </div>
+                   )}
                 </CardContent>
               </Card>
             )}
@@ -189,27 +194,27 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
               <CardContent>
                 {activeDebts.length === 0 ? (
                   <p className="text-muted-foreground text-sm">Nessuna cartella disponibile per la migrazione</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {activeDebts.map((item) => (
-                      <div key={item.debt_id} className="flex items-center space-x-2 p-2 border rounded">
-                        <Checkbox
-                          checked={selectedDebtIds.includes(item.debt_id)}
-                          onCheckedChange={(checked) => handleDebtSelection(item.debt_id, checked as boolean)}
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-sm">{item.debt.number}</div>
-                          {item.debt.description && (
-                            <div className="text-xs text-muted-foreground">{item.debt.description}</div>
-                          )}
-                        </div>
-                        {item.debt.original_amount_cents && (
-                          <div className="text-sm text-right">
-                            €{(item.debt.original_amount_cents / 100).toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                 ) : (
+                   <div className="space-y-2 max-h-48 overflow-y-auto">
+                     {activeDebts.map((item) => (
+                       <div key={item.debt_id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
+                         <Checkbox
+                           checked={selectedDebtIds.includes(item.debt_id)}
+                           onCheckedChange={(checked) => handleDebtSelection(item.debt_id, checked as boolean)}
+                         />
+                         <div className="flex-1 min-w-0">
+                           <div className="font-medium text-sm truncate">{item.debt.number}</div>
+                           {item.debt.description && (
+                             <div className="text-xs text-muted-foreground truncate">{item.debt.description}</div>
+                           )}
+                         </div>
+                         {item.debt.original_amount_cents && (
+                           <div className="text-sm text-right flex-shrink-0">
+                             €{(item.debt.original_amount_cents / 100).toFixed(2)}
+                           </div>
+                         )}
+                       </div>
+                     ))}
                   </div>
                 )}
               </CardContent>

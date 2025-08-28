@@ -75,46 +75,43 @@ export async function linkDebtsToRateation(
   }
 }
 
-// Migrate debts between rateations
+// Migrate debts between rateations using atomic RPC function
 export async function migrateDebtsToRQ(params: MigrateDebtsParams): Promise<void> {
-  // First, update the source rateation debts to 'migrated_out'
-  const { error: updateError } = await supabase
-    .from('rateation_debts')
-    .update({
-      status: 'migrated_out',
-      target_rateation_id: params.targetRateationId,
-      migrated_at: new Date().toISOString().split('T')[0],
-      note: params.note
-    })
-    .eq('rateation_id', params.sourceRateationId)
-    .in('debt_id', params.debtIds)
-    .eq('status', 'active');
+  const { error } = await supabase.rpc('migrate_debts_to_rq', {
+    p_source_rateation_id: params.sourceRateationId,
+    p_debt_ids: params.debtIds,
+    p_target_rateation_id: params.targetRateationId,
+    p_note: params.note || null
+  });
 
-  if (updateError) {
-    console.error('Error updating source debts:', updateError);
-    throw updateError;
+  if (error) {
+    console.error('Migration failed:', error);
+    // Provide user-friendly error messages
+    if (error.message?.includes('Access denied')) {
+      throw new Error('Non hai i permessi per accedere a una delle rateazioni selezionate');
+    } else if (error.message?.includes('Cannot migrate to the same rateation')) {
+      throw new Error('Non puoi migrare verso la stessa rateazione');
+    } else if (error.message?.includes('No active debts found')) {
+      throw new Error('Nessuna cartella attiva trovata per la migrazione');
+    } else {
+      throw new Error('Errore durante la migrazione delle cartelle');
+    }
   }
+}
 
-  // Then, create the target rateation debt links
-  const targetLinks = params.debtIds.map(debtId => ({
-    rateation_id: params.targetRateationId,
-    debt_id: debtId,
-    status: 'migrated_in' as const,
-    target_rateation_id: params.sourceRateationId,
-    migrated_at: new Date().toISOString().split('T')[0],
-    note: params.note
-  }));
+// Rollback migration function
+export async function rollbackDebtMigration(
+  sourceRateationId: number,
+  debtIds: string[]
+): Promise<void> {
+  const { error } = await supabase.rpc('rollback_debt_migration', {
+    p_source_rateation_id: sourceRateationId,
+    p_debt_ids: debtIds
+  });
 
-  const { error: insertError } = await supabase
-    .from('rateation_debts')
-    .upsert(targetLinks, {
-      onConflict: 'rateation_id,debt_id',
-      ignoreDuplicates: false
-    });
-
-  if (insertError) {
-    console.error('Error creating target debt links:', insertError);
-    throw insertError;
+  if (error) {
+    console.error('Rollback failed:', error);
+    throw new Error('Errore durante il rollback della migrazione');
   }
 }
 
@@ -141,12 +138,37 @@ export async function fetchActiveDebtsForRateation(rateationId: number): Promise
   }));
 }
 
-// Fetch RQ rateations for target selection
+// Fetch RQ rateations for target selection with improved query robustness
 export async function fetchRQRateations(): Promise<Array<{ id: number; number: string; taxpayer_name?: string }>> {
+  // First, try to get RQ type ID to avoid potential join issues
+  const { data: typeData, error: typeError } = await supabase
+    .from('rateation_types')
+    .select('id')
+    .eq('name', 'RQ')
+    .single();
+
+  if (typeError) {
+    console.error('Error fetching RQ type:', typeError);
+    // Fallback to original query with !inner join
+    const { data, error } = await supabase
+      .from('rateations')
+      .select('id, number, taxpayer_name, type_id, rateation_types!inner(name)')
+      .eq('rateation_types.name', 'RQ')
+      .order('number', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching RQ rateations (fallback):', error);
+      throw new Error('Nessun piano RQ trovato nel sistema');
+    }
+
+    return data || [];
+  }
+
+  // Use the type ID for more robust query
   const { data, error } = await supabase
     .from('rateations')
-    .select('id, number, taxpayer_name, type_id, rateation_types(name)')
-    .eq('rateation_types.name', 'RQ')
+    .select('id, number, taxpayer_name')
+    .eq('type_id', typeData.id)
     .order('number', { ascending: true });
 
   if (error) {

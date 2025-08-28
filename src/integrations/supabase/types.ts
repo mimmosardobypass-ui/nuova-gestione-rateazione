@@ -1483,6 +1483,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      migrate_debts_to_rq: {
+        Args: {
+          p_debt_ids: string[]
+          p_note?: string
+          p_source_rateation_id: number
+          p_target_rateation_id: number
+        }
+        Returns: undefined
+      }
       rateation_auto_flag_predecadence: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1505,6 +1514,10 @@ export type Database = {
       }
       recompute_rateation_caches: {
         Args: { p_rateation_id: number }
+        Returns: undefined
+      }
+      rollback_debt_migration: {
+        Args: { p_debt_ids: string[]; p_source_rateation_id: number }
         Returns: undefined
       }
       unmark_installment_paid: {

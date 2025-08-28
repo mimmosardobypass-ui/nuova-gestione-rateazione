@@ -43,7 +43,7 @@ export interface RateationRow {
   debts_migrated?: number;          // Number of migrated debts
   migrated_debt_numbers?: string[]; // Array of migrated debt numbers
   remaining_debt_numbers?: string[]; // Array of remaining debt numbers
-  rq_target_ids?: number[];         // Array of target rateation IDs
+  rq_target_ids?: string[];         // Array of target rateation IDs (consistent string type)
   rq_migration_status?: 'none' | 'partial' | 'full'; // Migration status
   excluded_from_stats?: boolean;    // Exclude from global statistics
 }

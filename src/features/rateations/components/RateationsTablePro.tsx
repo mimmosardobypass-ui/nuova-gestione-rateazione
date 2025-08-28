@@ -37,7 +37,7 @@ export type RateationRowPro = {
   debts_migrated?: number;
   migrated_debt_numbers?: string[];
   remaining_debt_numbers?: string[];
-  rq_target_ids?: number[];
+  rq_target_ids?: string[];         // Array of target rateation IDs (consistent string type)
   rq_migration_status?: 'none' | 'partial' | 'full';
   excluded_from_stats?: boolean;
 };
