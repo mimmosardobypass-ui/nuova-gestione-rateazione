@@ -23,7 +23,7 @@ interface UseRateationsReturn {
   deleteRateation: (id: string) => Promise<void>;
 }
 
-const CACHE_KEY = "rateations_cache_v5_cents_fix"; // Updated after fixing cents calculation issue
+const CACHE_KEY = "rateations_cache_v6_realtime_amounts"; // Updated after implementing realtime view calculations
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -198,18 +198,37 @@ export const useRateations = (): UseRateationsReturn => {
         return;
       }
 
+      // Helper function to convert cents to euros with clamping
+      const centsToEuro = (v?: number) => Math.max(0, (v ?? 0)) / 100;
+      
       // Map view results directly to UI types (all KPIs pre-calculated with Europe/Rome timezone)
-      const finalRows: RateationRow[] = (rateations || []).map(r => ({
+      const finalRows: RateationRow[] = (rateations || []).map(r => {
+        // Sanity check for sum mismatch (detect calculation anomalies)
+        const diff = Math.abs(
+          (r.total_amount_cents ?? 0) - 
+          (r.paid_amount_cents ?? 0) - 
+          (r.residual_amount_cents ?? 0)
+        );
+        if (diff > 1) {
+          console.warn('[SUM-MISMATCH]', r.id, { 
+            diff,
+            total: r.total_amount_cents,
+            paid: r.paid_amount_cents, 
+            residual: r.residual_amount_cents
+          });
+        }
+        
+        return {
         id: String(r.id),
         numero: r.number || "",
         tipo: r.tipo || "N/A",
         contribuente: r.taxpayer_name || "",
         
-        // Use cents-based values for precision (main amounts)
-        importoTotale: (r.total_amount_cents || 0) / 100,
-        importoPagato: (r.paid_amount_cents || 0) / 100,
-        importoRitardo: (r.overdue_amount_cents || 0) / 100,
-        residuo: ((r.total_amount_cents || 0) - (r.paid_amount_cents || 0)) / 100,
+        // Use view-calculated amounts in cents (single source of truth)
+        importoTotale: centsToEuro(r.total_amount_cents),
+        importoPagato: centsToEuro(r.paid_amount_cents),
+        importoRitardo: centsToEuro(r.overdue_amount_cents),
+        residuo: centsToEuro(r.residual_amount_cents),
         
         // Basic counts
         rateTotali: r.rate_totali || 0,
@@ -242,7 +261,8 @@ export const useRateations = (): UseRateationsReturn => {
         rq_target_ids: r.rq_target_ids || [],
         rq_migration_status: r.rq_migration_status || 'none',
         excluded_from_stats: !!r.excluded_from_stats,
-      }));
+      };
+      });
       
       // Debug logging for first 10 rows to verify KPIs are correctly read from canonical view
       console.group('🔍 PagoPA KPI Debug - DB Source Truth (Europe/Rome timezone)');

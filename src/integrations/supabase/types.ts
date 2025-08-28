@@ -1150,6 +1150,7 @@ export type Database = {
           created_at: string | null
           debts_migrated: number | null
           debts_total: number | null
+          due_today_cents: number | null
           excluded_from_stats: boolean | null
           id: number | null
           is_f24: boolean | null
@@ -1161,14 +1162,10 @@ export type Database = {
           owner_uid: string | null
           paid_amount_cents: number | null
           rate_in_ritardo: number | null
-          rate_non_pagate: number | null
           rate_pagate: number | null
           rate_totali: number | null
-          raw_unpaid_due_today: number | null
-          raw_unpaid_overdue_today: number | null
           remaining_debt_numbers: string[] | null
           residual_amount_cents: number | null
-          residuo: number | null
           rq_migration_status: string | null
           rq_target_ids: number[] | null
           skip_remaining: number | null
