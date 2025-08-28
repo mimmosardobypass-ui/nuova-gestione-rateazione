@@ -3,9 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, RotateCcw, TrendingUp, ShieldX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-function formatEuro(v: number) {
-  return v.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
-}
+import { formatEuro } from "@/lib/formatters";
 
 type CompactKpiCardProps = {
   title: string;
