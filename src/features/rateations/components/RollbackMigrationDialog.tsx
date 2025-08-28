@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { rollbackDebtMigration } from '../api/debts';
 import { RateationRow } from '../types';
 import { supabase } from '@/integrations/supabase/client';
+import { toIntId } from '@/lib/utils/ids';
 
 interface RollbackMigrationDialogProps {
   rateation: RateationRow;
@@ -39,7 +40,7 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
       const { data, error: fetchError } = await supabase
         .from('rateation_debts')
         .select('debt_id, debt:debts!inner(number)')
-        .eq('rateation_id', parseInt(rateation.id))
+        .eq('rateation_id', toIntId(rateation.id, 'rateationId'))
         .eq('status', 'migrated_out')
         .in('debts.number', rateation.migrated_debt_numbers);
 
@@ -54,7 +55,7 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
       const debtIds = data.map(d => d.debt_id);
       
       await rollbackDebtMigration(
-        rateation.id, // Pass string ID, function will convert internally
+        rateation.id, // Pass string ID, API function will convert internally
         debtIds
       );
 

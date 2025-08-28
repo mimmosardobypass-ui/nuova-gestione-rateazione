@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client-resilient";
 import type { InstallmentUI } from "../types";
+import { toIntId } from "@/lib/utils/ids";
 
 // LOVABLE:START fetchInstallments
 export const fetchInstallments = async (rateationId: string, signal?: AbortSignal): Promise<InstallmentUI[]> => {
@@ -13,7 +14,7 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
   const { data, error } = await supabase
     .from("installments")
     .select("*")
-    .eq("rateation_id", rateationId)
+    .eq("rateation_id", toIntId(rateationId, 'rateationId'))
     .order("seq");
 
   if (signal?.aborted) throw new Error('AbortError');
@@ -41,7 +42,7 @@ export const markInstallmentPaidWithDate = async (
   }
 
   const { error } = await supabase.rpc("mark_installment_paid", {
-    p_rateation_id: rateationId,
+    p_rateation_id: toIntId(rateationId, 'rateationId'),
     p_seq: seq,  
     p_paid_at: paidAtDate,
   });
@@ -105,7 +106,7 @@ export const markInstallmentPaid = async (
   paidAt?: string
 ): Promise<void> => {
   const { error } = await supabase.rpc("fn_set_installment_paid", {
-    p_rateation_id: rateationId,
+    p_rateation_id: toIntId(rateationId, 'rateationId'),
     p_seq: seq,
     p_paid: paid,
     p_paid_at: paidAt || null,
@@ -121,7 +122,7 @@ export const unmarkInstallmentPaid = async (
   seq: number
 ): Promise<void> => {
   const { error } = await supabase.rpc("unmark_installment_paid", {
-    p_rateation_id: rateationId,
+    p_rateation_id: toIntId(rateationId, 'rateationId'),
     p_seq: seq,
   });
 
@@ -140,7 +141,7 @@ export const postponeInstallment = async (
   }
 
   const { error } = await supabase.rpc("fn_postpone_installment", {
-    p_rateation_id: rateationId,
+    p_rateation_id: toIntId(rateationId, 'rateationId'),
     p_seq: seq,
     p_new_due: newDueDate,
   });
@@ -154,7 +155,7 @@ export const deleteInstallment = async (rateationId: string, seq: number): Promi
   const { error } = await supabase
     .from("installments")
     .delete()
-    .eq("rateation_id", rateationId)
+    .eq("rateation_id", toIntId(rateationId, 'rateationId'))
     .eq("seq", seq);
 
   if (error) throw error;

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Debt, RateationDebt, MigrateDebtsParams } from "../types";
+import { toIntId } from "@/lib/utils/ids";
 
 // Fetch debts for a rateation
 export async function fetchRateationDebts(rateationId: string): Promise<(RateationDebt & { debt: Debt })[]> {
@@ -9,7 +10,7 @@ export async function fetchRateationDebts(rateationId: string): Promise<(Rateati
       *,
       debt:debts(*)
     `)
-    .eq('rateation_id', parseInt(rateationId))
+    .eq('rateation_id', toIntId(rateationId, 'rateationId'))
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -60,8 +61,8 @@ export async function linkDebtsToRateation(
   debtIds: string[]
 ): Promise<void> {
   const links = debtIds.map(debtId => ({
-    rateation_id: parseInt(rateationId),
-    debt_id: debtId,
+    rateation_id: toIntId(rateationId, 'rateationId'),
+    debt_id: debtId, // UUID string - no conversion needed
     status: 'active' as const
   }));
 
@@ -78,9 +79,9 @@ export async function linkDebtsToRateation(
 // Migrate debts between rateations using atomic RPC function
 export async function migrateDebtsToRQ(params: MigrateDebtsParams): Promise<void> {
   const { error } = await supabase.rpc('migrate_debts_to_rq', {
-    p_source_rateation_id: parseInt(params.sourceRateationId),
-    p_debt_ids: params.debtIds,
-    p_target_rateation_id: parseInt(params.targetRateationId),
+    p_source_rateation_id: toIntId(params.sourceRateationId, 'sourceRateationId'),
+    p_debt_ids: params.debtIds, // UUID array - no conversion needed
+    p_target_rateation_id: toIntId(params.targetRateationId, 'targetRateationId'),
     p_note: params.note || null
   });
 
@@ -105,8 +106,8 @@ export async function rollbackDebtMigration(
   debtIds: string[]
 ): Promise<void> {
   const { error } = await supabase.rpc('rollback_debt_migration', {
-    p_source_rateation_id: parseInt(sourceRateationId),
-    p_debt_ids: debtIds
+    p_source_rateation_id: toIntId(sourceRateationId, 'sourceRateationId'),
+    p_debt_ids: debtIds // UUID array - no conversion needed
   });
 
   if (error) {
@@ -123,7 +124,7 @@ export async function fetchActiveDebtsForRateation(rateationId: string): Promise
       *,
       debt:debts(*)
     `)
-    .eq('rateation_id', parseInt(rateationId))
+    .eq('rateation_id', toIntId(rateationId, 'rateationId'))
     .eq('status', 'active')
     .order('created_at', { ascending: true });
 
