@@ -4,6 +4,7 @@ import { getLegacySkipRisk } from '@/features/rateations/utils/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import { MigrationStatusBadge } from "./MigrationStatusBadge";
 import { MigrationDialog } from "./MigrationDialog";
+import { isPagoPAPlan } from "../utils/isPagopa";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -149,8 +150,8 @@ export function RateationsTablePro({
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
                       }`}>
                            {(() => {
-                             // Tolerant condition for KPI display
-                             const isPagoPA = r.is_pagopa === true || (r.tipo ?? '').toUpperCase().includes('PAGOPA');
+                              // Use unified helper for PagoPA detection
+                              const isPagoPA = isPagoPAPlan({ is_pagopa: r.is_pagopa, tipo: r.tipo });
                              return isPagoPA ? (
                             <div className="space-y-2">
                               {/* Migration Status Badge */}
@@ -216,8 +217,8 @@ export function RateationsTablePro({
                         </Button>
                         {/* Migration and rollback buttons for PagoPA rateations */}
                         {(() => {
-                          // Tolerant condition: check both DB field and tipo string
-                          const isPagoPA = r.is_pagopa === true || (r.tipo ?? '').toUpperCase().includes('PAGOPA');
+                          // Use unified helper for PagoPA detection  
+                          const isPagoPA = isPagoPAPlan({ is_pagopa: r.is_pagopa, tipo: r.tipo });
                           return isPagoPA && (
                           <>
                             <MigrationDialog

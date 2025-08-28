@@ -27,6 +27,9 @@ import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { supabase } from "@/integrations/supabase/client";
 import { getLegacySkipRisk } from "@/features/rateations/utils/pagopaSkips";
 import { toIntId } from "@/lib/utils/ids";
+import { MigrationDialog } from "./MigrationDialog";
+import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
+import { isPagoPAPlan } from "../utils/isPagopa";
 
 interface RateationRowDetailsProProps {
   rateationId: string;
@@ -49,6 +52,13 @@ interface RateationInfo {
   taxpayer_name?: string | null;
   number?: string;
   type_name?: string;
+  // Migration fields
+  is_pagopa?: boolean;
+  rq_migration_status?: 'none' | 'partial' | 'full';
+  migrated_debt_numbers?: string[];
+  remaining_debt_numbers?: string[];
+  rq_target_ids?: string[];
+  excluded_from_stats?: boolean;
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis }: RateationRowDetailsProProps) {
@@ -70,32 +80,30 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       const rows = await fetchInstallments(rateationId);
       setItems(rows ?? []);
 
-      // Load rateation info for decadence management with type information
+      // Load rateation info from enhanced view with migration fields
       const { data: rateationData, error: rateationError } = await supabase
-        .from('rateations')
-        .select(`
-          is_f24, 
-          status, 
-          decadence_at, 
-          taxpayer_name, 
-          number,
-          rateation_types!inner(name)
-        `)
+        .from('v_rateations_with_kpis')
+        .select('*')
         .eq('id', toIntId(rateationId, 'rateationId'))
         .single();
 
       if (rateationError) {
         console.warn('Failed to load rateation info:', rateationError.message);
       } else {
-        const typeName = (rateationData as any).rateation_types?.[0]?.name || 
-                         (rateationData as any).rateation_types?.name || '';
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
           status: (rateationData.status || 'active') as RateationStatus,
-          decadence_at: rateationData.decadence_at,
+          decadence_at: null, // Not available in this view
           taxpayer_name: rateationData.taxpayer_name,
           number: rateationData.number,
-          type_name: typeName
+          type_name: rateationData.tipo,
+          // Migration fields
+          is_pagopa: !!rateationData.is_pagopa,
+          rq_migration_status: (rateationData.rq_migration_status || 'none') as 'none' | 'partial' | 'full',
+          migrated_debt_numbers: rateationData.migrated_debt_numbers || [],
+          remaining_debt_numbers: rateationData.remaining_debt_numbers || [],
+          rq_target_ids: (rateationData.rq_target_ids || []).map(String),
+          excluded_from_stats: rateationData.excluded_from_stats || false
         });
       }
 
@@ -344,6 +352,51 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                 showDetailOptions={true}
                 showSummaryOptions={false}
               />
+              
+              {/* Migration buttons for PagoPA plans */}
+              {rateationInfo && isPagoPAPlan({ is_pagopa: rateationInfo.is_pagopa, tipo: rateationInfo.type_name }) && (
+                <MigrationDialog
+                  rateation={{
+                    id: rateationId,
+                    is_pagopa: rateationInfo.is_pagopa || false,
+                    rq_migration_status: rateationInfo.rq_migration_status || 'none',
+                    migrated_debt_numbers: rateationInfo.migrated_debt_numbers || [],
+                    remaining_debt_numbers: rateationInfo.remaining_debt_numbers || []
+                  } as any}
+                  trigger={
+                    <Button size="sm" variant="outline" className="text-xs gap-1">
+                      Migra cartelle in RQ
+                    </Button>
+                  }
+                  onMigrationComplete={() => {
+                    load();
+                    onDataChanged?.();
+                  }}
+                />
+              )}
+              
+              {/* Rollback button for migrated plans */}
+              {rateationInfo && 
+               isPagoPAPlan({ is_pagopa: rateationInfo.is_pagopa, tipo: rateationInfo.type_name }) && 
+               rateationInfo.rq_migration_status !== 'none' && (
+                <RollbackMigrationDialog
+                  rateation={{
+                    id: rateationId,
+                    is_pagopa: rateationInfo.is_pagopa || false,
+                    rq_migration_status: rateationInfo.rq_migration_status || 'none',
+                    migrated_debt_numbers: rateationInfo.migrated_debt_numbers || []
+                  } as any}
+                  trigger={
+                    <Button size="sm" variant="ghost" className="text-xs text-orange-600">
+                      Annulla migrazione
+                    </Button>
+                  }
+                  onRollbackComplete={() => {
+                    load();
+                    onDataChanged?.();
+                  }}
+                />
+              )}
             </div>
           </div>
           <div className="space-y-2">

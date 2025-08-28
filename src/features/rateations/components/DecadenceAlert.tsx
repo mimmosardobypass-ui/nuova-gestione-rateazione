@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Eye } from "lucide-react";
 import { InstallmentUI, RateationStatus } from "../types";
 import { isInstallmentPaid, getDaysOverdue } from "../lib/installmentState";
+import { isPagoPAPlan } from "../utils/isPagopa";
 
 interface DecadenceAlertProps {
   rateationId: number;
@@ -35,8 +36,8 @@ export function DecadenceAlert({
     return null;
   }
 
-  // Tolerant condition: check both tipo string and potential DB flags
-  const isPagoPA = tipo?.toUpperCase() === 'PAGOPA' || (tipo ?? '').toUpperCase().includes('PAGOPA');
+  // Use unified helper for PagoPA detection
+  const isPagoPA = isPagoPAPlan({ is_pagopa: false, tipo: tipo });
 
   // PagoPA decadence logic: show banner when at_risk_decadence is true
   if (isPagoPA && at_risk_decadence) {
