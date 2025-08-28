@@ -148,7 +148,10 @@ export function RateationsTablePro({
                          ? (r.unpaid_overdue_today && r.unpaid_overdue_today > 0 ? "text-destructive font-medium" : "")
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
                       }`}>
-                          {r.is_pagopa ? (
+                           {(() => {
+                             // Tolerant condition for KPI display
+                             const isPagoPA = r.is_pagopa === true || (r.tipo ?? '').toUpperCase().includes('PAGOPA');
+                             return isPagoPA ? (
                             <div className="space-y-2">
                               {/* Migration Status Badge */}
                                <MigrationStatusBadge 
@@ -187,10 +190,11 @@ export function RateationsTablePro({
                                 </div>
                               )}
                             </div>
-                          ) : (
-                            // fallback piani non PagoPA: metrica esistente
-                            <span>{r.rateInRitardo + (r.ratePaidLate || 0)}</span>
-                          )}
+                           ) : (
+                             // fallback piani non PagoPA: metrica esistente
+                             <span>{r.rateInRitardo + (r.ratePaidLate || 0)}</span>
+                           );
+                           })()}
                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -211,7 +215,10 @@ export function RateationsTablePro({
                           <Pencil className="h-4 w-4" />
                         </Button>
                         {/* Migration and rollback buttons for PagoPA rateations */}
-                        {r.is_pagopa && (
+                        {(() => {
+                          // Tolerant condition: check both DB field and tipo string
+                          const isPagoPA = r.is_pagopa === true || (r.tipo ?? '').toUpperCase().includes('PAGOPA');
+                          return isPagoPA && (
                           <>
                             <MigrationDialog
                               rateation={r}
@@ -251,7 +258,8 @@ export function RateationsTablePro({
                               />
                             )}
                           </>
-                        )}
+                          );
+                        })()}
                         <Button 
                           size="sm" 
                           variant="ghost"

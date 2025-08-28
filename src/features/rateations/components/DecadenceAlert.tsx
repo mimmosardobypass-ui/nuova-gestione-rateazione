@@ -35,7 +35,8 @@ export function DecadenceAlert({
     return null;
   }
 
-  const isPagoPA = tipo?.toUpperCase() === 'PAGOPA';
+  // Tolerant condition: check both tipo string and potential DB flags
+  const isPagoPA = tipo?.toUpperCase() === 'PAGOPA' || (tipo ?? '').toUpperCase().includes('PAGOPA');
 
   // PagoPA decadence logic: show banner when at_risk_decadence is true
   if (isPagoPA && at_risk_decadence) {
@@ -90,6 +91,24 @@ export function DecadenceAlert({
               <Clock className="h-3 w-3 mr-1" />
               Rimanda
             </Button>
+            
+            {/* Migration button for PagoPA - to handle riammissione */}
+            {/* Note: This would need the full rateation object with migration fields */}
+            {/* For now, we comment this out since we only have basic props */}
+            {/* 
+            <MigrationDialog
+              rateation={rateationObject}
+              trigger={
+                <Button variant="secondary" size="sm">
+                  <Package className="h-3 w-3 mr-1" />
+                  Gestisci riammissione
+                </Button>
+              }
+              onMigrationComplete={() => {
+                // Could trigger refresh or confirm decadence
+              }}
+            />
+            */}
           </div>
         </AlertDescription>
       </Alert>
