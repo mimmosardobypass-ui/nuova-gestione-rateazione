@@ -13,7 +13,7 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
   const { data, error } = await supabase
     .from("installments")
     .select("*")
-    .eq("rateation_id", Number(rateationId))
+    .eq("rateation_id", rateationId)
     .order("seq");
 
   if (signal?.aborted) throw new Error('AbortError');
@@ -41,8 +41,8 @@ export const markInstallmentPaidWithDate = async (
   }
 
   const { error } = await supabase.rpc("mark_installment_paid", {
-    p_rateation_id: Number(rateationId),
-    p_seq: seq,
+    p_rateation_id: parseInt(rateationId),
+    p_seq: seq,  
     p_paid_at: paidAtDate,
   });
 
@@ -63,7 +63,7 @@ export const markInstallmentPaidOrdinary = async (params: {
   }
 
   const { error } = await supabase.rpc("mark_installment_paid_ordinary_new", {
-    p_installment_id: Number(params.installmentId),
+    p_installment_id: parseInt(params.installmentId),
     p_paid_date: params.paidDate,
     p_amount_paid: params.amountPaid ?? null,
   });
@@ -86,7 +86,7 @@ export const markInstallmentPaidRavvedimento = async (params: {
   }
 
   const { error } = await supabase.rpc("mark_installment_paid_ravvedimento_new", {
-    p_installment_id: Number(params.installmentId),
+    p_installment_id: parseInt(params.installmentId),
     p_paid_date: params.paidDate,
     p_total_paid: params.totalPaid,
     p_interest: params.interest ?? null,
@@ -105,7 +105,7 @@ export const markInstallmentPaid = async (
   paidAt?: string
 ): Promise<void> => {
   const { error } = await supabase.rpc("fn_set_installment_paid", {
-    p_rateation_id: Number(rateationId),
+    p_rateation_id: parseInt(rateationId),
     p_seq: seq,
     p_paid: paid,
     p_paid_at: paidAt || null,
@@ -121,7 +121,7 @@ export const unmarkInstallmentPaid = async (
   seq: number
 ): Promise<void> => {
   const { error } = await supabase.rpc("unmark_installment_paid", {
-    p_rateation_id: Number(rateationId),
+    p_rateation_id: parseInt(rateationId),
     p_seq: seq,
   });
 
@@ -140,7 +140,7 @@ export const postponeInstallment = async (
   }
 
   const { error } = await supabase.rpc("fn_postpone_installment", {
-    p_rateation_id: Number(rateationId),
+    p_rateation_id: parseInt(rateationId),
     p_seq: seq,
     p_new_due: newDueDate,
   });
@@ -154,7 +154,7 @@ export const deleteInstallment = async (rateationId: string, seq: number): Promi
   const { error } = await supabase
     .from("installments")
     .delete()
-    .eq("rateation_id", Number(rateationId))
+    .eq("rateation_id", rateationId)
     .eq("seq", seq);
 
   if (error) throw error;

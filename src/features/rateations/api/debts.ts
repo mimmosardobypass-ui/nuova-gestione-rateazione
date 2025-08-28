@@ -9,7 +9,7 @@ export async function fetchRateationDebts(rateationId: string): Promise<Rateatio
       *,
       debt:debts(*)
     `)
-    .eq('rateation_id', Number(rateationId))
+    .eq('rateation_id', parseInt(rateationId))
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -60,7 +60,7 @@ export async function linkDebtsToRateation(
   debtIds: string[]
 ): Promise<void> {
   const links = debtIds.map(debtId => ({
-    rateation_id: Number(rateationId),
+    rateation_id: parseInt(rateationId),
     debt_id: debtId,
     status: 'active' as const
   }));
@@ -78,9 +78,9 @@ export async function linkDebtsToRateation(
 // Migrate debts between rateations using atomic RPC function
 export async function migrateDebtsToRQ(params: MigrateDebtsParams): Promise<void> {
   const { error } = await supabase.rpc('migrate_debts_to_rq', {
-    p_source_rateation_id: Number(params.sourceRateationId),
+    p_source_rateation_id: parseInt(params.sourceRateationId),
     p_debt_ids: params.debtIds,
-    p_target_rateation_id: Number(params.targetRateationId),
+    p_target_rateation_id: parseInt(params.targetRateationId),
     p_note: params.note || null
   });
 
@@ -105,7 +105,7 @@ export async function rollbackDebtMigration(
   debtIds: string[]
 ): Promise<void> {
   const { error } = await supabase.rpc('rollback_debt_migration', {
-    p_source_rateation_id: Number(sourceRateationId),
+    p_source_rateation_id: parseInt(sourceRateationId),
     p_debt_ids: debtIds
   });
 
@@ -123,7 +123,7 @@ export async function fetchActiveDebtsForRateation(rateationId: string): Promise
       *,
       debt:debts(*)
     `)
-    .eq('rateation_id', Number(rateationId))
+    .eq('rateation_id', parseInt(rateationId))
     .eq('status', 'active')
     .order('created_at', { ascending: true });
 
