@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      debts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          number: string
+          original_amount_cents: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          number: string
+          original_amount_cents?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          number?: string
+          original_amount_cents?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       installment_payments: {
         Row: {
           amount: number
@@ -287,6 +314,156 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rateation_debts: {
+        Row: {
+          created_at: string
+          debt_id: string
+          migrated_at: string | null
+          note: string | null
+          rateation_id: number
+          status: string
+          target_rateation_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          debt_id: string
+          migrated_at?: string | null
+          note?: string | null
+          rateation_id: number
+          status: string
+          target_rateation_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          debt_id?: string
+          migrated_at?: string | null
+          note?: string | null
+          rateation_id?: number
+          status?: string
+          target_rateation_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rateation_debts_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rateation_types: {
         Row: {
