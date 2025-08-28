@@ -5,6 +5,7 @@ import { AlertTriangle, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { rollbackDebtMigration } from '../api/debts';
 import { RateationRow } from '../types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RollbackMigrationDialogProps {
   rateation: RateationRow;
@@ -34,9 +35,21 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
 
     setProcessing(true);
     try {
-      // For rollback, we need to convert debt numbers back to IDs
-      // This is a simplified implementation - in production you'd need to fetch the actual debt IDs
-      const debtIds = rateation.migrated_debt_numbers.map(number => `debt-${number}-id`);
+      // Fetch real debt UUIDs from the database using the debt numbers
+      const { data: debts, error: fetchError } = await supabase
+        .from('debts')
+        .select('id')
+        .in('number', rateation.migrated_debt_numbers);
+
+      if (fetchError) {
+        throw new Error(`Errore nel recupero cartelle: ${fetchError.message}`);
+      }
+
+      if (!debts || debts.length === 0) {
+        throw new Error('Nessuna cartella trovata da ripristinare');
+      }
+
+      const debtIds = debts.map(debt => debt.id);
       
       await rollbackDebtMigration(
         parseInt(rateation.id),

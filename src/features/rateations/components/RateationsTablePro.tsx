@@ -8,8 +8,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, Package, RotateCcw } from "lucide-react";
 import { EditRateationModal } from "./EditRateationModal";
+import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
+import { useNavigate } from 'react-router-dom';
 
 export type RateationRowPro = {
   id: string;
@@ -63,10 +65,15 @@ export function RateationsTablePro({
   onDataChanged, 
   deleting 
 }: RateationsTableProProps) {
+  const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
   const toggle = (id: string) => setOpenId((cur) => (cur === id ? null : id));
+
+  const handleViewTarget = (targetId: string) => {
+    navigate(`/rateations?search=${targetId}`);
+  };
 
   if (loading) {
     return <div className="p-6 text-center text-muted-foreground">Caricamento...</div>;
@@ -144,15 +151,12 @@ export function RateationsTablePro({
                           {r.is_pagopa ? (
                             <div className="space-y-2">
                               {/* Migration Status Badge */}
-                              <MigrationStatusBadge 
+                               <MigrationStatusBadge 
                                 row={r}
                                 onOpenMigration={() => {
                                   // Migration dialog will be triggered via the actions column
                                 }}
-                                onViewTarget={(targetId) => {
-                                  // TODO: Navigate to target rateation
-                                  console.log('Navigate to rateation:', targetId);
-                                }}
+                                onViewTarget={handleViewTarget}
                               />
                               
                               {/* Standard PagoPA KPIs (hidden if migrated) */}
@@ -206,25 +210,47 @@ export function RateationsTablePro({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        {/* Migration button for PagoPA rateations */}
+                        {/* Migration and rollback buttons for PagoPA rateations */}
                         {r.is_pagopa && (
-                          <MigrationDialog
-                            rateation={r}
-                            trigger={
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700"
-                                title="Gestisci migrazione cartelle"
-                              >
-                                <Package className="h-4 w-4" />
-                              </Button>
-                            }
-                            onMigrationComplete={() => {
-                              onRefresh?.();
-                              onDataChanged?.();
-                            }}
-                          />
+                          <>
+                            <MigrationDialog
+                              rateation={r}
+                              trigger={
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700"
+                                  title="Gestisci migrazione cartelle"
+                                >
+                                  <Package className="h-4 w-4" />
+                                </Button>
+                              }
+                              onMigrationComplete={() => {
+                                onRefresh?.();
+                                onDataChanged?.();
+                              }}
+                            />
+                            
+                            {r.rq_migration_status !== 'none' && (
+                              <RollbackMigrationDialog
+                                rateation={r}
+                                trigger={
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    className="p-1 h-8 w-8 text-orange-600 hover:text-orange-700"
+                                    title="Ripristina migrazione"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                }
+                                onRollbackComplete={() => {
+                                  onRefresh?.();
+                                  onDataChanged?.();
+                                }}
+                              />
+                            )}
+                          </>
                         )}
                         <Button 
                           size="sm" 
