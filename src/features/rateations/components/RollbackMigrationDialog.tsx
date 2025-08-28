@@ -35,24 +35,26 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
 
     setProcessing(true);
     try {
-      // Fetch real debt UUIDs from the database using the debt numbers
-      const { data: debts, error: fetchError } = await supabase
-        .from('debts')
-        .select('id')
-        .in('number', rateation.migrated_debt_numbers);
+      // RLS-safe debt lookup via rateation_debts (user must own the rateation)
+      const { data, error: fetchError } = await supabase
+        .from('rateation_debts')
+        .select('debt_id, debt:debts!inner(number)')
+        .eq('rateation_id', parseInt(rateation.id))
+        .eq('status', 'migrated_out')
+        .in('debt.number', rateation.migrated_debt_numbers);
 
       if (fetchError) {
         throw new Error(`Errore nel recupero cartelle: ${fetchError.message}`);
       }
 
-      if (!debts || debts.length === 0) {
+      if (!data || data.length === 0) {
         throw new Error('Nessuna cartella trovata da ripristinare');
       }
 
-      const debtIds = debts.map(debt => debt.id);
+      const debtIds = data.map(d => d.debt_id);
       
       await rollbackDebtMigration(
-        parseInt(rateation.id),
+        rateation.id, // No parseInt needed - already string
         debtIds
       );
 

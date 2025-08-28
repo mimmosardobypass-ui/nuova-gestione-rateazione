@@ -48,7 +48,7 @@ export const MigrationStatusBadge: React.FC<MigrationStatusBadgeProps> = ({
                 onClick={() => onViewTarget?.(targetId)}
                 title={`Visualizza piano RQ #${targetId}`}
               >
-                RQ #{targetId}
+                RQ #{targetId.slice(-6)}
                 <ExternalLink className="ml-1 h-3 w-3" />
               </Button>
             ))}

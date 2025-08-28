@@ -171,8 +171,8 @@ export interface RateationDebt {
 }
 
 export interface MigrateDebtsParams {
-  sourceRateationId: number;
+  sourceRateationId: string;
   debtIds: string[];
-  targetRateationId: number;
+  targetRateationId: string;
   note?: string;
 }

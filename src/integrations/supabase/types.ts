@@ -1415,6 +1415,14 @@ export type Database = {
         }
         Returns: number
       }
+      fn_detect_orphaned_migrations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          debt_id: string
+          details: Json
+          issue_type: string
+        }[]
+      }
       fn_detect_payment_inconsistencies: {
         Args: Record<PropertyKey, never>
         Returns: {

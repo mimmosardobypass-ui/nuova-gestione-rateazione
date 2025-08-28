@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, Package, RotateCcw } from "lucide-react";
 import { EditRateationModal } from "./EditRateationModal";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
-import { useNavigate } from 'react-router-dom';
+import { useNavigateToRateation } from '../hooks/useNavigateToRateation';
 
 export type RateationRowPro = {
   id: string;
@@ -65,14 +65,14 @@ export function RateationsTablePro({
   onDataChanged, 
   deleting 
 }: RateationsTableProProps) {
-  const navigate = useNavigate();
+  const { navigateToRateation } = useNavigateToRateation();
   const [openId, setOpenId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
   const toggle = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
   const handleViewTarget = (targetId: string) => {
-    navigate(`/rateations?search=${targetId}`);
+    navigateToRateation(targetId);
   };
 
   if (loading) {

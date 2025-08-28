@@ -26,7 +26,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeDebts, setActiveDebts] = useState<(RateationDebt & { debt: Debt })[]>([]);
-  const [rqRateations, setRqRateations] = useState<Array<{ id: number; number: string; taxpayer_name?: string }>>([]);
+  const [rqRateations, setRqRateations] = useState<Array<{ id: string; number: string; taxpayer_name?: string }>>([]);
   const [selectedDebtIds, setSelectedDebtIds] = useState<string[]>([]);
   const [targetRateationId, setTargetRateationId] = useState<string>('');
   const [note, setNote] = useState('');
@@ -45,7 +45,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     setLoading(true);
     try {
       const [debtsData, rqData] = await Promise.all([
-        fetchActiveDebtsForRateation(parseInt(rateation.id)),
+        fetchActiveDebtsForRateation(rateation.id),
         fetchRQRateations()
       ]);
       
@@ -97,15 +97,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     setProcessing(true);
     try {
       await migrateDebtsToRQ({
-        sourceRateationId: parseInt(rateation.id),
+        sourceRateationId: rateation.id,
         debtIds: selectedDebtIds,
-        targetRateationId: parseInt(targetRateationId),
+        targetRateationId: targetRateationId,
         note: note.trim() || undefined
       });
 
       toast({
         title: "Successo",
-        description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${targetRateationId}`,
+        description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${targetRateationId.slice(-6)}`,
         duration: 5000
       });
 
@@ -237,7 +237,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {rqRateations.map((rq) => (
-                        <SelectItem key={rq.id} value={rq.id.toString()}>
+                        <SelectItem key={rq.id} value={rq.id}>
                           {rq.number} {rq.taxpayer_name ? `- ${rq.taxpayer_name}` : ''}
                         </SelectItem>
                       ))}
