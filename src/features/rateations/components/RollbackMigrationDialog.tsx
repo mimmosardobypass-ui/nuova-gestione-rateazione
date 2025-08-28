@@ -39,7 +39,7 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
       const { data, error: fetchError } = await supabase
         .from('rateation_debts')
         .select('debt_id, debt:debts!inner(number)')
-        .eq('rateation_id', rateation.id)
+        .eq('rateation_id', parseInt(rateation.id))
         .eq('status', 'migrated_out')
         .in('debts.number', rateation.migrated_debt_numbers);
 
@@ -54,7 +54,7 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
       const debtIds = data.map(d => d.debt_id);
       
       await rollbackDebtMigration(
-        rateation.id, // No parseInt needed - already string
+        rateation.id, // Pass string ID, function will convert internally
         debtIds
       );
 
