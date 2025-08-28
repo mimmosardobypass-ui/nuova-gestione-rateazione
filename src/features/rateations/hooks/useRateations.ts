@@ -23,7 +23,7 @@ interface UseRateationsReturn {
   deleteRateation: (id: string) => Promise<void>;
 }
 
-const CACHE_KEY = "rateations_cache_v3_kpis"; // Updated for KPI alignment
+const CACHE_KEY = "rateations_cache_v4_no_rq"; // Updated to exclude RQ plans from main list
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -175,10 +175,12 @@ export const useRateations = (): UseRateationsReturn => {
       }
 
       // Fetch rateations with pre-calculated KPIs from the canonical view
+      // FILTER: Hide RQ plans from main list (they remain available in MigrationDialog)
       const { data: rateations, error: rateationsError } = await supabase
         .from('v_rateations_with_kpis')
         .select('*')
         .eq('owner_uid', userId)
+        .neq('tipo', 'RQ') // Hide RQ plans from main list
         .order('created_at', { ascending: false });
       
       console.debug("[useRateations] View response:", { rateations, error: rateationsError });
