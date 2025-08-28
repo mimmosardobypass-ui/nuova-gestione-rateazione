@@ -38,6 +38,14 @@ export interface RateationRow {
   max_skips_effective?: number;     // Effective max skips (default 8)
   skip_remaining?: number;          // GREATEST(0, max_skips_effective - unpaid_overdue_today) 
   at_risk_decadence?: boolean;      // unpaid_overdue_today >= max_skips_effective
+  // Debt migration fields
+  debts_total?: number;             // Total number of linked debts
+  debts_migrated?: number;          // Number of migrated debts
+  migrated_debt_numbers?: string[]; // Array of migrated debt numbers
+  remaining_debt_numbers?: string[]; // Array of remaining debt numbers
+  rq_target_ids?: number[];         // Array of target rateation IDs
+  rq_migration_status?: 'none' | 'partial' | 'full'; // Migration status
+  excluded_from_stats?: boolean;    // Exclude from global statistics
 }
 
 export interface DecadenceDashboard {
@@ -143,4 +151,28 @@ export interface CreateRateationManualParams {
   p_type_id: number;
   p_taxpayer_name: string | null;
   p_installments_json: Array<{ seq: number; amount: number; due_date: string }>;
+}
+
+// Debt Migration Types
+export interface Debt {
+  id: string;
+  number: string;
+  description?: string;
+  original_amount_cents?: number;
+}
+
+export interface RateationDebt {
+  rateation_id: number;
+  debt_id: string;
+  status: 'active' | 'migrated_out' | 'migrated_in';
+  target_rateation_id?: number;
+  migrated_at?: string;
+  note?: string;
+}
+
+export interface MigrateDebtsParams {
+  sourceRateationId: number;
+  debtIds: string[];
+  targetRateationId: number;
+  note?: string;
 }

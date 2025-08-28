@@ -2,11 +2,13 @@ import React, { useState, useCallback, useEffect } from "react";
 import { formatEuro } from "@/lib/formatters";
 import { getLegacySkipRisk } from '@/features/rateations/utils/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
+import { MigrationStatusBadge } from "./MigrationStatusBadge";
+import { MigrationDialog } from "./MigrationDialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Eye, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, Package } from "lucide-react";
 import { EditRateationModal } from "./EditRateationModal";
 
 export type RateationRowPro = {
@@ -30,6 +32,14 @@ export type RateationRowPro = {
   skip_remaining?: number;
   max_skips_effective?: number;
   at_risk_decadence?: boolean;
+  // Migration fields
+  debts_total?: number;
+  debts_migrated?: number;
+  migrated_debt_numbers?: string[];
+  remaining_debt_numbers?: string[];
+  rq_target_ids?: number[];
+  rq_migration_status?: 'none' | 'partial' | 'full';
+  excluded_from_stats?: boolean;
 };
 
 interface RateationsTableProProps {
@@ -132,29 +142,46 @@ export function RateationsTablePro({
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
                       }`}>
                           {r.is_pagopa ? (
-                            <div className="flex flex-col gap-1">
-                              <div className="text-sm">
-                                <span className="text-muted-foreground">In ritardo:</span>{' '}
-                                <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
-                              </div>
-                              <div className="text-sm">
-                                <span className="text-muted-foreground">Scadenti oggi:</span>{' '}
-                                <span className="font-medium">{r.unpaid_due_today ?? 0}</span>
-                              </div>
-                               <div className="text-sm inline-flex items-center gap-2">
-                                 <span className="text-muted-foreground">Salti:</span>
-                                  {(() => {
-                                    const max = r.max_skips_effective ?? 8;
-                                    const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
-                                   const risk = getLegacySkipRisk(remaining);
-                                  return (
-                                    <>
-                                      <span className="font-medium">{remaining}/{max}</span>
-                                      {risk && <span className={risk.cls} title={risk.title}>⚠️</span>}
-                                    </>
-                                  );
-                                })()}
-                              </div>
+                            <div className="space-y-2">
+                              {/* Migration Status Badge */}
+                              <MigrationStatusBadge 
+                                row={r}
+                                onOpenMigration={() => {
+                                  // Migration dialog will be triggered via the actions column
+                                }}
+                                onViewTarget={(targetId) => {
+                                  // TODO: Navigate to target rateation
+                                  console.log('Navigate to rateation:', targetId);
+                                }}
+                              />
+                              
+                              {/* Standard PagoPA KPIs (hidden if migrated) */}
+                              {r.rq_migration_status === 'none' && (
+                                <div className="flex flex-col gap-1">
+                                  <div className="text-sm">
+                                    <span className="text-muted-foreground">In ritardo:</span>{' '}
+                                    <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="text-muted-foreground">Scadenti oggi:</span>{' '}
+                                    <span className="font-medium">{r.unpaid_due_today ?? 0}</span>
+                                  </div>
+                                   <div className="text-sm inline-flex items-center gap-2">
+                                     <span className="text-muted-foreground">Salti:</span>
+                                      {(() => {
+                                        const max = r.max_skips_effective ?? 8;
+                                        const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
+                                       const risk = getLegacySkipRisk(remaining);
+                                      return (
+                                        <>
+                                          <span className="font-medium">{remaining}/{max}</span>
+                                          {risk && <span className={risk.cls} title={risk.title}>⚠️</span>}
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             // fallback piani non PagoPA: metrica esistente
@@ -179,6 +206,26 @@ export function RateationsTablePro({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        {/* Migration button for PagoPA rateations */}
+                        {r.is_pagopa && (
+                          <MigrationDialog
+                            rateation={r}
+                            trigger={
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700"
+                                title="Gestisci migrazione cartelle"
+                              >
+                                <Package className="h-4 w-4" />
+                              </Button>
+                            }
+                            onMigrationComplete={() => {
+                              onRefresh?.();
+                              onDataChanged?.();
+                            }}
+                          />
+                        )}
                         <Button 
                           size="sm" 
                           variant="ghost"

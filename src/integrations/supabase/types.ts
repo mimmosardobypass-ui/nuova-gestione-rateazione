@@ -1148,10 +1148,14 @@ export type Database = {
         Row: {
           at_risk_decadence: boolean | null
           created_at: string | null
+          debts_migrated: number | null
+          debts_total: number | null
+          excluded_from_stats: boolean | null
           id: number | null
           is_f24: boolean | null
           is_pagopa: boolean | null
           max_skips_effective: number | null
+          migrated_debt_numbers: string[] | null
           number: string | null
           overdue_amount_cents: number | null
           owner_uid: string | null
@@ -1160,8 +1164,13 @@ export type Database = {
           rate_non_pagate: number | null
           rate_pagate: number | null
           rate_totali: number | null
+          raw_unpaid_due_today: number | null
+          raw_unpaid_overdue_today: number | null
+          remaining_debt_numbers: string[] | null
           residual_amount_cents: number | null
           residuo: number | null
+          rq_migration_status: string | null
+          rq_target_ids: number[] | null
           skip_remaining: number | null
           status: string | null
           taxpayer_name: string | null

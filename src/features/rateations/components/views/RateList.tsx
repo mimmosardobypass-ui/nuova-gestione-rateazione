@@ -38,6 +38,14 @@ export function RateList({
       importoRitardo: row.importoRitardo ?? 0,
       rateInRitardo: row.rateInRitardo ?? row.unpaid_overdue_today ?? 0,
       is_pagopa: !!row.is_pagopa,
+      // Migration fields with defaults
+      debts_total: row.debts_total ?? 0,
+      debts_migrated: row.debts_migrated ?? 0,
+      migrated_debt_numbers: row.migrated_debt_numbers ?? [],
+      remaining_debt_numbers: row.remaining_debt_numbers ?? [],
+      rq_target_ids: row.rq_target_ids ?? [],
+      rq_migration_status: row.rq_migration_status ?? 'none',
+      excluded_from_stats: row.excluded_from_stats ?? false,
     } as RateationRowPro));
 
   return (

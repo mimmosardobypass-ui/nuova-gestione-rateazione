@@ -64,9 +64,10 @@ export const useRateations = (): UseRateationsReturn => {
       const isExpired = Date.now() - cacheData.timestamp > CACHE_TTL;
       const isWrongUser = cacheData.userId !== userId;
       
-      // Validate cache has KPI fields
+      // Validate cache has KPI fields (including migration fields)
       const hasKpiFields = Array.isArray(cacheData.rows) && cacheData.rows.every(r => 
-        r && 'skip_remaining' in r && 'unpaid_overdue_today' in r && 'max_skips_effective' in r
+        r && 'skip_remaining' in r && 'unpaid_overdue_today' in r && 'max_skips_effective' in r &&
+        'rq_migration_status' in r && 'excluded_from_stats' in r
       );
       
       if (isExpired || isWrongUser || !hasKpiFields) {
@@ -91,13 +92,16 @@ export const useRateations = (): UseRateationsReturn => {
 
   // Sanity check function to validate KPI consistency post-mapping
   const sanityCheckRows = useCallback((rows: RateationRow[]) => {
-    rows.forEach(r => {
+    // Filter out migrated rows for consistency check
+    const activeRows = rows.filter(r => !r.excluded_from_stats);
+    
+    activeRows.forEach(r => {
       const max = r.max_skips_effective ?? 8;
       const overdue = r.unpaid_overdue_today ?? 0;
       const remaining = r.skip_remaining ?? 8;
       const expected = Math.max(0, Math.min(max, max - overdue));
       
-      if (remaining !== expected) {
+      if (r.is_pagopa && remaining !== expected) {
         console.warn('[KPI-MISMATCH]', { 
           id: r.id, 
           tipo: r.tipo, 
@@ -226,6 +230,15 @@ export const useRateations = (): UseRateationsReturn => {
         max_skips_effective: r.max_skips_effective ?? 8, // Default 8 if missing
         skip_remaining: r.skip_remaining ?? 8, // Default 8 prevents false "0/8" warnings
         at_risk_decadence: !!r.at_risk_decadence,
+        
+        // Migration fields from DB
+        debts_total: r.debts_total || 0,
+        debts_migrated: r.debts_migrated || 0,
+        migrated_debt_numbers: r.migrated_debt_numbers || [],
+        remaining_debt_numbers: r.remaining_debt_numbers || [],
+        rq_target_ids: r.rq_target_ids || [],
+        rq_migration_status: r.rq_migration_status || 'none',
+        excluded_from_stats: !!r.excluded_from_stats,
       }));
       
       // Debug logging for first 10 rows to verify KPIs are correctly read from canonical view
