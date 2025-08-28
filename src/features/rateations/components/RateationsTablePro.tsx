@@ -91,7 +91,7 @@ export function RateationsTablePro({
               <TableHead className="text-center">Rate totali</TableHead>
               <TableHead className="text-center">Rate pagate</TableHead>
               <TableHead className="text-center">Rate non pagate</TableHead>
-              <TableHead className="text-center">Rate in ritardo / Non pagate oggi</TableHead>
+              <TableHead className="text-center">Rate in ritardo / Scadenti oggi</TableHead>
               <TableHead>Azioni</TableHead>
             </TableRow>
           </TableHeader>

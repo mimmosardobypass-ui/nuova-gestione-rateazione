@@ -34,9 +34,10 @@ export function RateList({
   const processRows = (sourceRows: RateationRow[]) => 
     sourceRows.map(row => ({
       ...row,
-      importoRitardo: row.importoRitardo || 0,
-      rateInRitardo: row.rateInRitardo || 0,
-      is_pagopa: row.is_pagopa
+      // Solo default visivi - NON toccare i KPI
+      importoRitardo: row.importoRitardo ?? 0,
+      rateInRitardo: row.rateInRitardo ?? row.unpaid_overdue_today ?? 0,
+      is_pagopa: !!row.is_pagopa,
     } as RateationRowPro));
 
   return (

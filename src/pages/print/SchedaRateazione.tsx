@@ -24,6 +24,7 @@ interface RateationHeader {
   rate_pagate: number;
   rate_pagate_ravv: number;
   last_activity: string | null;
+  is_pagopa?: boolean;
 }
 
 interface InstallmentDetail {
@@ -178,9 +179,9 @@ export default function SchedaRateazione() {
             } />
             <InfoField label="Tipo" value={header.type_name || "-"} />
           </div>
-          {header.type_name?.toUpperCase() === 'PAGOPA' && (
+          {header.is_pagopa && (
             <div className="mt-2 text-sm">
-              <strong>Non pagate oggi:</strong> {unpaidOverdueToday}
+              <strong>In ritardo:</strong> {unpaidOverdueToday}
             </div>
           )}
         </div>

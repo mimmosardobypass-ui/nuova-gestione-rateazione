@@ -302,7 +302,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
         {pagopaKpis && (
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border bg-card p-3">
-              <div className="text-xs text-muted-foreground">Non pagate oggi</div>
+              <div className="text-xs text-muted-foreground">In ritardo</div>
               <div className="text-lg font-semibold">{unpaidOverdueToday}</div>
             </div>
 
