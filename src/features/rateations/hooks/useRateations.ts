@@ -23,7 +23,7 @@ interface UseRateationsReturn {
   deleteRateation: (id: string) => Promise<void>;
 }
 
-const CACHE_KEY = "rateations_cache_v4_no_rq"; // Updated to exclude RQ plans from main list
+const CACHE_KEY = "rateations_cache_v5_cents_fix"; // Updated after fixing cents calculation issue
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
