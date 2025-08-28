@@ -123,9 +123,9 @@ export const useMigrationMonitoring = () => {
       setLoading(true);
       
       if (inconsistency.issue_type === 'status_mismatch') {
-        // Force recalculation of migration status
+        // Call the updated fn_realign_rateation_totals with UUID parameter
         const { error } = await supabase.rpc('fn_realign_rateation_totals', {
-          p_rateation_id: parseInt(inconsistency.rateation_id)
+          p_rateation_id: inconsistency.rateation_id
         });
         
         if (error) throw error;

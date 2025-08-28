@@ -1437,7 +1437,7 @@ export type Database = {
         Returns: undefined
       }
       fn_realign_rateation_totals: {
-        Args: { p_rateation_id: number }
+        Args: { p_rateation_id: number } | { p_rateation_id: string }
         Returns: Json
       }
       fn_recalc_rateation_status: {
