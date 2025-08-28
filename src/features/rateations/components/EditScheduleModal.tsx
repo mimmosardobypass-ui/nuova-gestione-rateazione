@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { toIntId } from "@/lib/utils/ids";
 
 // Helper functions for Italian date/amount parsing
 const euroToNumber = (txt: string): number => {
@@ -114,7 +115,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
         const { data, error } = await supabase
           .from("installments")
           .select("id, rateation_id, seq, due_date, amount, paid_at")
-          .eq("rateation_id", parseInt(rateationId))
+          .eq("rateation_id", toIntId(rateationId, 'rateationId'))
           .order("seq", { ascending: true });
 
         if (error) throw error;
@@ -209,7 +210,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
         }));
 
       const { error } = await supabase.rpc("apply_rateation_edits", {
-        p_rateation_id: parseInt(rateationId),
+        p_rateation_id: toIntId(rateationId, 'rateationId'),
         p_rows: payload
       });
 

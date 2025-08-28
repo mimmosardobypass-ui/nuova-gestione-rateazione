@@ -26,6 +26,7 @@ import { useOnline } from "@/hooks/use-online";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { supabase } from "@/integrations/supabase/client";
 import { getLegacySkipRisk } from "@/features/rateations/utils/pagopaSkips";
+import { toIntId } from "@/lib/utils/ids";
 
 interface RateationRowDetailsProProps {
   rateationId: string;
@@ -80,7 +81,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           number,
           rateation_types!inner(name)
         `)
-        .eq('id', parseInt(rateationId))
+        .eq('id', toIntId(rateationId, 'rateationId'))
         .single();
 
       if (rateationError) {
@@ -133,7 +134,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
 
     try {
       setProcessing(prev => ({ ...prev, 'decadence': true }));
-      await confirmDecadence(parseInt(rateationId), installmentId, reason);
+      await confirmDecadence(toIntId(rateationId, 'rateationId'), installmentId, reason);
       
       toast({ 
         title: "Decadenza confermata", 
@@ -247,7 +248,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       {/* Decadence Alert */}
       {rateationInfo && (
         <DecadenceAlert
-          rateationId={parseInt(rateationId)}
+          rateationId={toIntId(rateationId, 'rateationId')}
           isF24={Boolean(rateationInfo.is_f24) || String(rateationInfo.type_name).toUpperCase() === 'F24'}
           status={rateationInfo.status}
           installments={items}

@@ -24,6 +24,17 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-restricted-syntax": [
+        "error",
+        {
+          "selector": "CallExpression[callee.name='parseInt'] MemberExpression[property.name=/.*[Ii]d$/]",
+          "message": "Usa toIntId() per convertire ID numerici invece di parseInt()."
+        },
+        {
+          "selector": "CallExpression[callee.name='parseInt'][arguments.0.name=/.*[Ii]d$/]",
+          "message": "Usa toIntId() per convertire ID numerici invece di parseInt()."
+        }
+      ],
     },
   }
 );
