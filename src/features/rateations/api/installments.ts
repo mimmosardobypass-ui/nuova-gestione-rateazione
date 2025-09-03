@@ -6,6 +6,9 @@ import { toIntId } from "@/lib/utils/ids";
 export const fetchInstallments = async (rateationId: string, signal?: AbortSignal): Promise<InstallmentUI[]> => {
   if (signal?.aborted) throw new Error('AbortError');
   
+  const intId = toIntId(rateationId, 'rateationId');
+  console.debug('[DEBUG] fetchInstallments call:', { rateationId, casted: intId });
+  
   if (!supabase) {
     console.warn('Supabase client not available, returning empty installments');
     return [];
@@ -14,11 +17,17 @@ export const fetchInstallments = async (rateationId: string, signal?: AbortSigna
   const { data, error } = await supabase
     .from("installments")
     .select("*")
-    .eq("rateation_id", toIntId(rateationId, 'rateationId'))
+    .eq("rateation_id", intId)
     .order("seq");
 
   if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
+  
+  console.debug('[DEBUG] fetchInstallments result:', { rateationId, count: data?.length ?? 0 });
+  
+  if (!data || data.length === 0) {
+    console.debug('[DEBUG] No installments found for rateation:', rateationId);
+  }
   
   // Ensure consistent payment date mapping and normalize payment status
   return (data || []).map(row => ({
