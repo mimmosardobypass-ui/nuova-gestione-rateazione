@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar as CalendarIcon, Plus, Save, X, ArrowRightLeft } from "lucide-react";
+import { Plus, Save, X, ArrowRightLeft } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toIntId } from "@/lib/utils/ids";
+import { DateCellPicker } from "@/components/ui/date-cell-picker";
 
 // Helper functions for Italian date/amount parsing
 const euroToNumber = (txt: string): number => {
@@ -237,7 +238,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-visible flex flex-col z-[60]">
         <DialogHeader>
           <DialogTitle>Modifica scadenze</DialogTitle>
         </DialogHeader>
@@ -307,21 +308,21 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
                             disabled={isPaid}
                           />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CalendarIcon className="h-4 w-4 opacity-60" />
-                           <Input
-                             className={cn(
-                               "w-[110px] h-8",
-                               dateError && "border-destructive ring-1 ring-destructive/40"
-                             )}
-                             type="text"
-                             inputMode="numeric"
-                             value={isoToIT(r.due_date_iso)}
-                             onChange={e => setCell(idx, { due_date_iso: toISO(e.target.value) })}
-                             onBlur={e => setCell(idx, { due_date_iso: toISO(e.target.value) })}
-                             placeholder="gg/mm/aaaa"
-                             disabled={isPaid}
-                           />
+                        <div className={cn(
+                          dateError && "border-destructive ring-1 ring-destructive/40 rounded"
+                        )}>
+                          <DateCellPicker
+                            value={r.due_date_iso}
+                            onChange={(date) => {
+                              if (date) {
+                                setCell(idx, { due_date_iso: format(date, "yyyy-MM-dd") });
+                              } else {
+                                setCell(idx, { due_date_iso: "" });
+                              }
+                            }}
+                            disabled={isPaid}
+                            className="w-auto"
+                          />
                         </div>
                         <div>
                           <Input
