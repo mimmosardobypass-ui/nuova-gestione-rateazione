@@ -31,6 +31,29 @@ import { MigrationDialog } from "./MigrationDialog";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
 import { isPagoPAPlan } from "../utils/isPagopa";
 
+// --- SAFE HELPERS ---
+const toNum = (v: any, fb = 0): number => {
+  if (v === null || v === undefined) return fb;
+  const n = typeof v === 'string' ? Number(v) : v;
+  return Number.isFinite(n) ? n : fb;
+};
+
+const safeDate = (d?: string | null): Date | null => {
+  if (!d) return null;
+  const t = Date.parse(d);
+  return Number.isFinite(t) ? new Date(t) : null;
+};
+
+const computeDaysLate = (due?: string | null): number => {
+  const dd = safeDate(due);
+  if (!dd) return 0;
+  const diff = Date.now() - dd.getTime();
+  return Math.max(0, Math.floor(diff / 86_400_000));
+};
+
+const formatEuroSafe = (v: any): string =>
+  toNum(v).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+
 interface RateationRowDetailsProProps {
   rateationId: string;
   onDataChanged?: () => void;
@@ -74,63 +97,58 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const online = useOnline();
 
   const load = useCallback(async () => {
-    console.debug('[DEBUG] RateationRowDetailsPro.load() called for rateationId:', rateationId);
-    setLoading(true); 
+    setLoading(true);
     setError(null);
     try {
-      // Load installments with AbortSignal support
-      const signal = new AbortController().signal;
-      console.debug('[DEBUG] Calling fetchInstallments...');
-      const rows = await fetchInstallments(rateationId, signal);
-      console.debug('[DEBUG] fetchInstallments returned:', { count: rows?.length ?? 0, sample: rows?.[0] });
-      
-      // Validate installments structure
-      if (rows && rows.length > 0) {
-        const firstInstallment = rows[0];
-        console.debug('[DEBUG] First installment structure check:', {
-          hasSeq: 'seq' in firstInstallment,
-          hasDueDate: 'due_date' in firstInstallment, 
-          hasAmount: 'amount' in firstInstallment,
-          hasIsPaid: 'is_paid' in firstInstallment,
-          keys: Object.keys(firstInstallment)
-        });
-      }
-      
-      setItems(rows ?? []);
+      // Carica installments
+      const controller = new AbortController();
+      const rows = await fetchInstallments(rateationId, controller.signal);
 
-      // Load rateation info from enhanced view with migration fields
-      console.debug('[DEBUG] Loading rateation info...');
-      const { data: rateationData, error: rateationError } = await supabase
+      // Normalizzazione robusta (evita undefined/null e disallineamenti)
+      const normalized = (rows ?? []).map((r: any) => ({
+        ...r,
+        // amount in € (se manca, prova da cents)
+        amount: Number.isFinite(r?.amount)
+          ? r.amount
+          : toNum(r?.amount_cents, 0) / 100,
+        // paid_total_cents sempre number
+        paid_total_cents: toNum(r?.paid_total_cents, 0),
+        // due_date coerente
+        due_date: r?.due_date ?? r?.due ?? null,
+        // paid_date coerente
+        paid_date: r?.is_paid ? (r?.paid_date ?? r?.paid_at ?? null) : null,
+        is_paid: !!r?.is_paid,
+      }));
+
+      setItems(normalized);
+
+      // Info rateazione (come avevi già)
+      const { data: rateationData } = await supabase
         .from('v_rateations_with_kpis')
         .select('*')
         .eq('id', toIntId(rateationId, 'rateationId'))
         .single();
 
-      if (rateationError) {
-        console.warn('Failed to load rateation info:', rateationError.message);
-      } else {
-        console.debug('[DEBUG] Rateation info loaded successfully:', rateationData);
+      if (rateationData) {
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
           status: (rateationData.status || 'active') as RateationStatus,
-          decadence_at: null, // Not available in this view
+          decadence_at: null,
           taxpayer_name: rateationData.taxpayer_name,
           number: rateationData.number,
           type_name: rateationData.tipo,
-          // Migration fields
           is_pagopa: !!rateationData.is_pagopa,
-          rq_migration_status: (rateationData.rq_migration_status || 'none') as 'none' | 'partial' | 'full',
+          rq_migration_status:
+            (rateationData.rq_migration_status || 'none') as 'none' | 'partial' | 'full',
           migrated_debt_numbers: rateationData.migrated_debt_numbers || [],
           remaining_debt_numbers: rateationData.remaining_debt_numbers || [],
           rq_target_ids: (rateationData.rq_target_ids || []).map(String),
-          excluded_from_stats: rateationData.excluded_from_stats || false
+          excluded_from_stats: rateationData.excluded_from_stats || false,
         });
       }
-
     } catch (e: any) {
-      console.error('[DEBUG] Error in load():', e);
-      setError(e?.message || "Errore nel caricamento rate");
-      setItems([]);
+      setError(e?.message || 'Errore nel caricamento rate');
+      setItems([]); // fallback sicuro
     } finally {
       setLoading(false);
     }
@@ -275,12 +293,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
     beforeReturnCheck: !loading && !error && items.length > 0
   });
 
-  if (loading) return <div className="p-4 text-sm text-muted-foreground">Caricamento rate…</div>;
-  if (error) return <div className="p-4 text-sm text-destructive">{error}</div>;
-  if (!items.length) return <div className="p-4 text-sm text-muted-foreground">Nessuna rata trovata.</div>;
-
   return (
     <div className="p-4 space-y-4">
+      {/* Stati non-bloccanti */}
+      {loading && <div className="p-3 text-sm text-muted-foreground">Caricamento rate…</div>}
+      {!loading && error && (
+        <div className="p-3 text-sm text-red-600">Errore: {String(error)}</div>
+      )}
+      {!loading && !error && items.length === 0 && (
+        <div className="p-3 text-sm text-muted-foreground">Nessuna rata trovata.</div>
+      )}
+
       {/* Decadence Alert */}
       {rateationInfo && (
         <DecadenceAlert
@@ -435,127 +458,99 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       </div>
 
       {/* Sub-tabella rate con scroll */}
-      <div className="border rounded-lg">
-        <div className="max-h-80 overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background">
-              <TableRow>
-                <TableHead className="w-12">#</TableHead>
-                <TableHead>Scadenza</TableHead>
-                <TableHead className="text-right">Importo</TableHead>
-                <TableHead>Stato</TableHead>
-                <TableHead>Pagata il</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead className="text-right">Azioni</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(() => {
-                console.log('[DEBUG] About to render table body with items:', items.length);
-                return null;
-              })()}
-              {items.map((it) => {
-                try {
-                  console.debug('[DEBUG] Rendering installment row:', { seq: it.seq, id: it.id, amount: it.amount });
-                  const daysLate = getDaysLate(it);
+      <div className="mt-3 border rounded-lg overflow-x-auto">
+        <table className="min-w-full table-auto">
+          <thead>
+            <tr>
+              <th className="px-3 py-2 text-left">#</th>
+              <th className="px-3 py-2 text-left">Scadenza</th>
+              <th className="px-3 py-2 text-left">Importo</th>
+              <th className="px-3 py-2 text-left">Stato</th>
+              <th className="px-3 py-2 text-left">Pagata il</th>
+              <th className="px-3 py-2 text-left">Pagamento</th>
+              <th className="px-3 py-2 text-left">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it: any) => {
+              try {
+                const daysLate = computeDaysLate(it?.due_date);
+                const amount = toNum(it?.amount, 0);
+                const paidTot = toNum(it?.paid_total_cents, 0) / 100;
+                const isPaid = !!it?.is_paid;
 
-                  // Show ravvedimento total if available, otherwise original amount
-                  const displayAmount = it.paid_total_cents 
-                    ? it.paid_total_cents / 100 
-                    : it.amount || 0;
-
-                  return (
-                    <TableRow key={it.seq} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{it.seq}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div>{it.due_date ? new Date(it.due_date).toLocaleDateString("it-IT") : "—"}</div>
-                          {daysLate > 0 && (
-                            <div className="text-xs text-destructive font-medium">
-                              {daysLate} giorni di ritardo
-                            </div>
-                          )}
+                return (
+                  <tr key={String(it?.id ?? it?.seq)}>
+                    <td className="px-3 py-2">{it?.seq}</td>
+                    <td className="px-3 py-2">
+                      {safeDate(it?.due_date)?.toLocaleDateString('it-IT') ?? '—'}
+                      {daysLate > 0 && (
+                        <div className="text-xs text-orange-600">{daysLate} giorni di ritardo</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {formatEuroSafe(amount)}
+                      {isPaid && paidTot > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          tot. {formatEuroSafe(paidTot)} ({formatEuroSafe(paidTot - amount)} extra)
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="space-y-1">
-                          <div className="font-medium">{formatEuro(it.amount || 0)}</div>
-                          {it.is_paid && it.paid_total_cents && it.paid_total_cents > 0 && (
-                            <div className="text-xs text-muted-foreground">
-                              tot. {formatEuro(it.paid_total_cents / 100)} ({formatEuro((it.paid_total_cents / 100) - (it.amount || 0))} extra)
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell><InstallmentStatusBadge installment={it} /></TableCell>
-                      <TableCell>
-                        {(() => {
-                          const paidDate = getPaymentDate(it);
-                          return paidDate ? new Date(paidDate).toLocaleDateString('it-IT') : '—';
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <InstallmentPaymentActions
-                          rateationId={rateationId}
-                          installment={it}
-                          onReload={debouncedReload}
-                          onStatsReload={debouncedReloadStats}
-                          disabled={!online || rateationInfo?.status === 'decaduta'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-end items-center">
-                          {!isInstallmentPaid(it) && rateationInfo?.status !== 'decaduta' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handlePostpone(it.seq)}
-                              disabled={processing[`postpone-${it.seq}`]}
-                              className="h-7 px-2 text-xs"
-                            >
-                              {processing[`postpone-${it.seq}`] ? "..." : "Posticipa"}
-                            </Button>
-                          )}
-                          {rateationInfo?.status !== 'decaduta' && (
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleDelete(it.seq)}
-                              disabled={processing[`delete-${it.seq}`]}
-                              className="h-7 px-2 text-xs"
-                            >
-                              {processing[`delete-${it.seq}`] ? "..." : "Elimina"}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                } catch (renderError) {
-                  console.error('[DEBUG] Error rendering installment row:', { installment: it, error: renderError });
-                  return (
-                    <TableRow key={it.seq || Math.random()} className="bg-red-50">
-                      <TableCell colSpan={7} className="text-red-600 text-sm">
-                        Errore rendering rata #{it.seq}: {String(renderError)}
-                        <details className="mt-2">
-                          <summary className="cursor-pointer">Debug data</summary>
-                          <pre className="text-xs mt-1 overflow-auto">{JSON.stringify(it, null, 2)}</pre>
-                        </details>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-              })}
-              {items.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
-                    Nessuna rata presente.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {isPaid ? 'Pagata' : daysLate > 0 ? 'In ritardo' : 'Da pagare'}
+                    </td>
+                    <td className="px-3 py-2">
+                      {safeDate(it?.paid_date)?.toLocaleDateString('it-IT') ?? '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <InstallmentPaymentActions
+                        rateationId={rateationId}
+                        installment={it}
+                        onReload={debouncedReload}
+                        onStatsReload={debouncedReloadStats}
+                        disabled={!online || rateationInfo?.status === 'decaduta'}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 justify-end items-center">
+                        {!isPaid && rateationInfo?.status !== 'decaduta' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handlePostpone(it.seq)}
+                            disabled={processing[`postpone-${it.seq}`]}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {processing[`postpone-${it.seq}`] ? "..." : "Posticipa"}
+                          </Button>
+                        )}
+                        {rateationInfo?.status !== 'decaduta' && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDelete(it.seq)}
+                            disabled={processing[`delete-${it.seq}`]}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {processing[`delete-${it.seq}`] ? "..." : "Elimina"}
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              } catch (rowErr) {
+                return (
+                  <tr key={`err-${String(it?.id ?? it?.seq)}`}>
+                    <td colSpan={7} className="px-3 py-2 text-red-600 text-sm">
+                      Errore rendering rata #{String(it?.seq)}: {String(rowErr)}
+                    </td>
+                  </tr>
+                );
+              }
+            })}
+          </tbody>
+        </table>
       </div>
 
       <EditScheduleModal
