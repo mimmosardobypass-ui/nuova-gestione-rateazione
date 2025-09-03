@@ -4,6 +4,7 @@ import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "../types";
 import { supabase, safeSupabaseOperation } from "@/integrations/supabase/client-resilient";
 import { performKpiSanityChecks, logMigrationOperation } from '../utils/migrationMonitoring';
+import { toIntId } from "@/lib/utils/ids";
 
 interface UseRateationsReturn {
   rows: RateationRow[];
@@ -363,7 +364,7 @@ export const useRateations = (): UseRateationsReturn => {
       const { error: installmentsError } = await supabase
         .from("installments")
         .delete()
-        .eq("rateation_id", id);
+        .eq("rateation_id", toIntId(id, 'rateationId'));
 
       if (installmentsError) throw installmentsError;
 
@@ -371,7 +372,7 @@ export const useRateations = (): UseRateationsReturn => {
       const { error: rateationError } = await supabase
         .from("rateations")
         .delete()
-        .eq("id", id);
+        .eq("id", toIntId(id, 'rateationId'));
 
       if (rateationError) throw rateationError;
 

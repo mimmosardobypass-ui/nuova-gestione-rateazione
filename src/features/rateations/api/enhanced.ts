@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client-resilient";
+import { toIntId } from "@/lib/utils/ids";
 
 export interface RateationSummaryEnhanced {
   id: string;
@@ -64,10 +65,15 @@ export const fetchInstallmentsStatus = async (rateationId: string, signal?: Abor
   const { data, error } = await supabase
     .from("v_installments_status")
     .select("*")
-    .eq("rateation_id", rateationId)
+    .eq("rateation_id", toIntId(rateationId, 'rateationId'))
     .order("seq");
 
   if (signal?.aborted) throw new Error('AbortError');
   if (error) throw error;
-  return data || [];
+  
+  const result = data || [];
+  if (result.length === 0) {
+    console.debug('[DEBUG] No installments found for rateationId:', rateationId);
+  }
+  return result;
 };

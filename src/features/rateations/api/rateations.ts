@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client-resilient";
 import type { CreateRateationAutoParams, CreateRateationManualParams, RateationType } from "../types";
+import { toIntId } from "@/lib/utils/ids";
 
 // LOVABLE:START fetchRateations
 export const fetchRateations = async (signal?: AbortSignal) => {
@@ -82,7 +83,7 @@ export const deleteRateation = async (id: string): Promise<void> => {
   const { error: installmentsError } = await supabase
     .from("installments")
     .delete()
-    .eq("rateation_id", id);
+    .eq("rateation_id", toIntId(id, 'rateationId'));
 
   if (installmentsError) throw installmentsError;
 
@@ -90,7 +91,7 @@ export const deleteRateation = async (id: string): Promise<void> => {
   const { error: rateationError } = await supabase
     .from("rateations")
     .delete()
-    .eq("id", id);
+    .eq("id", toIntId(id, 'rateationId'));
 
   if (rateationError) throw rateationError;
 };

@@ -29,6 +29,12 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
       const data = await fetchInstallments(row.id, controller.signal);
       
       if (controller.signal.aborted) return;
+      
+      console.debug('[DEBUG] fetchInstallments result:', { rateationId: row.id, count: data?.length || 0 });
+      if ((data?.length || 0) === 0) {
+        console.debug('[DEBUG] No installments found for rateation:', { id: row.id, numero: row.numero });
+      }
+      
       setItems(data || []);
     } catch (err) {
       if (controller.signal.aborted || (err instanceof Error && err.message === 'AbortError')) {
