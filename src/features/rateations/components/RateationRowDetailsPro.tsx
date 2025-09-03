@@ -32,6 +32,8 @@ import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
 import { isPagoPAPlan } from "../utils/isPagopa";
 
 // --- SAFE HELPERS ---
+const DEBUG = process.env.NODE_ENV !== 'production';
+
 const toNum = (v: any, fb = 0): number => {
   if (v === null || v === undefined) return fb;
   const n = typeof v === 'string' ? Number(v) : v;
@@ -85,7 +87,12 @@ interface RateationInfo {
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis }: RateationRowDetailsProProps) {
-  console.log('[DEBUG] RateationRowDetailsPro component instantiated with rateationId:', rateationId, typeof rateationId);
+  if (DEBUG) console.log('[DEBUG] RateationRowDetailsPro component instantiated with rateationId:', rateationId, typeof rateationId);
+  
+  // Race condition protection
+  const ctrlRef = React.useRef<AbortController | null>(null);
+  const reqIdRef = React.useRef(0);
+  
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [rateationInfo, setRateationInfo] = useState<RateationInfo | null>(null);
   
@@ -99,10 +106,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    // aborta eventuale richiesta precedente
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
+
+    const myReqId = ++reqIdRef.current;
+
     try {
-      // Carica installments
-      const controller = new AbortController();
-      const rows = await fetchInstallments(rateationId, controller.signal);
+      const rows = await fetchInstallments(rateationId, ctrl.signal);
+      if (ctrl.signal.aborted || myReqId !== reqIdRef.current) return; // risposta stantia
 
       // Normalizzazione robusta (evita undefined/null e disallineamenti)
       const normalized = (rows ?? []).map((r: any) => ({
@@ -129,7 +143,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
         .eq('id', toIntId(rateationId, 'rateationId'))
         .single();
 
-      if (rateationData) {
+      if (!ctrl.signal.aborted && myReqId === reqIdRef.current && rateationData) {
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
           status: (rateationData.status || 'active') as RateationStatus,
@@ -147,10 +161,12 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
         });
       }
     } catch (e: any) {
-      setError(e?.message || 'Errore nel caricamento rate');
-      setItems([]); // fallback sicuro
+      if (!ctrl.signal.aborted) {
+        setError(e?.message || 'Errore nel caricamento rate');
+        setItems([]); // fallback sicuro
+      }
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted && reqIdRef.current === myReqId) setLoading(false);
     }
   }, [rateationId]);
 
@@ -162,6 +178,9 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   useEffect(() => { 
     load(); 
   }, [load]);
+
+  // Cleanup on unmount
+  useEffect(() => () => ctrlRef.current?.abort(), []);
 
   // Use pre-computed PagoPA KPIs from parent - no recalculation
   const unpaidOverdueToday = pagopaKpis?.unpaid_overdue_today ?? 0;
@@ -285,7 +304,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
     }
   };
 
-  console.log('[DEBUG] Component render state:', { 
+  if (DEBUG) console.log('[DEBUG] Component render state:', { 
     itemsLength: items.length,
     loading,
     error,
@@ -480,7 +499,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                 const isPaid = !!it?.is_paid;
 
                 return (
-                  <tr key={String(it?.id ?? it?.seq)}>
+                  <tr key={String(it?.id ?? `${rateationId}-${it?.seq}`)}>
                     <td className="px-3 py-2">{it?.seq}</td>
                     <td className="px-3 py-2">
                       {safeDate(it?.due_date)?.toLocaleDateString('it-IT') ?? '—'}
