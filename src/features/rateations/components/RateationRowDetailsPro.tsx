@@ -73,14 +73,32 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
   const online = useOnline();
 
   const load = useCallback(async () => {
+    console.debug('[DEBUG] RateationRowDetailsPro.load() called for rateationId:', rateationId);
     setLoading(true); 
     setError(null);
     try {
-      // Load installments
-      const rows = await fetchInstallments(rateationId);
+      // Load installments with AbortSignal support
+      const signal = new AbortController().signal;
+      console.debug('[DEBUG] Calling fetchInstallments...');
+      const rows = await fetchInstallments(rateationId, signal);
+      console.debug('[DEBUG] fetchInstallments returned:', { count: rows?.length ?? 0, sample: rows?.[0] });
+      
+      // Validate installments structure
+      if (rows && rows.length > 0) {
+        const firstInstallment = rows[0];
+        console.debug('[DEBUG] First installment structure check:', {
+          hasSeq: 'seq' in firstInstallment,
+          hasDueDate: 'due_date' in firstInstallment, 
+          hasAmount: 'amount' in firstInstallment,
+          hasIsPaid: 'is_paid' in firstInstallment,
+          keys: Object.keys(firstInstallment)
+        });
+      }
+      
       setItems(rows ?? []);
 
       // Load rateation info from enhanced view with migration fields
+      console.debug('[DEBUG] Loading rateation info...');
       const { data: rateationData, error: rateationError } = await supabase
         .from('v_rateations_with_kpis')
         .select('*')
@@ -90,6 +108,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       if (rateationError) {
         console.warn('Failed to load rateation info:', rateationError.message);
       } else {
+        console.debug('[DEBUG] Rateation info loaded successfully:', rateationData);
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
           status: (rateationData.status || 'active') as RateationStatus,
@@ -108,6 +127,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       }
 
     } catch (e: any) {
+      console.error('[DEBUG] Error in load():', e);
       setError(e?.message || "Errore nel caricamento rate");
       setItems([]);
     } finally {
@@ -172,7 +192,6 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       table.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, []);
-
 
   const handlePostpone = async (seq: number) => {
     if (!online) {
@@ -423,80 +442,96 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
             </TableHeader>
             <TableBody>
               {items.map((it) => {
-                const daysLate = getDaysLate(it);
+                try {
+                  console.debug('[DEBUG] Rendering installment row:', { seq: it.seq, id: it.id, amount: it.amount });
+                  const daysLate = getDaysLate(it);
 
-                // Show ravvedimento total if available, otherwise original amount
-                const displayAmount = it.paid_total_cents 
-                  ? it.paid_total_cents / 100 
-                  : it.amount || 0;
+                  // Show ravvedimento total if available, otherwise original amount
+                  const displayAmount = it.paid_total_cents 
+                    ? it.paid_total_cents / 100 
+                    : it.amount || 0;
 
-                return (
-                  <TableRow key={it.seq} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{it.seq}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div>{it.due_date ? new Date(it.due_date).toLocaleDateString("it-IT") : "—"}</div>
-                        {daysLate > 0 && (
-                          <div className="text-xs text-destructive font-medium">
-                            {daysLate} giorni di ritardo
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="space-y-1">
-                        <div className="font-medium">{formatEuro(it.amount || 0)}</div>
-                        {it.is_paid && it.paid_total_cents && it.paid_total_cents > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            tot. {formatEuro(it.paid_total_cents / 100)} ({formatEuro((it.paid_total_cents / 100) - (it.amount || 0))} extra)
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell><InstallmentStatusBadge installment={it} /></TableCell>
-                    <TableCell>
-                      {(() => {
-                        const paidDate = getPaymentDate(it);
-                        return paidDate ? new Date(paidDate).toLocaleDateString('it-IT') : '—';
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <InstallmentPaymentActions
-                        rateationId={rateationId}
-                        installment={it}
-                        onReload={debouncedReload}
-                        onStatsReload={debouncedReloadStats}
-                        disabled={!online || rateationInfo?.status === 'decaduta'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end items-center">
-                        {!isInstallmentPaid(it) && rateationInfo?.status !== 'decaduta' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handlePostpone(it.seq)}
-                            disabled={processing[`postpone-${it.seq}`]}
-                            className="h-7 px-2 text-xs"
-                          >
-                            {processing[`postpone-${it.seq}`] ? "..." : "Posticipa"}
-                          </Button>
-                        )}
-                        {rateationInfo?.status !== 'decaduta' && (
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDelete(it.seq)}
-                            disabled={processing[`delete-${it.seq}`]}
-                            className="h-7 px-2 text-xs"
-                          >
-                            {processing[`delete-${it.seq}`] ? "..." : "Elimina"}
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
+                  return (
+                    <TableRow key={it.seq} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{it.seq}</TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div>{it.due_date ? new Date(it.due_date).toLocaleDateString("it-IT") : "—"}</div>
+                          {daysLate > 0 && (
+                            <div className="text-xs text-destructive font-medium">
+                              {daysLate} giorni di ritardo
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="space-y-1">
+                          <div className="font-medium">{formatEuro(it.amount || 0)}</div>
+                          {it.is_paid && it.paid_total_cents && it.paid_total_cents > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              tot. {formatEuro(it.paid_total_cents / 100)} ({formatEuro((it.paid_total_cents / 100) - (it.amount || 0))} extra)
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell><InstallmentStatusBadge installment={it} /></TableCell>
+                      <TableCell>
+                        {(() => {
+                          const paidDate = getPaymentDate(it);
+                          return paidDate ? new Date(paidDate).toLocaleDateString('it-IT') : '—';
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <InstallmentPaymentActions
+                          rateationId={rateationId}
+                          installment={it}
+                          onReload={debouncedReload}
+                          onStatsReload={debouncedReloadStats}
+                          disabled={!online || rateationInfo?.status === 'decaduta'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end items-center">
+                          {!isInstallmentPaid(it) && rateationInfo?.status !== 'decaduta' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handlePostpone(it.seq)}
+                              disabled={processing[`postpone-${it.seq}`]}
+                              className="h-7 px-2 text-xs"
+                            >
+                              {processing[`postpone-${it.seq}`] ? "..." : "Posticipa"}
+                            </Button>
+                          )}
+                          {rateationInfo?.status !== 'decaduta' && (
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleDelete(it.seq)}
+                              disabled={processing[`delete-${it.seq}`]}
+                              className="h-7 px-2 text-xs"
+                            >
+                              {processing[`delete-${it.seq}`] ? "..." : "Elimina"}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                } catch (renderError) {
+                  console.error('[DEBUG] Error rendering installment row:', { installment: it, error: renderError });
+                  return (
+                    <TableRow key={it.seq || Math.random()} className="bg-red-50">
+                      <TableCell colSpan={7} className="text-red-600 text-sm">
+                        Errore rendering rata #{it.seq}: {String(renderError)}
+                        <details className="mt-2">
+                          <summary className="cursor-pointer">Debug data</summary>
+                          <pre className="text-xs mt-1 overflow-auto">{JSON.stringify(it, null, 2)}</pre>
+                        </details>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
               })}
               {items.length === 0 && (
                 <TableRow>
