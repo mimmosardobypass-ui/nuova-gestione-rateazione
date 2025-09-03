@@ -62,6 +62,7 @@ interface RateationInfo {
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis }: RateationRowDetailsProProps) {
+  console.log('[DEBUG] RateationRowDetailsPro component instantiated with rateationId:', rateationId, typeof rateationId);
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [rateationInfo, setRateationInfo] = useState<RateationInfo | null>(null);
   
@@ -266,6 +267,14 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
     }
   };
 
+  console.log('[DEBUG] Component render state:', { 
+    itemsLength: items.length,
+    loading,
+    error,
+    rateationInfo: !!rateationInfo,
+    beforeReturnCheck: !loading && !error && items.length > 0
+  });
+
   if (loading) return <div className="p-4 text-sm text-muted-foreground">Caricamento rate…</div>;
   if (error) return <div className="p-4 text-sm text-destructive">{error}</div>;
   if (!items.length) return <div className="p-4 text-sm text-muted-foreground">Nessuna rata trovata.</div>;
@@ -441,6 +450,10 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
               </TableRow>
             </TableHeader>
             <TableBody>
+              {(() => {
+                console.log('[DEBUG] About to render table body with items:', items.length);
+                return null;
+              })()}
               {items.map((it) => {
                 try {
                   console.debug('[DEBUG] Rendering installment row:', { seq: it.seq, id: it.id, amount: it.amount });
