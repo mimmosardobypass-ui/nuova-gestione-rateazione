@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toIntId } from '@/lib/utils/ids';
 
 interface MigrationInconsistency {
   rateation_id: string;
@@ -51,7 +52,7 @@ export const useMigrationMonitoring = () => {
           const { data: migratedDebts, error: debtError } = await supabase
             .from('rateation_debts')
             .select('debt_id, status')
-            .eq('rateation_id', rateation.id)
+            .eq('rateation_id', toIntId(rateation.id, 'rateationId'))
             .eq('status', 'migrated_out');
 
           if (debtError) {
@@ -125,7 +126,7 @@ export const useMigrationMonitoring = () => {
       if (inconsistency.issue_type === 'status_mismatch') {
         // Call the updated fn_realign_rateation_totals with UUID parameter
     const { error } = await supabase.rpc('fn_realign_rateation_totals', {
-      p_rateation_id: inconsistency.rateation_id.toString()
+      p_rateation_id: toIntId(inconsistency.rateation_id, 'rateationId')
     });
         
         if (error) throw error;

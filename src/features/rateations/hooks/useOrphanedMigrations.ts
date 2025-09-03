@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toIntId } from '@/lib/utils/ids';
 
 interface OrphanedMigration {
   debt_id: string;
@@ -66,7 +67,7 @@ export const useOrphanedMigrations = () => {
           .from('rateation_debts')
           .delete()
           .eq('debt_id', orphan.debt_id)
-          .eq('rateation_id', orphan.details.rateation_id)
+          .eq('rateation_id', toIntId(orphan.details.rateation_id, 'rateationId'))
           .eq('status', 'migrated_in');
 
         if (error) throw error;
@@ -86,7 +87,7 @@ export const useOrphanedMigrations = () => {
             note: null
           })
           .eq('debt_id', orphan.debt_id)
-          .eq('rateation_id', orphan.details.rateation_id)
+          .eq('rateation_id', toIntId(orphan.details.rateation_id, 'rateationId'))
           .eq('status', 'migrated_out');
 
         if (error) throw error;

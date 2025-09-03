@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client-resilient";
 import { DecadenceDashboard, DecadenceDetail } from "../types";
+import { toIntId } from "@/lib/utils/ids";
 
 // Fetch decadence dashboard data (converts from cents to euros)
 export async function fetchDecadenceDashboard(signal?: AbortSignal): Promise<DecadenceDashboard> {
@@ -98,7 +99,7 @@ export async function confirmDecadence(
   reason?: string
 ): Promise<void> {
   const { error } = await supabase.rpc('rateation_confirm_decadence', {
-    p_rateation_id: rateationId,
+    p_rateation_id: toIntId(rateationId, 'rateationId'),
     p_installment_id: installmentId,
     p_reason: reason || null
   });
