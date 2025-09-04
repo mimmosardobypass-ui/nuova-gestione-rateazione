@@ -276,7 +276,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-visible flex flex-col z-[60]">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-visible flex flex-col dialog-content-flatpickr">
         <DialogHeader>
           <DialogTitle>Modifica scadenze</DialogTitle>
         </DialogHeader>

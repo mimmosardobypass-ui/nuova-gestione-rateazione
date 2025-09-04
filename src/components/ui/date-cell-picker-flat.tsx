@@ -33,24 +33,53 @@ export default function DateCellPickerFlat({
   // Portal per evitare clipping / z-index issues
   const portalRef = React.useRef<HTMLDivElement | null>(null);
   const fpInstance = React.useRef<any>(null);
-  const stopRef = React.useRef<(e: MouseEvent) => void>();
+  const stopRef = React.useRef<Set<(e: Event) => void>>(new Set());
+  const uniqueId = React.useRef(`flatpickr-portal-${Math.random().toString(36).substr(2, 9)}`);
 
   React.useEffect(() => {
+    // Remove existing portal with same ID if any
+    const existing = document.getElementById(uniqueId.current);
+    if (existing) existing.remove();
+    
     const div = document.createElement("div");
-    div.id = "flatpickr-portal";
-    div.style.position = "relative";
+    div.id = uniqueId.current;
+    div.style.position = "fixed";
+    div.style.top = "0";
+    div.style.left = "0";
     div.style.zIndex = "2147483647";
+    div.style.pointerEvents = "none";
     document.body.appendChild(div);
     portalRef.current = div;
-    return () => div.remove();
+    
+    return () => {
+      const portal = document.getElementById(uniqueId.current);
+      if (portal) portal.remove();
+    };
   }, []);
 
-  const openCalendar = () => {
-    // fallback sicuro: apri manualmente
+  const openCalendar = React.useCallback(() => {
+    if (disabled) return;
+    
     try {
-      (fpInstance.current as any)?.open?.();
-    } catch {}
-  };
+      const instance = fpInstance.current;
+      if (instance) {
+        // Force open with positioning
+        instance.open();
+        
+        // Ensure calendar is positioned correctly
+        setTimeout(() => {
+          const calendar = instance.calendarContainer;
+          if (calendar) {
+            calendar.style.zIndex = "2147483647";
+            calendar.style.pointerEvents = "auto";
+            calendar.style.position = "absolute";
+          }
+        }, 0);
+      }
+    } catch (error) {
+      console.warn("Failed to open calendar:", error);
+    }
+  }, [disabled]);
 
   return (
     <div className="relative flex items-center gap-1">
@@ -69,18 +98,50 @@ export default function DateCellPickerFlat({
           clickOpens: true,
           onReady: (_d, _s, instance) => {
             fpInstance.current = instance;
+            
+            // Ensure immediate accessibility
+            if (instance.calendarContainer) {
+              instance.calendarContainer.style.zIndex = "2147483647";
+              instance.calendarContainer.style.pointerEvents = "auto";
+            }
+          },
+          onPreCalendarPosition: (_d, _s, fp) => {
+            // Ensure positioning doesn't break
+            fp.calendarContainer.style.zIndex = "2147483647";
+            fp.calendarContainer.style.pointerEvents = "auto";
+            return true;
           },
           // Evita che i click sui controlli chiudano o riposizionino il popover
           onOpen: (_d, _s, fp) => {
-            const stop = (e: MouseEvent) => e.stopPropagation();
-            stopRef.current = stop;
-            fp.calendarContainer.addEventListener("mousedown", stop, { capture: true });
-            fp.calendarContainer.addEventListener("click", stop, { capture: true });
+            const events = ['mousedown', 'click', 'touchstart', 'touchend', 'keydown'];
+            const handlers = new Set<(e: Event) => void>();
+            
+            events.forEach(eventType => {
+              const handler = (e: Event) => {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+              };
+              handlers.add(handler);
+              fp.calendarContainer.addEventListener(eventType, handler, { capture: true, passive: false });
+            });
+            
+            stopRef.current = handlers;
+            
+            // Force correct styling
+            fp.calendarContainer.style.zIndex = "2147483647";
+            fp.calendarContainer.style.pointerEvents = "auto";
+            fp.calendarContainer.style.position = "absolute";
           },
           onClose: (_d, _s, fp) => {
+            // Clean up all event listeners
             if (stopRef.current) {
-              fp.calendarContainer.removeEventListener("mousedown", stopRef.current, { capture: true } as any);
-              fp.calendarContainer.removeEventListener("click", stopRef.current, { capture: true } as any);
+              const events = ['mousedown', 'click', 'touchstart', 'touchend', 'keydown'];
+              events.forEach(eventType => {
+                stopRef.current.forEach(handler => {
+                  fp.calendarContainer.removeEventListener(eventType, handler, { capture: true } as any);
+                });
+              });
+              stopRef.current.clear();
             }
           },
         }}
