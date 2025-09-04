@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Calendar, Download, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { toLocalISO } from '@/utils/date';
 import { it } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatEuro } from '@/lib/formatters';
@@ -26,8 +27,8 @@ interface DeadlinesProps {
 export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesProps) {
   const [payFilter, setPayFilter] = React.useState<PayFilterValue>('all');
   const [filters, setFilters] = React.useState<DeadlineFilters>({
-    startDate: format(new Date(), 'yyyy-MM-dd'),
-    endDate: format(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // Next 90 days
+    startDate: toLocalISO(new Date()),
+    endDate: toLocalISO(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)), // Next 90 days
     payFilter: 'all',
   });
 
@@ -78,7 +79,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
     const a = document.createElement('a');
     a.href = url;
     const bucketSlug = (filters.bucket ?? 'all').toString().replace(/\s+/g,'-').toLowerCase();
-    a.download = `scadenze-${payFilter}-${bucketSlug}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `scadenze-${payFilter}-${bucketSlug}-${toLocalISO(new Date())}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };

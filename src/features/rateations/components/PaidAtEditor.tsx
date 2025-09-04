@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Pencil, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { toLocalISO } from '@/utils/date';
 import { it } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { markInstallmentPaidWithDate, unmarkInstallmentPaid } from '../api/installments';
@@ -51,7 +52,7 @@ export function PaidAtEditor({
   const save = async () => {
     try {
       setSaving(true);
-      const ymd = format(selected, 'yyyy-MM-dd');
+      const ymd = toLocalISO(selected);
       await markInstallmentPaidWithDate(rateationId, seq, ymd);
       toast({ 
         title: 'Pagamento registrato', 

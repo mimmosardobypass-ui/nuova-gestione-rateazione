@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Save, X, ArrowRightLeft } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { toLocalISO, formatISOToItalian, isValidISODate } from "@/utils/date";
+import { toLocalISO, formatISOToItalian, isValidISODate, addMonthsISO, setDayISO } from "@/utils/date";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toIntId } from "@/lib/utils/ids";
@@ -165,7 +165,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
       id: crypto.randomUUID(),
       rateation_id: rateationId,
       seq: maxSeq + 1,
-      due_date_iso: format(new Date(), "yyyy-MM-dd"),
+      due_date_iso: toLocalISO(new Date()),
       amount: '0,00',
       paid_at: null,
       paid: false,
@@ -179,18 +179,14 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
   const shiftMonths = (delta: number) => {
     setRows(prev => prev.map(r => {
       if (r.paid) return r;
-      const d = new Date(r.due_date_iso);
-      d.setMonth(d.getMonth() + delta);
-      return { ...r, due_date_iso: format(d, "yyyy-MM-dd") };
+      return { ...r, due_date_iso: addMonthsISO(r.due_date_iso, delta) };
     }));
   };
 
   const setMonthDay = (day: number) => {
     setRows(prev => prev.map(r => {
       if (r.paid) return r;
-      const d = new Date(r.due_date_iso);
-      const target = new Date(d.getFullYear(), d.getMonth(), day);
-      return { ...r, due_date_iso: format(target, "yyyy-MM-dd") };
+      return { ...r, due_date_iso: setDayISO(r.due_date_iso, day) };
     }));
   };
 

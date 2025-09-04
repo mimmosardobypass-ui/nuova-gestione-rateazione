@@ -8,6 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Filter } from 'lucide-react';
 import { format, addDays, startOfMonth, endOfMonth, addMonths } from 'date-fns';
+import { toLocalISO } from '@/utils/date';
 import { it } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useRateationTypes } from '@/features/rateations/hooks/useRateationTypes';
@@ -22,37 +23,37 @@ interface DeadlineFiltersProps {
 const PRESET_PERIODS = [
   { label: 'Oggi', getValue: () => {
     const today = new Date();
-    return { startDate: format(today, 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') };
+    return { startDate: toLocalISO(today), endDate: toLocalISO(today) };
   }},
   { label: 'Questa settimana', getValue: () => {
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
     const endOfWeek = addDays(startOfWeek, 6);
-    return { startDate: format(startOfWeek, 'yyyy-MM-dd'), endDate: format(endOfWeek, 'yyyy-MM-dd') };
+    return { startDate: toLocalISO(startOfWeek), endDate: toLocalISO(endOfWeek) };
   }},
   { label: 'Questo mese', getValue: () => {
     const today = new Date();
     return { 
-      startDate: format(startOfMonth(today), 'yyyy-MM-dd'), 
-      endDate: format(endOfMonth(today), 'yyyy-MM-dd') 
+      startDate: toLocalISO(startOfMonth(today)), 
+      endDate: toLocalISO(endOfMonth(today)) 
     };
   }},
   { label: 'Prossimi 30 giorni', getValue: () => {
     const today = new Date();
     const end = addDays(today, 30);
-    return { startDate: format(today, 'yyyy-MM-dd'), endDate: format(end, 'yyyy-MM-dd') };
+    return { startDate: toLocalISO(today), endDate: toLocalISO(end) };
   }},
   { label: 'Prossimi 90 giorni', getValue: () => {
     const today = new Date();
     const end = addDays(today, 90);
-    return { startDate: format(today, 'yyyy-MM-dd'), endDate: format(end, 'yyyy-MM-dd') };
+    return { startDate: toLocalISO(today), endDate: toLocalISO(end) };
   }},
   { label: 'Anno in corso', getValue: () => {
     const today = new Date();
     const startOfYear = new Date(today.getFullYear(), 0, 1);
     const endOfYear = new Date(today.getFullYear(), 11, 31);
-    return { startDate: format(startOfYear, 'yyyy-MM-dd'), endDate: format(endOfYear, 'yyyy-MM-dd') };
+    return { startDate: toLocalISO(startOfYear), endDate: toLocalISO(endOfYear) };
   }},
 ];
 
@@ -71,8 +72,8 @@ export function DeadlineFilters({ filters, onFiltersChange }: DeadlineFiltersPro
     if (startDate && endDate) {
       onFiltersChange({
         ...filters,
-        startDate: format(startDate, 'yyyy-MM-dd'),
-        endDate: format(endDate, 'yyyy-MM-dd'),
+        startDate: toLocalISO(startDate),
+        endDate: toLocalISO(endDate),
       });
     }
   };

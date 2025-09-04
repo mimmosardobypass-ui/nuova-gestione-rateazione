@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { toLocalISO } from "@/utils/date";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -37,7 +38,7 @@ export function InstallmentPaymentActions({
 
   // Use getPaymentDate for consistent payment date retrieval
   const currentPaymentDate = useMemo(() => {
-    return getPaymentDate(installment) || format(new Date(), "yyyy-MM-dd");
+    return getPaymentDate(installment) || toLocalISO(new Date());
   }, [installment]);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -49,7 +50,7 @@ export function InstallmentPaymentActions({
     
     setSaving(true);
     try {
-      const isoDate = format(date, "yyyy-MM-dd");
+      const isoDate = toLocalISO(date);
       await markInstallmentPaidOrdinary({
         installmentId: installment.id.toString(),
         paidDate: isoDate

@@ -90,6 +90,34 @@ export function formatISOToItalian(iso: string): string {
   return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
 }
 
+// --- PURE ISO HELPERS (no timezone) ---
+
+export function daysInMonth(y: number, m: number): number {
+  const leap = (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+  if (m === 2) return leap ? 29 : 28;
+  return [4, 6, 9, 11].includes(m) ? 30 : 31;
+}
+
+export function addMonthsISO(iso: string, delta: number): string {
+  // iso formattata: YYYY-MM-DD (già validata a monte)
+  const [y, m, d] = iso.split('-').map(n => parseInt(n, 10));
+  const idx = (m - 1) + delta;
+  const ny = y + Math.floor(idx / 12);
+  const nm = ((idx % 12) + 12) % 12 + 1; // 1..12
+  const dim = daysInMonth(ny, nm);
+  const nd = Math.min(d, dim);
+  const p = (n: number, len = 2) => String(n).padStart(len, '0');
+  return `${p(ny, 4)}-${p(nm)}-${p(nd)}`;
+}
+
+export function setDayISO(iso: string, day: number): string {
+  const [y, m] = iso.split('-').map((n, i) => parseInt(n, 10));
+  const dim = daysInMonth(y, m);
+  const nd = Math.max(1, Math.min(day, dim));
+  const p = (n: number, len = 2) => String(n).padStart(len, '0');
+  return `${String(y).padStart(4, '0')}-${p(m)}-${p(nd)}`;
+}
+
 /**
  * Alias per coerenza con la proposta dell'utente
  */
