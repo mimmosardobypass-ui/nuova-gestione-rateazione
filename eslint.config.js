@@ -33,6 +33,10 @@ export default tseslint.config(
         {
           "selector": "CallExpression[callee.name='parseInt'][arguments.0.name=/.*[Ii]d$/]",
           "message": "Usa toIntId() per convertire ID numerici invece di parseInt()."
+        },
+        {
+          "selector": "CallExpression[callee.property.name='toISOString'] MemberExpression[property.name='slice']",
+          "message": "Non usare toISOString().slice(0,10). Usa toLocalISO()/toISODateLocal per evitare problemi di timezone."
         }
       ],
     },

@@ -65,16 +65,10 @@ export function parseItalianDateToISO(text: string): string | null {
 }
 
 /**
- * Valida una stringa ISO (YYYY-MM-DD)
+ * Valida una stringa ISO (YYYY-MM-DD) - versione sicura senza UTC
  */
-export function isValidISODate(iso: string): boolean {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return false;
-  // controllo coerentezza componenti
-  const [y, m, dd] = iso.split('-').map((v) => parseInt(v, 10));
-  return d.getUTCFullYear() === y &&
-    d.getUTCMonth() + 1 === m &&
-    d.getUTCDate() === dd;
+export function isValidISODate(s?: string): boolean {
+  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
 /**

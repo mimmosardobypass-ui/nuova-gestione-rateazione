@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Plus, Save, X, ArrowRightLeft } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { toLocalISO, formatISOToItalian, isValidISODate } from "@/utils/date";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toIntId } from "@/lib/utils/ids";
 import DateCellPickerFlat from "@/components/ui/date-cell-picker-flat";
-import { toLocalISO } from "@/utils/date";
 
 // Helper functions for Italian date/amount parsing
 const euroToNumber = (txt: string): number => {
@@ -23,27 +23,6 @@ const euroToNumber = (txt: string): number => {
 const formatIT = (n: number): string =>
   new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     .format(n);
-
-// ISO -> Italian format for UI display
-const isoToIT = (iso?: string): string => {
-  if (!iso) return '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!m) return iso;
-  return `${m[3]}/${m[2]}/${m[1]}`; // YYYY-MM-DD -> DD/MM/YYYY
-};
-
-const toISO = (s: string | Date): string => {
-  if (s instanceof Date) return s.toISOString().slice(0, 10);
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
-  if (m) return `${m[3]}-${m[2]}-${m[1]}`; // DD/MM/YYYY -> YYYY-MM-DD
-  return s.slice(0, 10); // assume già ISO
-};
-
-const isValidISODate = (iso: string): boolean => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
-  const d = new Date(iso);
-  return !Number.isNaN(d.getTime());
-};
 
 type Row = {
   seq: number;
