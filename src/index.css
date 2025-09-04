@@ -131,3 +131,8 @@ All colors MUST be HSL.
 .flatpickr-calendar {
   z-index: 9999 !important;
 }
+
+/* Assicura che le frecce ricevano click */
+.flatpickr-prev-month, .flatpickr-next-month {
+  pointer-events: auto !important;
+}
