@@ -127,24 +127,31 @@ All colors MUST be HSL.
   100% { background-position: 0% 50%; }
 }
 
-/* Flatpickr sopra a Dialog/Popover */
+/* calendario sempre sopra */
+#flatpickr-portal,
 .flatpickr-calendar {
-  z-index: 2147483647 !important; /* molto alto per sicurezza */
+  z-index: 2147483647 !important;
   pointer-events: auto;
 }
 
-/* assicura che i dropdown mese/anno e le frecce ricevano il click */
+/* niente clipping del header / dropdown */
+.flatpickr-calendar .flatpickr-months {
+  overflow: visible !important;
+}
+
+/* assicurati che i controlli siano cliccabili */
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month,
 .flatpickr-monthDropdown-months,
 .flatpickr-months .numInputWrapper {
   pointer-events: auto;
-  cursor: pointer;
+  position: relative;
+  z-index: 2;
 }
 
-/* quando il calendario è dentro contenitori con overflow hidden/auto */
-[data-radix-popper-content-wrapper],
+/* contenitori comuni (Dialog/Popover) non devono tagliare */
 [role="dialog"],
+[data-radix-popper-content-wrapper],
 [role="presentation"] {
   overflow: visible !important;
 }
