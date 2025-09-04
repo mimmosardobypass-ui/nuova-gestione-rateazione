@@ -95,3 +95,8 @@ export function formatISOToItalian(iso: string): string {
   const [y, m, d] = iso.split('-');
   return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
 }
+
+/**
+ * Alias per coerenza con la proposta dell'utente
+ */
+export const toISODateLocal = toLocalISO;

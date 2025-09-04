@@ -24,6 +24,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import ResidualDecadenceSection from "@/pages/dashboard/ResidualDecadenceSection";
+import { toLocalISO } from "@/utils/date";
 
 type Installment = {
   id: number;
@@ -112,7 +113,7 @@ export default function Dashboard() {
 
   const totalResiduo = Math.max(totalDue - totalPaid, 0);
 
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = toLocalISO(new Date());
   const totalOverdue = useMemo(
     () =>
       rows

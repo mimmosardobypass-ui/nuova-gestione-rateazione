@@ -6,6 +6,7 @@ import { formatEuro } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PrintService } from "@/utils/printUtils";
+import { toLocalISO } from "@/utils/date";
 
 const MONTH_NAMES = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'] as const;
 
@@ -112,7 +113,7 @@ export default function AnnualMatrixCard({ onBack }: Props) {
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `matrice-${METRIC_LABELS[metric].toLowerCase()}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `matrice-${METRIC_LABELS[metric].toLowerCase()}-${toLocalISO(new Date())}.csv`;
     a.click();
   };
 

@@ -13,6 +13,7 @@ import { createRateationAuto, createRateationManual } from "../api/rateations";
 import type { ManualRow } from "../types";
 import { PDFImportTab } from "./ocr/PDFImportTab";
 import type { ParsedInstallment } from "./ocr/types";
+import { toLocalISO } from "@/utils/date";
 
 interface NewRateationDialogProps {
   onCreated?: () => void;
@@ -80,7 +81,7 @@ export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false
     const today = new Date();
     const rows = Array.from({ length: manualCount }, (_, i) => {
       const d = new Date(today.getFullYear(), today.getMonth() + i, today.getDate());
-      return { amount: "", due: d.toISOString().slice(0, 10) };
+      return { amount: "", due: toLocalISO(d) };
     });
     setManualRows(rows);
   }, [manualCount]);
@@ -108,7 +109,7 @@ export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false
     if (!firstDue) return toast({ title: "Data richiesta", description: "Inserisci la prima scadenza.", variant: "destructive" });
     if (savingAuto) return toast({ title: "Operazione in corso", description: "Attendi il completamento", variant: "destructive" });
 
-    const p_number = numero?.trim() || `R-${new Date().toISOString().slice(0, 10)}-${Math.floor(Math.random() * 1000)}`;
+    const p_number = numero?.trim() || `R-${toLocalISO(new Date())}-${Math.floor(Math.random() * 1000)}`;
 
     setSavingAuto(true);
     try {
@@ -154,7 +155,7 @@ export function NewRateationDialog({ onCreated, onCancelled, initialOpen = false
       amount: Number(String(r.amount).replace(",", ".")), 
       due_date: r.due 
     }));
-    const p_number = numero?.trim() || `R-${new Date().toISOString().slice(0, 10)}-${Math.floor(Math.random() * 1000)}`;
+    const p_number = numero?.trim() || `R-${toLocalISO(new Date())}-${Math.floor(Math.random() * 1000)}`;
 
     setSavingManual(true);
     try {

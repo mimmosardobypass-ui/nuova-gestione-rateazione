@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client-resilient";
+import { toLocalISO } from "@/utils/date";
 
 export type PrintOptions = {
   theme?: 'bn' | 'color';
@@ -104,7 +105,7 @@ export class PrintService {
       await supabase.functions.invoke('generate-pdf', {
         body: {
           url: `${window.location.origin}${path}`,
-          filename: `riepilogo-rateazioni-${new Date().toISOString().slice(0,10)}.pdf`,
+          filename: `riepilogo-rateazioni-${toLocalISO(new Date())}.pdf`,
         },
       });
     } catch {
@@ -125,7 +126,7 @@ export class PrintService {
       await supabase.functions.invoke('generate-pdf', {
         body: {
           url: `${window.location.origin}${path}`,
-          filename: `rateazione-${rateationId}-${new Date().toISOString().slice(0,10)}.pdf`,
+          filename: `rateazione-${rateationId}-${toLocalISO(new Date())}.pdf`,
         },
       });
     } catch {}

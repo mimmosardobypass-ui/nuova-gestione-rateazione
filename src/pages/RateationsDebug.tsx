@@ -2,6 +2,7 @@ import React from "react";
 import { useRateations } from "../features/rateations/hooks/useRateations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toLocalISO } from "@/utils/date";
 
 export default function RateationsDebug() {
   const { 
@@ -22,7 +23,7 @@ export default function RateationsDebug() {
         number: "TEST-" + now.toISOString().slice(11, 19),
         type_id: 1, // Assuming type 1 exists
         taxpayer_name: "Test Contribuente",
-        start_due_date: now.toISOString().slice(0, 10),
+        start_due_date: toLocalISO(now),
         frequency: "monthly",
         total_amount: 100,
         status: "attiva",
