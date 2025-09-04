@@ -127,54 +127,10 @@ All colors MUST be HSL.
   100% { background-position: 0% 50%; }
 }
 
-/* calendario sempre sopra */
-.flatpickr-calendar,
-#flatpickr-portal .flatpickr-calendar,
-.flatpickr-calendar.open {
+/* Il calendario deve stare sopra a Dialog/Popover/Overlay */
+.flatpickr-calendar {
   z-index: 2147483647 !important;
-  pointer-events: auto !important;
-  position: absolute !important;
 }
-
-/* niente clipping del header / dropdown */
-.flatpickr-calendar .flatpickr-months,
-.flatpickr-months .flatpickr-month,
-.flatpickr-months .flatpickr-prev-month,
-.flatpickr-months .flatpickr-next-month,
-.flatpickr-monthDropdown-months,
-.flatpickr-months .numInputWrapper,
-.flatpickr-months .flatpickr-monthDropdown-month {
-  overflow: visible !important;
-  pointer-events: auto !important;
-  z-index: inherit !important;
-}
-
-/* Fix for dialog clipping issues */
-[data-radix-popper-content-wrapper],
-[data-radix-dialog-content],
-.dialog-content-flatpickr {
-  overflow: visible !important;
-  contain: none !important;
-}
-
-/* Ensure portal container is always accessible */
-#flatpickr-portal,
-[id^="flatpickr-portal-"] {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  z-index: 2147483647 !important;
-  pointer-events: none !important;
-}
-
-#flatpickr-portal .flatpickr-calendar,
-[id^="flatpickr-portal-"] .flatpickr-calendar {
-  pointer-events: auto !important;
-}
-
-/* contenitori comuni (Dialog/Popover) non devono tagliare */
-[role="dialog"],
-[data-radix-popper-content-wrapper],
-[role="presentation"] {
-  overflow: visible !important;
+.flatpickr-input[readonly] {
+  cursor: pointer; /* feedback chiaro che è cliccabile */
 }

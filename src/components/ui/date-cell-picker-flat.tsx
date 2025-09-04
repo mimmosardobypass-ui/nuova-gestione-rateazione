@@ -13,11 +13,12 @@ type Props = {
   className?: string;
 };
 
-function toDate(v?: string | Date | null): Date | null {
-  if (!v) return null;
-  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
-  const d = new Date(`${v}T00:00:00`); // ISO "YYYY-MM-DD"
-  return isNaN(d.getTime()) ? null : d;
+function toDate(v?: string | Date | null): Date | undefined {
+  if (!v) return undefined;
+  if (v instanceof Date) return isNaN(v.getTime()) ? undefined : v;
+  // ISO YYYY-MM-DD
+  const d = new Date(`${v}T00:00:00`);
+  return isNaN(d.getTime()) ? undefined : d;
 }
 
 export default function DateCellPickerFlat({
@@ -28,122 +29,31 @@ export default function DateCellPickerFlat({
   disabled,
   className,
 }: Props) {
-  const date = toDate(value) || undefined;
+  const fpRef = React.useRef<any>(null);
+  const date = toDate(value);
 
-  // Portal per evitare clipping / z-index issues
-  const portalRef = React.useRef<HTMLDivElement | null>(null);
-  const fpInstance = React.useRef<any>(null);
-  const stopRef = React.useRef<Set<(e: Event) => void>>(new Set());
-  const uniqueId = React.useRef(`flatpickr-portal-${Math.random().toString(36).substr(2, 9)}`);
-
-  React.useEffect(() => {
-    // Remove existing portal with same ID if any
-    const existing = document.getElementById(uniqueId.current);
-    if (existing) existing.remove();
-    
-    const div = document.createElement("div");
-    div.id = uniqueId.current;
-    div.style.position = "fixed";
-    div.style.top = "0";
-    div.style.left = "0";
-    div.style.zIndex = "2147483647";
-    div.style.pointerEvents = "none";
-    document.body.appendChild(div);
-    portalRef.current = div;
-    
-    return () => {
-      const portal = document.getElementById(uniqueId.current);
-      if (portal) portal.remove();
-    };
-  }, []);
-
-  const openCalendar = React.useCallback(() => {
+  const open = React.useCallback(() => {
     if (disabled) return;
-    
-    try {
-      const instance = fpInstance.current;
-      if (instance) {
-        // Force open with positioning
-        instance.open();
-        
-        // Ensure calendar is positioned correctly
-        setTimeout(() => {
-          const calendar = instance.calendarContainer;
-          if (calendar) {
-            calendar.style.zIndex = "2147483647";
-            calendar.style.pointerEvents = "auto";
-            calendar.style.position = "absolute";
-          }
-        }, 0);
-      }
-    } catch (error) {
-      console.warn("Failed to open calendar:", error);
-    }
+    fpRef.current?.flatpickr?.open?.();
   }, [disabled]);
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div className="flex items-center gap-1">
       <Flatpickr
+        ref={fpRef}
         value={date}
         onChange={(sel) => onChange(sel?.[0] ?? null)}
         options={{
           locale: Italian,
           dateFormat: "d/m/Y",
           disableMobile: true,
-          monthSelectorType: "dropdown",          // menu a tendina mese/anno
+          allowInput: true,              // scrittura manuale dd/mm/yyyy
+          monthSelectorType: "dropdown", // menu a tendina mese/anno
           position: "auto center",
-          appendTo: portalRef.current ?? document.body,
+          appendTo: document.body,       // niente portal custom
           minDate: minDate ?? undefined,
           maxDate: maxDate ?? undefined,
           clickOpens: true,
-          onReady: (_d, _s, instance) => {
-            fpInstance.current = instance;
-            
-            // Ensure immediate accessibility
-            if (instance.calendarContainer) {
-              instance.calendarContainer.style.zIndex = "2147483647";
-              instance.calendarContainer.style.pointerEvents = "auto";
-            }
-          },
-          onPreCalendarPosition: (_d, _s, fp) => {
-            // Ensure positioning doesn't break
-            fp.calendarContainer.style.zIndex = "2147483647";
-            fp.calendarContainer.style.pointerEvents = "auto";
-            return true;
-          },
-          // Evita che i click sui controlli chiudano o riposizionino il popover
-          onOpen: (_d, _s, fp) => {
-            const events = ['mousedown', 'click', 'touchstart', 'touchend', 'keydown'];
-            const handlers = new Set<(e: Event) => void>();
-            
-            events.forEach(eventType => {
-              const handler = (e: Event) => {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-              };
-              handlers.add(handler);
-              fp.calendarContainer.addEventListener(eventType, handler, { capture: true, passive: false });
-            });
-            
-            stopRef.current = handlers;
-            
-            // Force correct styling
-            fp.calendarContainer.style.zIndex = "2147483647";
-            fp.calendarContainer.style.pointerEvents = "auto";
-            fp.calendarContainer.style.position = "absolute";
-          },
-          onClose: (_d, _s, fp) => {
-            // Clean up all event listeners
-            if (stopRef.current) {
-              const events = ['mousedown', 'click', 'touchstart', 'touchend', 'keydown'];
-              events.forEach(eventType => {
-                stopRef.current.forEach(handler => {
-                  fp.calendarContainer.removeEventListener(eventType, handler, { capture: true } as any);
-                });
-              });
-              stopRef.current.clear();
-            }
-          },
         }}
         placeholder="dd/MM/yyyy"
         className={[
@@ -153,17 +63,19 @@ export default function DateCellPickerFlat({
           className || "",
         ].join(" ")}
         disabled={!!disabled}
-        // In alcuni layout il click non innesca l'open → forziamo noi
-        onFocus={openCalendar}
-        onClick={openCalendar}
+        // Evita che la riga della tabella "ingoi" il click
+        onClick={(e) => { e.stopPropagation(); open(); }}
+        onFocus={(e) => { e.stopPropagation(); open(); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+        }}
       />
-      {/* pulsante icona di sicurezza */}
       <button
         type="button"
         aria-label="Apri calendario"
-        onClick={openCalendar}
+        onClick={(e) => { e.stopPropagation(); open(); }}
+        className="ml-1 inline-flex items-center justify-center h-8 w-8 rounded-md border"
         disabled={!!disabled}
-        className="h-8 w-8 rounded-md border border-input text-gray-600 hover:bg-accent/50 disabled:opacity-50"
       >
         📅
       </button>
