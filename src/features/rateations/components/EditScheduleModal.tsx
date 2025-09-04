@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toIntId } from "@/lib/utils/ids";
 import DateCellPickerFlat from "@/components/ui/date-cell-picker-flat";
+import { toLocalISO } from "@/utils/date";
 
 // Helper functions for Italian date/amount parsing
 const euroToNumber = (txt: string): number => {
@@ -359,7 +360,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
                             value={r.due_date_iso}
                             onChange={(date) => {
                               if (date) {
-                                setCell(idx, { due_date_iso: format(date, "yyyy-MM-dd") });
+                                setCell(idx, { due_date_iso: toLocalISO(date) });
                               } else {
                                 setCell(idx, { due_date_iso: "" });
                               }
