@@ -126,3 +126,8 @@ All colors MUST be HSL.
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* Flatpickr z-index fix per Dialog/Popover */
+.flatpickr-calendar {
+  z-index: 9999 !important;
+}

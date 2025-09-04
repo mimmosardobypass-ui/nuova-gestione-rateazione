@@ -9,7 +9,7 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toIntId } from "@/lib/utils/ids";
-import { DateCellPicker } from "@/components/ui/date-cell-picker";
+import { DateCellPickerFlat } from "@/components/ui/date-cell-picker-flat";
 
 // Helper functions for Italian date/amount parsing
 const euroToNumber = (txt: string): number => {
@@ -355,7 +355,7 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
                         <div className={cn(
                           dateError && "border-destructive ring-1 ring-destructive/40 rounded"
                         )}>
-                          <DateCellPicker
+                          <DateCellPickerFlat
                             value={r.due_date_iso}
                             onChange={(date) => {
                               if (date) {
