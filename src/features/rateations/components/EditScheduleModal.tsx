@@ -9,7 +9,7 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toIntId } from "@/lib/utils/ids";
-import { DateCellPickerFlat } from "@/components/ui/date-cell-picker-flat";
+import DateCellPickerFlat from "@/components/ui/date-cell-picker-flat";
 
 // Helper functions for Italian date/amount parsing
 const euroToNumber = (txt: string): number => {
