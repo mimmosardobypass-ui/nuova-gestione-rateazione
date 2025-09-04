@@ -79,31 +79,57 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
     return { quota, cnt };
   }, [rows]);
 
-  // Validazione live
+  // Validazione live avanzata
   useEffect(() => {
     const map: Record<number, RowError> = {};
-    let prevDateISO: string | null = null;
+    const datesSeen = new Set<string>();
+    const validDates: { idx: number; date: Date; iso: string }[] = [];
 
     rows.forEach((r, idx) => {
       const e: RowError = {};
 
-      // Date - validation works directly on ISO
-      if (!isValidISODate(r.due_date_iso)) {
-        e.date = 'Data non valida (usa gg/mm/aaaa)';
-      } else if (prevDateISO && new Date(r.due_date_iso) < new Date(prevDateISO)) {
-        e.date = 'Data precedente alla rata precedente';
-      } else {
-        prevDateISO = r.due_date_iso;
+      // Controllo rate pagate - non modificabili
+      if (r.paid && r.due_date_iso !== r.due_date_iso) {
+        e.date = 'Rate pagate non modificabili';
       }
 
-      // Amount
+      // Validazione date
+      if (!r.due_date_iso || !r.due_date_iso.trim()) {
+        e.date = 'Data obbligatoria';
+      } else if (!isValidISODate(r.due_date_iso)) {
+        e.date = 'Data non valida (usa gg/mm/aaaa)';
+      } else {
+        // Controllo duplicati
+        if (datesSeen.has(r.due_date_iso)) {
+          e.date = 'Data duplicata';
+        } else {
+          datesSeen.add(r.due_date_iso);
+          validDates.push({ idx, date: new Date(r.due_date_iso), iso: r.due_date_iso });
+        }
+      }
+
+      // Validazione importi
       const n = euroToNumber(r.amount);
       if (!Number.isFinite(n) || n <= 0) {
-        e.amount = 'Importo non valido';
+        e.amount = 'Importo non valido o zero';
       }
 
       if (e.date || e.amount) map[idx] = e;
     });
+
+    // Controllo ordine cronologico per date valide
+    validDates.sort((a, b) => a.date.getTime() - b.date.getTime());
+    for (let i = 0; i < validDates.length - 1; i++) {
+      const current = validDates[i];
+      const next = validDates[i + 1];
+      const originalIndex = rows.findIndex((r, idx) => idx === current.idx);
+      const nextOriginalIndex = rows.findIndex((r, idx) => idx === next.idx);
+      
+      if (originalIndex > nextOriginalIndex) {
+        if (!map[current.idx]) map[current.idx] = {};
+        map[current.idx].date = 'Date non in ordine cronologico';
+      }
+    }
 
     setErrors(map);
   }, [rows]);
@@ -191,9 +217,20 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
   const save = async () => {
     // Blocca se errori
     if (Object.keys(errors).length > 0) {
+      const errorCount = Object.keys(errors).length;
+      toast({
+        title: "Impossibile salvare",
+        description: `Risolvi prima ${errorCount} errore${errorCount > 1 ? 'i' : ''} di validazione`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Controllo aggiuntivo: almeno una rata
+    if (rows.length === 0) {
       toast({
         title: "Errore",
-        description: "Correggi gli errori (date/importi) prima di salvare",
+        description: "Inserisci almeno una rata",
         variant: "destructive",
       });
       return;
@@ -262,7 +299,14 @@ export default function EditScheduleModal({ rateationId, open, onOpenChange, onS
         {/* Alert errori */}
         {Object.keys(errors).length > 0 && (
           <div className="mb-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
-            Sono presenti <b>{Object.keys(errors).length}</b> righe con errori. Correggi prima di salvare.
+            <div className="font-medium mb-1">Errori rilevati ({Object.keys(errors).length} righe):</div>
+            <ul className="text-xs space-y-1 ml-2">
+              {Object.entries(errors).map(([idx, err]) => (
+                <li key={idx}>
+                  Riga {Number(idx) + 1}: {err.date && `${err.date}`}{err.date && err.amount && ' • '}{err.amount && `${err.amount}`}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
