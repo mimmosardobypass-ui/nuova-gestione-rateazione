@@ -5,13 +5,13 @@ import type { RQLinkedTaxpayers, RQSavingDetail, RQSavingAgg } from "../types/ri
  * API per i dati del Report Risparmio Riammissione Quater
  */
 
-export async function getRQLinkedTaxpayers(rqId?: string | number): Promise<RQLinkedTaxpayers[]> {
+export async function getRQLinkedTaxpayers(rqId?: string): Promise<RQLinkedTaxpayers[]> {
   let query = supabase
     .from('v_rq_contribuenti_aggregati')
     .select('*');
 
   if (rqId) {
-    const numericId = typeof rqId === 'string' ? parseInt(rqId, 10) : rqId;
+    const numericId = parseInt(rqId, 10);
     query = query.eq('riam_quater_id', numericId);
   }
 
@@ -28,13 +28,13 @@ export async function getRQLinkedTaxpayers(rqId?: string | number): Promise<RQLi
   }));
 }
 
-export async function getRQRisparmioDettaglio(rqId?: string | number): Promise<RQSavingDetail[]> {
+export async function getRQRisparmioDettaglio(rqId?: string): Promise<RQSavingDetail[]> {
   let query = supabase
     .from('v_risparmio_riam_quater')
     .select('*');
 
   if (rqId) {
-    const numericId = typeof rqId === 'string' ? parseInt(rqId, 10) : rqId;
+    const numericId = parseInt(rqId, 10);
     query = query.eq('riam_quater_id', numericId);
   }
 
@@ -52,13 +52,13 @@ export async function getRQRisparmioDettaglio(rqId?: string | number): Promise<R
   }));
 }
 
-export async function getRQRisparmioAggregato(rqId?: string | number): Promise<RQSavingAgg[]> {
+export async function getRQRisparmioAggregato(rqId?: string): Promise<RQSavingAgg[]> {
   let query = supabase
     .from('v_risparmio_riam_quater_aggregato')
     .select('*');
 
   if (rqId) {
-    const numericId = typeof rqId === 'string' ? parseInt(rqId, 10) : rqId;
+    const numericId = parseInt(rqId, 10);
     query = query.eq('riam_quater_id', numericId);
   }
 
