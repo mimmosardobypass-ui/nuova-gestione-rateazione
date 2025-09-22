@@ -1,7 +1,7 @@
 // Centralized types for rateations feature
 
 // F24 Decadence Management Types + PagoPA Interruption
-export type RateationStatus = 'active' | 'decadence_pending' | 'decaduta' | 'INTERROTTA';
+export type RateationStatus = 'ATTIVA' | 'decadence_pending' | 'decaduta' | 'INTERROTTA' | 'ESTINTA';
 
 export interface DecadenceInfo {
   decadence_at?: string | null;
@@ -27,9 +27,13 @@ export interface RateationRow {
   rateNonPagate: number;
   rateInRitardo: number;
   ratePaidLate: number; // NEW: rate pagate in ritardo
+  // Database fields alignment
+  number?: string | null;
+  taxpayer_name?: string | null;
+  total_amount?: number | null;
   // F24 Decadence fields
   is_f24?: boolean;
-  status?: RateationStatus;
+  status: RateationStatus;
   decadence_info?: DecadenceInfo;
   // PagoPA "8 skips" rule fields 
   is_pagopa?: boolean;              // Derived from tipo field in DB view

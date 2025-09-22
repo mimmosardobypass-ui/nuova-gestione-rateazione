@@ -16,12 +16,12 @@ export function DecadenceStatusBadge({
   isF24 = false 
 }: DecadenceStatusBadgeProps) {
   // Don't show anything for regular active plans
-  if (status === 'active' && !isF24) {
+  if (status === 'ATTIVA' && !isF24) {
     return null;
   }
 
   // F24 Active badge
-  if (status === 'active' && isF24) {
+  if (status === 'ATTIVA' && isF24) {
     return (
       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
         <Clock className="h-3 w-3 mr-1" />

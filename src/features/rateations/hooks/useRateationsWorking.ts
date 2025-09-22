@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
-import type { RateationRow } from "../types";
+import type { RateationRow, RateationType, RateationStatus } from "../types";
 import { deleteRateation } from "../api/rateations";
 import { supabase } from "@/integrations/supabase/client-resilient";
 
@@ -39,7 +39,7 @@ export const useRateations = () => {
       const t0 = performance.now?.() ?? Date.now();
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
-        .select("id, number, type_id, taxpayer_name, created_at")
+        .select("id, number, type_id, taxpayer_name, created_at, status")
         .eq("owner_uid", user.id);
       const t1 = performance.now?.() ?? Date.now();
       if (rateationsError) throw rateationsError;
@@ -129,6 +129,11 @@ export const useRateations = () => {
           rateNonPagate,
           rateInRitardo,   // overdue correnti
           ratePaidLate,    // NEW: pagate in ritardo (storico)
+          // Required fields from RateationRow
+          status: (r.status || 'ATTIVA') as RateationStatus,
+          number: r.number,
+          taxpayer_name: r.taxpayer_name,
+          total_amount: importoTotale,
           // ausiliario per sort (non esposto in UI)
           _createdAt: r.created_at || null,
         };
