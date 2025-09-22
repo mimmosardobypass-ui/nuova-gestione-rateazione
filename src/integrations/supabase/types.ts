@@ -504,6 +504,9 @@ export type Database = {
           decadence_reason: string | null
           frequency: string | null
           id: number
+          interrupted_at: string | null
+          interrupted_by_rateation_id: number | null
+          interruption_reason: string | null
           is_f24: boolean
           notes: string | null
           number: string
@@ -530,6 +533,9 @@ export type Database = {
           decadence_reason?: string | null
           frequency?: string | null
           id?: number
+          interrupted_at?: string | null
+          interrupted_by_rateation_id?: number | null
+          interruption_reason?: string | null
           is_f24?: boolean
           notes?: string | null
           number: string
@@ -556,6 +562,9 @@ export type Database = {
           decadence_reason?: string | null
           frequency?: string | null
           id?: number
+          interrupted_at?: string | null
+          interrupted_by_rateation_id?: number | null
+          interruption_reason?: string | null
           is_f24?: boolean
           notes?: string | null
           number?: string
@@ -575,6 +584,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rateations_type_id_fkey"
             columns: ["type_id"]
@@ -646,6 +711,140 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "ravvedimento_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      riam_quater_links: {
+        Row: {
+          created_at: string
+          id: string
+          pagopa_id: number
+          riam_quater_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pagopa_id: number
+          riam_quater_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pagopa_id?: number
+          riam_quater_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
           },
         ]

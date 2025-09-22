@@ -1,7 +1,7 @@
 // Centralized types for rateations feature
 
-// F24 Decadence Management Types
-export type RateationStatus = 'active' | 'decadence_pending' | 'decaduta';
+// F24 Decadence Management Types + PagoPA Interruption
+export type RateationStatus = 'active' | 'decadence_pending' | 'decaduta' | 'INTERROTTA';
 
 export interface DecadenceInfo {
   decadence_at?: string | null;
@@ -46,6 +46,10 @@ export interface RateationRow {
   rq_target_ids?: string[];         // Array of target rateation IDs (consistent string type)
   rq_migration_status?: 'none' | 'partial' | 'full'; // Migration status
   excluded_from_stats?: boolean;    // Exclude from global statistics
+  // NEW: PagoPA Interruption fields
+  interrupted_at?: string | null;
+  interruption_reason?: string | null;
+  interrupted_by_rateation_id?: string | null;
 }
 
 export interface DecadenceDashboard {
@@ -175,4 +179,21 @@ export interface MigrateDebtsParams {
   debtIds: string[];
   targetRateationId: string;
   note?: string;
+}
+
+// NEW: Interfaccia per collegamento Riam.Quater ↔ PagoPA
+export interface RiamQuaterLink {
+  id: string;
+  riam_quater_id: string;
+  pagopa_id: string;
+  created_at: string;
+}
+
+// NEW: Utility types per calcolo totali
+export interface RateationTotals {
+  paid: number;
+  unpaid: number;
+  residual: number;
+  countPaid: number;
+  countUnpaid: number;
 }

@@ -123,3 +123,116 @@ export const updateRateation = async (id: string, updates: any) => {
   if (error) throw error;
 };
 // LOVABLE:END updateRateation
+
+// LOVABLE:START markPagopaInterrupted
+export const markPagopaInterrupted = async (
+  pagopaId: string,
+  riamQuaterId: string,
+  reason?: string
+): Promise<void> => {
+  const todayIso = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+
+  // 1) Update PagoPA -> stato "INTERROTTA" + link a Riam.Quater
+  const { error: updateError } = await supabase
+    .from("rateations")
+    .update({
+      status: 'INTERROTTA',
+      interrupted_at: todayIso,
+      interruption_reason: reason ?? 'Interrotta per Riammissione Quater',
+      interrupted_by_rateation_id: parseInt(riamQuaterId)
+    })
+    .eq('id', pagopaId);
+
+  if (updateError) throw updateError;
+
+  // 2) Upsert del collegamento nella tabella ponte
+  const { error: linkError } = await supabase
+    .from('riam_quater_links')
+    .upsert(
+      { 
+        riam_quater_id: parseInt(riamQuaterId), 
+        pagopa_id: parseInt(pagopaId) 
+      },
+      { 
+        onConflict: 'riam_quater_id,pagopa_id' 
+      }
+    );
+
+  if (linkError) throw linkError;
+};
+// LOVABLE:END markPagopaInterrupted
+
+// LOVABLE:START getPagopaLinkedToRiam
+export const getPagopaLinkedToRiam = async (riamQuaterId: string) => {
+  const { data, error } = await supabase
+    .from('riam_quater_links')
+    .select(`
+      pagopa_id,
+      rateations!pagopa_id(*)
+    `)
+    .eq('riam_quater_id', riamQuaterId);
+
+  if (error) throw error;
+  
+  // Estrae le rateations collegate
+  return (data || [])
+    .map(row => (row as any).rateations)
+    .filter(Boolean);
+};
+// LOVABLE:END getPagopaLinkedToRiam
+
+// LOVABLE:START unlinkPagopaFromRiam
+export const unlinkPagopaFromRiam = async (
+  pagopaId: string,
+  riamQuaterId: string
+): Promise<void> => {
+  // 1) Rimuovi lo stato di interruzione dalla PagoPA
+  const { error: updateError } = await supabase
+    .from("rateations")
+    .update({
+      status: 'active',
+      interrupted_at: null,
+      interruption_reason: null,
+      interrupted_by_rateation_id: null
+    })
+    .eq('id', pagopaId);
+
+  if (updateError) throw updateError;
+
+  // 2) Rimuovi il collegamento
+  const { error: linkError } = await supabase
+    .from('riam_quater_links')
+    .delete()
+    .eq('riam_quater_id', riamQuaterId)
+    .eq('pagopa_id', pagopaId);
+
+  if (linkError) throw linkError;
+};
+// LOVABLE:END unlinkPagopaFromRiam
+
+// LOVABLE:START getRiamQuaterOptions
+export const getRiamQuaterOptions = async () => {
+  const { data, error } = await supabase
+    .from("rateation_types")
+    .select("id, name")
+    .eq("name", "Riam.Quater");
+
+  if (error) throw error;
+  
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  const riamQuaterTypeId = data[0].id;
+
+  const { data: rateations, error: rateationsError } = await supabase
+    .from("rateations")
+    .select("id, number, taxpayer_name")
+    .eq("type_id", riamQuaterTypeId)
+    .order("created_at", { ascending: false });
+
+  if (rateationsError) throw rateationsError;
+  
+  return rateations || [];
+};
+// LOVABLE:END getRiamQuaterOptions

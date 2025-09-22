@@ -4,6 +4,7 @@ import { getLegacySkipRisk } from '@/features/rateations/utils/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
 import { MigrationStatusBadge } from "./MigrationStatusBadge";
 import { MigrationDialog } from "./MigrationDialog";
+import { InterruptionBadge } from "./InterruptionBadge";
 import { isPagoPAPlan } from "../utils/isPagopa";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -43,6 +44,11 @@ export type RateationRowPro = {
   rq_target_ids?: string[];         // Array of target rateation IDs (consistent string type)
   rq_migration_status?: 'none' | 'partial' | 'full';
   excluded_from_stats?: boolean;
+  // PagoPA Interruption fields
+  status?: 'active' | 'decadence_pending' | 'decaduta' | 'INTERROTTA';
+  interrupted_at?: string | null;
+  interruption_reason?: string | null;
+  interrupted_by_rateation_id?: string | null;
 };
 
 interface RateationsTableProProps {
@@ -133,7 +139,15 @@ export function RateationsTablePro({
                       </Button>
                     </TableCell>
                     <TableCell className="font-medium">{r.numero || "—"}</TableCell>
-                    <TableCell>{r.tipo}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {r.tipo}
+                        <InterruptionBadge 
+                          rateation={r as any}
+                          onClick={() => r.interrupted_by_rateation_id && navigateToRateation(r.interrupted_by_rateation_id)}
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell>{r.contribuente || "—"}</TableCell>
                     <TableCell className="text-right font-medium">{formatEuro(r.importoTotale)}</TableCell>
                     <TableCell className="text-right">{formatEuro(r.importoPagato)}</TableCell>
