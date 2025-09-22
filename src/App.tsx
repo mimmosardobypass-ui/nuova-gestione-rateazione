@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Test from "./pages/Test";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
+import RisparmiRQ from "./pages/RisparmiRQ";
 
 // Lazy load print components
 const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport"));
@@ -66,6 +67,11 @@ const App = () => {
                 <Suspense fallback={<div>Caricamento...</div>}>
                   <AnnualMatrix />
                 </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/risparmio-rq" element={
+              <ProtectedRoute>
+                <RisparmiRQ />
               </ProtectedRoute>
             } />
             <Route path="/test" element={
