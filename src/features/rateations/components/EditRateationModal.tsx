@@ -260,6 +260,11 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
                         ))}
                       </SelectContent>
                     </Select>
+                    {isPagoPA && isInterrupted && !riamQuaterId && (
+                      <p className="mt-1 text-xs text-red-600">
+                        Seleziona la Riam.Quater per confermare l'interruzione della PagoPA.
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
