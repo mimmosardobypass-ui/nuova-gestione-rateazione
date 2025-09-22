@@ -35,7 +35,7 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
   const [currentRateation, setCurrentRateation] = useState<any>(null);
   const [isInterrupted, setIsInterrupted] = useState(false);
   const [riamQuaterId, setRiamQuaterId] = useState<string | null>(null);
-  const [riamQuaterOptions, setRiamQuaterOptions] = useState<{ id: number; number: string; taxpayer_name: string | null }[]>([]);
+  const [riamQuaterOptions, setRiamQuaterOptions] = useState<{ id: string; number: string; taxpayer_name: string | null }[]>([]);
   const [interruptionReason, setInterruptionReason] = useState("");
 
   const rid = rateationId ? Number(rateationId) : null;

@@ -13,12 +13,21 @@ interface RiamQuaterLinksSectionProps {
   onLinksChanged?: () => void;
 }
 
+interface LinkedPagoPA {
+  id: string;
+  number: string | null;
+  taxpayer_name: string | null;
+  total_amount: number | null;
+  status: string;
+  interrupted_by_rateation_id: string | null;
+}
+
 export function RiamQuaterLinksSection({ 
   riamQuaterId, 
   onNavigateToRateation, 
   onLinksChanged 
 }: RiamQuaterLinksSectionProps) {
-  const [linkedPagoPA, setLinkedPagoPA] = useState<RateationRow[]>([]);
+  const [linkedPagoPA, setLinkedPagoPA] = useState<LinkedPagoPA[]>([]);
   const [loading, setLoading] = useState(true);
   const [unlinking, setUnlinking] = useState<string | null>(null);
 
@@ -99,16 +108,15 @@ export function RiamQuaterLinksSection({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant="outline" className="text-xs">
-                      PagoPA #{pagopa.numero}
+                      PagoPA #{pagopa.number ?? '—'}
                     </Badge>
                     <Badge variant="destructive" className="text-xs">
                       INTERROTTA
                     </Badge>
                   </div>
-                  <p className="text-sm font-medium">{pagopa.contribuente || 'Senza nome'}</p>
+                  <p className="text-sm font-medium">{pagopa.taxpayer_name || 'Senza nome'}</p>
                   <p className="text-xs text-muted-foreground">
-                    Totale: €{pagopa.importoTotale?.toFixed(2) || '0.00'} | 
-                    Pagato: €{pagopa.importoPagato?.toFixed(2) || '0.00'}
+                    Totale: €{Number(pagopa.total_amount ?? 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

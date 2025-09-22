@@ -139,7 +139,7 @@ export const markPagopaInterrupted = async (
       status: 'INTERROTTA',
       interrupted_at: todayIso,
       interruption_reason: reason ?? 'Interrotta per Riammissione Quater',
-      interrupted_by_rateation_id: parseInt(riamQuaterId)
+      interrupted_by_rateation_id: riamQuaterId
     })
     .eq('id', pagopaId);
 
@@ -150,8 +150,8 @@ export const markPagopaInterrupted = async (
     .from('riam_quater_links')
     .upsert(
       { 
-        riam_quater_id: parseInt(riamQuaterId), 
-        pagopa_id: parseInt(pagopaId) 
+        riam_quater_id: riamQuaterId, 
+        pagopa_id: pagopaId 
       },
       { 
         onConflict: 'riam_quater_id,pagopa_id' 
@@ -164,20 +164,23 @@ export const markPagopaInterrupted = async (
 
 // LOVABLE:START getPagopaLinkedToRiam
 export const getPagopaLinkedToRiam = async (riamQuaterId: string) => {
-  const { data, error } = await supabase
+  const { data: links, error: linkErr } = await supabase
     .from('riam_quater_links')
-    .select(`
-      pagopa_id,
-      rateations!pagopa_id(*)
-    `)
+    .select('pagopa_id')
     .eq('riam_quater_id', riamQuaterId);
 
-  if (error) throw error;
-  
-  // Estrae le rateations collegate
-  return (data || [])
-    .map(row => (row as any).rateations)
-    .filter(Boolean);
+  if (linkErr) throw linkErr;
+
+  const ids = (links ?? []).map(l => l.pagopa_id);
+  if (!ids.length) return [];
+
+  const { data: rateations, error: rErr } = await supabase
+    .from('rateations')
+    .select('id, number, taxpayer_name, total_amount, status, interrupted_by_rateation_id')
+    .in('id', ids);
+
+  if (rErr) throw rErr;
+  return rateations ?? [];
 };
 // LOVABLE:END getPagopaLinkedToRiam
 
@@ -190,7 +193,7 @@ export const unlinkPagopaFromRiam = async (
   const { error: updateError } = await supabase
     .from("rateations")
     .update({
-      status: 'active',
+      status: 'ATTIVA',
       interrupted_at: null,
       interruption_reason: null,
       interrupted_by_rateation_id: null
@@ -211,7 +214,9 @@ export const unlinkPagopaFromRiam = async (
 // LOVABLE:END unlinkPagopaFromRiam
 
 // LOVABLE:START getRiamQuaterOptions
-export const getRiamQuaterOptions = async () => {
+export const getRiamQuaterOptions = async (): Promise<
+  { id: string; number: string | null; taxpayer_name: string | null }[]
+> => {
   const { data, error } = await supabase
     .from("rateation_types")
     .select("id, name")
@@ -233,6 +238,6 @@ export const getRiamQuaterOptions = async () => {
 
   if (rateationsError) throw rateationsError;
   
-  return rateations || [];
+  return (rateations || []) as { id: string; number: string | null; taxpayer_name: string | null }[];
 };
 // LOVABLE:END getRiamQuaterOptions
