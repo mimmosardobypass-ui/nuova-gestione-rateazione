@@ -45,7 +45,7 @@ export type RateationRowPro = {
   rq_migration_status?: 'none' | 'partial' | 'full';
   excluded_from_stats?: boolean;
   // PagoPA Interruption fields
-  status: 'ATTIVA' | 'decadence_pending' | 'decaduta' | 'INTERROTTA' | 'ESTINTA';
+  status: 'ATTIVA' | 'INTERROTTA' | 'ESTINTA';
   interrupted_at?: string | null;
   interruption_reason?: string | null;
   interrupted_by_rateation_id?: string | null;

@@ -31,8 +31,8 @@ export function DecadenceAlert({
   unpaid_overdue_today,
   max_skips_effective
 }: DecadenceAlertProps) {
-  // Don't show for already decayed plans
-  if (status === 'decaduta') {
+  // Don't show for plans that are no longer active
+  if (status === 'ESTINTA') {
     return null;
   }
 

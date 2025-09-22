@@ -85,7 +85,7 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
       if (filters.payFilter === 'paid') {
         query = query.eq('is_paid', true);
       } else if (filters.payFilter === 'unpaid') {
-        query = query.eq('is_paid', false).neq('rateation_status', 'decaduta');
+        query = query.eq('is_paid', false).neq('rateation_status', 'ESTINTA');
       }
       // For 'all' or undefined, no additional filter
 

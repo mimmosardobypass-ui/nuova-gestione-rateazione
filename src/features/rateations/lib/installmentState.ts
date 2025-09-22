@@ -21,8 +21,8 @@ export const getPaymentDate = (installment: InstallmentUI): string | null => {
  * Determine effective status of an installment
  */
 export const getEffectiveStatus = (installment: InstallmentUI): 'paid' | 'paid_ravv' | 'overdue' | 'open' | 'decayed' => {
-  // Check for decayed status first (from rateation decadence)
-  if (installment.rateation_status === 'decaduta' && !isInstallmentPaid(installment)) {
+  // Check for inactive status first (from rateation status)
+  if (installment.rateation_status === 'ESTINTA' && !isInstallmentPaid(installment)) {
     return 'decayed';
   }
   

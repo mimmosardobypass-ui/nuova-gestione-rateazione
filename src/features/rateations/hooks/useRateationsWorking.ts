@@ -4,6 +4,7 @@ import { useOnline } from "@/hooks/use-online";
 import type { RateationRow, RateationType, RateationStatus } from "../types";
 import { deleteRateation } from "../api/rateations";
 import { supabase } from "@/integrations/supabase/client-resilient";
+import { computeRateationTotals } from "@/utils/rateation-totals";
 
 export const useRateations = () => {
   const [rows, setRows] = useState<RateationRow[]>([]);
@@ -39,7 +40,7 @@ export const useRateations = () => {
       const t0 = performance.now?.() ?? Date.now();
       const { data: rateations, error: rateationsError } = await supabase
         .from("rateations")
-        .select("id, number, type_id, taxpayer_name, created_at, status")
+        .select("id, number, type_id, taxpayer_name, created_at, status, interrupted_by_rateation_id")
         .eq("owner_uid", user.id);
       const t1 = performance.now?.() ?? Date.now();
       if (rateationsError) throw rateationsError;
@@ -113,7 +114,32 @@ export const useRateations = () => {
         const importoRitardo = its
           .filter(i => !i.is_paid && i.due_date && new Date(new Date(i.due_date).setHours(0, 0, 0, 0)) < today)
           .reduce((s, i) => s + (i.amount || 0), 0);
-        const residuo = importoTotale - importoPagato;
+        
+        // Use computeRateationTotals for consistent residual calculation
+        const rateationData: RateationRow = {
+          id: String(r.id),
+          numero: r.number || "",
+          tipo: typesMap[r.type_id] || "N/A",
+          contribuente: r.taxpayer_name,
+          importoTotale: importoTotale,
+          importoPagato: importoPagato,
+          importoRitardo: importoRitardo,
+          residuo: 0, // Will be calculated by computeRateationTotals
+          rateTotali: its.length,
+          ratePagate: ratePagate,
+          rateNonPagate: rateNonPagate,
+          rateInRitardo: rateInRitardo,
+          ratePaidLate: ratePaidLate,
+          status: r.status || 'ATTIVA',
+          interrupted_by_rateation_id: r.interrupted_by_rateation_id
+        };
+        
+        const totals = computeRateationTotals(rateationData, its.map(i => ({
+          amount: i.amount || 0,
+          is_paid: i.is_paid
+        })));
+        
+        const residuo = totals.residual;
 
         return {
           id: String(r.id),

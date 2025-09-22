@@ -278,7 +278,10 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
           )}
         </div>
         <DialogFooter>
-          <Button onClick={onSave} disabled={disabled}>
+          <Button 
+            onClick={onSave} 
+            disabled={disabled || (isPagoPA && isInterrupted && !riamQuaterId)}
+          >
             {saving ? "Salvando..." : "Salva"}
           </Button>
         </DialogFooter>

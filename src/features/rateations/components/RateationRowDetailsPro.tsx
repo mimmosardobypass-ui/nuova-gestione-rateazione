@@ -527,12 +527,12 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                         installment={it}
                         onReload={debouncedReload}
                         onStatsReload={debouncedReloadStats}
-                        disabled={!online || rateationInfo?.status === 'decaduta'}
+                        disabled={!online || rateationInfo?.status === 'ESTINTA'}
                       />
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-1 justify-end items-center">
-                        {!isPaid && rateationInfo?.status !== 'decaduta' && (
+                        {!isPaid && rateationInfo?.status !== 'ESTINTA' && (
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -543,7 +543,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                             {processing[`postpone-${it.seq}`] ? "..." : "Posticipa"}
                           </Button>
                         )}
-                        {rateationInfo?.status !== 'decaduta' && (
+                        {rateationInfo?.status !== 'ESTINTA' && (
                           <Button 
                             size="sm" 
                             variant="destructive"

@@ -30,24 +30,22 @@ export function DecadenceStatusBadge({
     );
   }
 
-  // Pre-decadence pending
-  if (status === 'decadence_pending') {
+  // Warning status for interrupted plans
+  if (status === 'INTERROTTA') {
     return (
       <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 animate-pulse">
         <AlertTriangle className="h-3 w-3 mr-1" />
-        Pre-decadenza
+        Interrotta
       </Badge>
     );
   }
 
-  // Decayed status
-  if (status === 'decaduta') {
-    const decayedDate = decadenceAt ? format(new Date(decadenceAt), 'dd/MM/yyyy', { locale: it }) : '';
-    
+  // Extinct status
+  if (status === 'ESTINTA') {
     return (
       <Badge variant="destructive">
         <Skull className="h-3 w-3 mr-1" />
-        Decaduta {decayedDate && `dal ${decayedDate}`}
+        Estinta
       </Badge>
     );
   }
