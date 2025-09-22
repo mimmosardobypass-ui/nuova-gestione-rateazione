@@ -163,7 +163,14 @@ export const markPagopaInterrupted = async (
 // LOVABLE:END markPagopaInterrupted
 
 // LOVABLE:START getPagopaLinkedToRiam
-export const getPagopaLinkedToRiam = async (riamQuaterId: string): Promise<any[]> => {
+export const getPagopaLinkedToRiam = async (riamQuaterId: string): Promise<Array<{
+  id: string;
+  number: string | null;
+  taxpayer_name: string | null;
+  total_amount: number | null;
+  status: 'ATTIVA' | 'INTERROTTA' | 'ESTINTA';
+  interrupted_by_rateation_id: string | null;
+}>> => {
   const { data: links, error: linkErr } = await supabase
     .from('riam_quater_links')
     .select('pagopa_id')

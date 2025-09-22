@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { useRateationTypes } from "../hooks/useRateationTypes";
-import { fetchSingleRateation, updateRateation, markPagopaInterrupted, getRiamQuaterOptions } from "../api/rateations";
+import { fetchSingleRateation, updateRateation, markPagopaInterrupted, unlinkPagopaFromRiam, getRiamQuaterOptions } from "../api/rateations";
 import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -154,12 +154,18 @@ export function EditRateationModal({ open, rateationId, onOpenChange, onSaved }:
       if (error) throw error;
 
       // NEW: Handle PagoPA interruption
-      if (isPagoPA && isInterrupted && riamQuaterId) {
-        await markPagopaInterrupted(
-          String(rid), 
-          riamQuaterId, 
-          interruptionReason || "Interrotta per Riammissione Quater"
-        );
+      if (isPagoPA) {
+        if (isInterrupted && riamQuaterId) {
+          // User wants to interrupt PagoPA
+          await markPagopaInterrupted(
+            String(rid), 
+            riamQuaterId, 
+            interruptionReason || "Interrotta per Riammissione Quater"
+          );
+        } else if (!isInterrupted && currentRateation?.status === 'INTERROTTA' && currentRateation?.interrupted_by_rateation_id) {
+          // User wants to turn OFF interruption
+          await unlinkPagopaFromRiam(String(rid), currentRateation.interrupted_by_rateation_id);
+        }
       }
 
       toast({ title: "Salvato", description: "Rateazione aggiornata con successo." });

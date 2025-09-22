@@ -35,6 +35,10 @@ export interface RateationRow {
   is_f24?: boolean;
   status: RateationStatus;
   decadence_info?: DecadenceInfo;
+  // NEW: PagoPA Interruption fields
+  interrupted_at?: string | null;
+  interruption_reason?: string | null;
+  interrupted_by_rateation_id?: string | null;
   // PagoPA "8 skips" rule fields 
   is_pagopa?: boolean;              // Derived from tipo field in DB view
   unpaid_overdue_today?: number;    // Rate non pagate con due_date < current_date
@@ -50,10 +54,6 @@ export interface RateationRow {
   rq_target_ids?: string[];         // Array of target rateation IDs (consistent string type)
   rq_migration_status?: 'none' | 'partial' | 'full'; // Migration status
   excluded_from_stats?: boolean;    // Exclude from global statistics
-  // NEW: PagoPA Interruption fields
-  interrupted_at?: string | null;
-  interruption_reason?: string | null;
-  interrupted_by_rateation_id?: string | null;
 }
 
 export interface DecadenceDashboard {
