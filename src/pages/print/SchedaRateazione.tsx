@@ -10,6 +10,7 @@ import { getDaysLate, getPaymentDate } from "@/features/rateations/lib/installme
 import { toMidnightLocal as toMidnight } from "@/features/rateations/utils/pagopaSkips";
 import type { InstallmentUI } from "@/features/rateations/types";
 import { ensureStringId, toIntId } from "@/lib/utils/ids";
+import { totalsForExport } from "@/utils/rateation-export";
 
 interface RateationHeader {
   id: string;
@@ -25,6 +26,10 @@ interface RateationHeader {
   rate_pagate_ravv: number;
   last_activity: string | null;
   is_pagopa?: boolean;
+  // Campi aggiuntivi per logica corretta
+  status?: string;
+  interrupted_by_rateation_id?: number | null;
+  calculated_residual?: number;
 }
 
 interface InstallmentDetail {
@@ -102,6 +107,13 @@ export default function SchedaRateazione() {
         .eq("id", toIntId(id!, 'rateationId'))
         .single();
 
+      // Load additional rateation data for correct calculations
+      const { data: rateationData } = await supabase
+        .from("rateations")
+        .select("status, interrupted_by_rateation_id")
+        .eq("id", toIntId(id!, 'rateationId'))
+        .single();
+
       // Load installments
       const { data: installmentsData } = await supabase
         .from("v_rateation_installments")
@@ -118,9 +130,26 @@ export default function SchedaRateazione() {
         .limit(12);
 
       if (headerData) {
+        // Calcola residuo corretto se abbiamo i dati aggiuntivi
+        let calculated_residual = headerData.totale_residuo;
+        if (rateationData && installmentsData) {
+          const installments = installmentsData.map(inst => ({
+            amount: inst.amount || 0,
+            is_paid: inst.status === 'paid'
+          }));
+          const totals = totalsForExport(headerData, installments, {
+            status: rateationData.status,
+            interrupted_by_rateation_id: rateationData.interrupted_by_rateation_id ? String(rateationData.interrupted_by_rateation_id) : null
+          });
+          calculated_residual = totals.residual;
+        }
+
         setHeader({
           ...headerData,
-          id: ensureStringId(headerData.id)
+          id: ensureStringId(headerData.id),
+          status: rateationData?.status,
+          interrupted_by_rateation_id: rateationData?.interrupted_by_rateation_id,
+          calculated_residual
         });
       }
       
@@ -169,7 +198,7 @@ export default function SchedaRateazione() {
             <InfoField label="Importo totale" value={formatEuro(header.importo_totale)} />
             <InfoField label="Pagato (quota)" value={formatEuro(header.importo_pagato_quota)} />
             <InfoField label="Extra ravv." value={formatEuro(header.extra_ravv_pagati)} />
-            <InfoField label="Residuo" value={formatEuro(header.totale_residuo)} />
+            <InfoField label="Residuo" value={formatEuro(header.calculated_residual ?? header.totale_residuo)} />
             <InfoField label="Rate totali" value={String(header.rate_totali)} />
             <InfoField label="Pagate (Rav.)" value={`${header.rate_pagate} (${header.rate_pagate_ravv})`} />
             <InfoField label="Ultima attività" value={

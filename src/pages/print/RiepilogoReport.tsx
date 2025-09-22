@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
 import { PrintKpi } from "@/components/print/PrintKpi";
 import { formatEuro } from "@/lib/formatters";
-import { ensureStringId } from "@/lib/utils/ids";
+import { ensureStringId, toIntId } from "@/lib/utils/ids";
+import { totalsForExport } from "@/utils/rateation-export";
 
 interface RiepilogoRow {
   id: string;
@@ -22,6 +23,11 @@ interface RiepilogoRow {
   first_due_date: string | null;
   last_due_date: string | null;
   last_activity: string | null;
+  // Campi aggiuntivi per logica PagoPA interrotte
+  status?: string;
+  interrupted_by_rateation_id?: number | null;
+  // Residuo calcolato con logica corretta
+  calculated_residual?: number;
 }
 
 export default function RiepilogoReport() {
@@ -55,12 +61,44 @@ export default function RiepilogoReport() {
 
   const loadData = async () => {
     try {
+      // Carica dati dalla vista
       const { data } = await supabase
         .from("v_rateation_summary")
         .select("*")
         .order("last_activity", { ascending: false });
 
       let filteredRows = data || [];
+
+      // Carica dati aggiuntivi per le rateazioni (status, interrupted_by_rateation_id)
+      const rateationIds = filteredRows.map(r => toIntId(String(r.id), 'rateationId'));
+      const { data: additionalData } = await supabase
+        .from("rateations")
+        .select("id, status, interrupted_by_rateation_id")
+        .in("id", rateationIds);
+
+      // Carica installments per calcolo corretto del residuo
+      const { data: installmentsData } = await supabase
+        .from("installments")
+        .select("rateation_id, amount, is_paid")
+        .in("rateation_id", rateationIds);
+
+      // Mappa dati aggiuntivi per ID
+      const additionalMap = new Map(
+        (additionalData || []).map(item => [String(item.id), item])
+      );
+      
+      // Mappa installments per rateation_id
+      const installmentsMap = new Map<string, { amount: number; is_paid: boolean }[]>();
+      (installmentsData || []).forEach(inst => {
+        const key = String(inst.rateation_id);
+        if (!installmentsMap.has(key)) {
+          installmentsMap.set(key, []);
+        }
+        installmentsMap.get(key)!.push({
+          amount: inst.amount || 0,
+          is_paid: !!inst.is_paid
+        });
+      });
 
       // Apply filters
       const type = searchParams.get("type");
@@ -101,10 +139,29 @@ export default function RiepilogoReport() {
         });
       }
 
-      const convertedRows = filteredRows.map(row => ({
-        ...row,
-        id: ensureStringId(row.id),
-      }));
+      const convertedRows = filteredRows.map(row => {
+        const id = ensureStringId(row.id);
+        const additional = additionalMap.get(id);
+        const installments = installmentsMap.get(id) || [];
+        
+        // Calcola residuo corretto usando la stessa logica dell'UI
+        let calculated_residual = row.totale_residuo;
+        if (additional) {
+        const totals = totalsForExport(row, installments, {
+          status: additional.status,
+          interrupted_by_rateation_id: additional.interrupted_by_rateation_id ? String(additional.interrupted_by_rateation_id) : null
+        });
+          calculated_residual = totals.residual;
+        }
+
+        return {
+          ...row,
+          id,
+          status: additional?.status,
+          interrupted_by_rateation_id: additional?.interrupted_by_rateation_id,
+          calculated_residual
+        };
+      });
       setRows(convertedRows);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -115,6 +172,10 @@ export default function RiepilogoReport() {
 
   const sum = (field: keyof RiepilogoRow) => 
     rows.reduce((s, r) => s + Number(r[field] || 0), 0);
+
+  // Somma residuo calcolato correttamente
+  const sumResidual = () => 
+    rows.reduce((s, r) => s + (r.calculated_residual ?? r.totale_residuo), 0);
 
   const subtitle = [
     `Filtri: periodo ${searchParams.get("from") || "—"} → ${searchParams.get("to") || "—"}`,
@@ -138,7 +199,7 @@ export default function RiepilogoReport() {
         <PrintKpi label="Importo totale" value={formatEuro(sum("importo_totale"))} />
         <PrintKpi label="Pagato (quota)" value={formatEuro(sum("importo_pagato_quota"))} />
         <PrintKpi label="Extra ravvedimento" value={formatEuro(sum("extra_ravv_pagati"))} />
-        <PrintKpi label="Residuo" value={formatEuro(sum("totale_residuo"))} />
+        <PrintKpi label="Residuo" value={formatEuro(sumResidual())} />
       </section>
 
       {/* Data Table */}
@@ -168,7 +229,7 @@ export default function RiepilogoReport() {
               <td className="text-right">{formatEuro(r.importo_totale)}</td>
               <td className="text-right">{formatEuro(r.importo_pagato_quota)}</td>
               <td className="text-right">{formatEuro(r.extra_ravv_pagati)}</td>
-              <td className="text-right">{formatEuro(r.totale_residuo)}</td>
+              <td className="text-right">{formatEuro(r.calculated_residual ?? r.totale_residuo)}</td>
               <td className="text-center">{r.rate_totali}</td>
               <td className="text-center">{r.rate_pagate}</td>
               <td className="text-center">{r.rate_pagate_ravv}</td>
@@ -188,7 +249,7 @@ export default function RiepilogoReport() {
             <td className="text-right">{formatEuro(sum("importo_totale"))}</td>
             <td className="text-right">{formatEuro(sum("importo_pagato_quota"))}</td>
             <td className="text-right">{formatEuro(sum("extra_ravv_pagati"))}</td>
-            <td className="text-right">{formatEuro(sum("totale_residuo"))}</td>
+            <td className="text-right">{formatEuro(sumResidual())}</td>
             <td className="text-center">{sum("rate_totali")}</td>
             <td className="text-center">{sum("rate_pagate")}</td>
             <td className="text-center">{sum("rate_pagate_ravv")}</td>
