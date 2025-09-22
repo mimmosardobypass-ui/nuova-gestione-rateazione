@@ -224,7 +224,7 @@ const RisparmiRQ = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setSelectedRQ(row.riam_quater_id.toString());
+                            setSelectedRQ(row.riam_quater_id);
                             setActiveTab("dettaglio");
                           }}
                         >

@@ -11,8 +11,8 @@ export async function getRQLinkedTaxpayers(rqId?: string | number): Promise<RQLi
     .select('*');
 
   if (rqId) {
-    const id = typeof rqId === 'string' ? parseInt(rqId) : rqId;
-    query = query.eq('riam_quater_id', id);
+    const numericId = typeof rqId === 'string' ? parseInt(rqId, 10) : rqId;
+    query = query.eq('riam_quater_id', numericId);
   }
 
   const { data, error } = await query;
@@ -22,7 +22,10 @@ export async function getRQLinkedTaxpayers(rqId?: string | number): Promise<RQLi
     throw error;
   }
 
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    riam_quater_id: item.riam_quater_id.toString()
+  }));
 }
 
 export async function getRQRisparmioDettaglio(rqId?: string | number): Promise<RQSavingDetail[]> {
@@ -31,8 +34,8 @@ export async function getRQRisparmioDettaglio(rqId?: string | number): Promise<R
     .select('*');
 
   if (rqId) {
-    const id = typeof rqId === 'string' ? parseInt(rqId) : rqId;
-    query = query.eq('riam_quater_id', id);
+    const numericId = typeof rqId === 'string' ? parseInt(rqId, 10) : rqId;
+    query = query.eq('riam_quater_id', numericId);
   }
 
   const { data, error } = await query;
@@ -42,7 +45,11 @@ export async function getRQRisparmioDettaglio(rqId?: string | number): Promise<R
     throw error;
   }
 
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    riam_quater_id: item.riam_quater_id.toString(),
+    pagopa_id: item.pagopa_id.toString()
+  }));
 }
 
 export async function getRQRisparmioAggregato(rqId?: string | number): Promise<RQSavingAgg[]> {
@@ -51,8 +58,8 @@ export async function getRQRisparmioAggregato(rqId?: string | number): Promise<R
     .select('*');
 
   if (rqId) {
-    const id = typeof rqId === 'string' ? parseInt(rqId) : rqId;
-    query = query.eq('riam_quater_id', id);
+    const numericId = typeof rqId === 'string' ? parseInt(rqId, 10) : rqId;
+    query = query.eq('riam_quater_id', numericId);
   }
 
   const { data, error } = await query;
@@ -62,5 +69,8 @@ export async function getRQRisparmioAggregato(rqId?: string | number): Promise<R
     throw error;
   }
 
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    riam_quater_id: item.riam_quater_id.toString()
+  }));
 }

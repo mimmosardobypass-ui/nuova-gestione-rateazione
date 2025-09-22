@@ -3,17 +3,17 @@
  */
 
 export interface RQLinkedTaxpayers {
-  riam_quater_id: number;
+  riam_quater_id: string;
   rq_number: string | null;
   rq_taxpayer: string | null;
   linked_taxpayers: string;
 }
 
 export interface RQSavingDetail {
-  riam_quater_id: number;
+  riam_quater_id: string;
   rq_number: string | null;
   rq_taxpayer: string | null;
-  pagopa_id: number;
+  pagopa_id: string;
   pagopa_number: string | null;
   pagopa_taxpayer: string | null;
   residuo_pagopa: number;
@@ -22,7 +22,7 @@ export interface RQSavingDetail {
 }
 
 export interface RQSavingAgg {
-  riam_quater_id: number;
+  riam_quater_id: string;
   rq_number: string | null;
   rq_taxpayer: string | null;
   residuo_pagopa_tot: number;
