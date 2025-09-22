@@ -11,34 +11,44 @@ export interface ExportInstallment {
   is_paid: boolean;
 }
 
-/**
- * Trasforma i dati della vista v_rateation_summary in RateationRow completa
- */
-export function mapToRateationRow(viewData: any, additionalData?: { 
+type PartialStatus = {
   status?: string;
   interrupted_by_rateation_id?: string | null;
-}): RateationRow {
-  return {
-    id: viewData.id,
-    tipo: viewData.type_name || 'N/A',
-    numero: viewData.numero || '',
-    number: viewData.numero || null,
-    taxpayer_name: viewData.taxpayer_name || null,
-    total_amount: viewData.importo_totale || 0,
-    status: (additionalData?.status as any) || 'ATTIVA',
-    interrupted_by_rateation_id: additionalData?.interrupted_by_rateation_id || null,
+};
+
+/**
+ * Helper centralizzato "colla" per calcoli export consistenti con UI
+ * Usa 'tipo' come discriminante per logica PagoPA interrotte
+ */
+export function totalsForExport(
+  headerRow: any, // riga grezza della view v_rateation_summary
+  installments: ExportInstallment[],
+  extra: PartialStatus
+) {
+  // ATTENZIONE: nel progetto la discriminante è "tipo" (non "type")
+  const rateationRow: RateationRow = {
+    id: String(headerRow.id),
+    tipo: String(headerRow.tipo ?? headerRow.type_name ?? 'N/A'),
+    numero: headerRow.numero || '',
+    number: headerRow.number ?? null,
+    taxpayer_name: headerRow.taxpayer_name ?? null,
+    total_amount: headerRow.total_amount ?? headerRow.importo_totale ?? 0,
+    status: (extra.status ?? 'ATTIVA') as any,
+    interrupted_by_rateation_id: extra.interrupted_by_rateation_id ?? null,
     // Campi minimi richiesti dal tipo RateationRow  
-    contribuente: viewData.taxpayer_name || null,
-    importoTotale: viewData.importo_totale || 0,
-    importoPagato: viewData.importo_pagato_quota || 0,
+    contribuente: headerRow.taxpayer_name ?? null,
+    importoTotale: headerRow.importo_totale ?? 0,
+    importoPagato: headerRow.importo_pagato_quota ?? 0,
     importoRitardo: 0,
     residuo: 0, // Calcolato da computeRateationTotals
-    rateTotali: viewData.rate_totali || 0,
-    ratePagate: viewData.rate_pagate || 0,
+    rateTotali: headerRow.rate_totali ?? 0,
+    ratePagate: headerRow.rate_pagate ?? 0,
     rateNonPagate: 0,
-    rateInRitardo: viewData.rate_in_ritardo || 0,
+    rateInRitardo: headerRow.rate_in_ritardo ?? 0,
     ratePaidLate: 0
   };
+
+  return computeRateationTotals(rateationRow, installments);
 }
 
 /**
@@ -49,8 +59,7 @@ export function residualForExport(
   installments: ExportInstallment[],
   additionalData?: { status?: string; interrupted_by_rateation_id?: string | null }
 ): number {
-  const rateationRow = mapToRateationRow(viewData, additionalData);
-  return computeRateationTotals(rateationRow, installments).residual;
+  return totalsForExport(viewData, installments, additionalData || {}).residual;
 }
 
 /**
@@ -60,18 +69,5 @@ export function paidForExport(
   viewData: any,
   installments: ExportInstallment[]
 ): number {
-  const rateationRow = mapToRateationRow(viewData);
-  return computeRateationTotals(rateationRow, installments).paid;
-}
-
-/**
- * Calcola tutti i totali usando la stessa logica dell'UI
- */
-export function totalsForExport(
-  viewData: any,
-  installments: ExportInstallment[],
-  additionalData?: { status?: string; interrupted_by_rateation_id?: string | null }
-) {
-  const rateationRow = mapToRateationRow(viewData, additionalData);
-  return computeRateationTotals(rateationRow, installments);
+  return totalsForExport(viewData, installments, {}).paid;
 }

@@ -9,7 +9,7 @@ import QRCode from "qrcode";
 import { getDaysLate, getPaymentDate } from "@/features/rateations/lib/installmentState";
 import { toMidnightLocal as toMidnight } from "@/features/rateations/utils/pagopaSkips";
 import type { InstallmentUI } from "@/features/rateations/types";
-import { ensureStringId, toIntId } from "@/lib/utils/ids";
+import { ensureStringId } from "@/lib/utils/ids";
 import { totalsForExport } from "@/utils/rateation-export";
 
 interface RateationHeader {
@@ -104,21 +104,21 @@ export default function SchedaRateazione() {
       const { data: headerData } = await supabase
         .from("v_rateation_summary")
         .select("*")
-        .eq("id", toIntId(id!, 'rateationId'))
+        .eq("id", Number(id!))
         .single();
 
       // Load additional rateation data for correct calculations
       const { data: rateationData } = await supabase
         .from("rateations")
         .select("status, interrupted_by_rateation_id")
-        .eq("id", toIntId(id!, 'rateationId'))
+        .eq("id", Number(id!))
         .single();
 
       // Load installments
       const { data: installmentsData } = await supabase
         .from("v_rateation_installments")
         .select("*")
-        .eq("rateation_id", toIntId(id!, 'rateationId'))
+        .eq("rateation_id", Number(id!))
         .order("seq");
 
       // Load forecast (next 12 months)

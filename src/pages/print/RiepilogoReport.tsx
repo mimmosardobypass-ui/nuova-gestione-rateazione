@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
 import { PrintKpi } from "@/components/print/PrintKpi";
 import { formatEuro } from "@/lib/formatters";
-import { ensureStringId, toIntId } from "@/lib/utils/ids";
+import { ensureStringId } from "@/lib/utils/ids";
 import { totalsForExport } from "@/utils/rateation-export";
 
 interface RiepilogoRow {
@@ -70,7 +70,7 @@ export default function RiepilogoReport() {
       let filteredRows = data || [];
 
       // Carica dati aggiuntivi per le rateazioni (status, interrupted_by_rateation_id)
-      const rateationIds = filteredRows.map(r => toIntId(String(r.id), 'rateationId'));
+      const rateationIds = filteredRows.map(r => Number(r.id));
       const { data: additionalData } = await supabase
         .from("rateations")
         .select("id, status, interrupted_by_rateation_id")
@@ -173,9 +173,9 @@ export default function RiepilogoReport() {
   const sum = (field: keyof RiepilogoRow) => 
     rows.reduce((s, r) => s + Number(r[field] || 0), 0);
 
-  // Somma residuo calcolato correttamente
+  // Somma residuo usando sempre totalsForExport per consistenza totale
   const sumResidual = () => 
-    rows.reduce((s, r) => s + (r.calculated_residual ?? r.totale_residuo), 0);
+    rows.reduce((s, r) => s + (r.calculated_residual ?? 0), 0);
 
   const subtitle = [
     `Filtri: periodo ${searchParams.get("from") || "—"} → ${searchParams.get("to") || "—"}`,
