@@ -10,7 +10,7 @@ interface UseAllRateationsReturn {
   online: boolean;
 }
 
-const CACHE_KEY = "all_rateations_cache_v1";
+const CACHE_KEY = "all_rateations_cache_v2";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -123,6 +123,20 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         throw rateationsError;
       }
 
+      // Debug: Log raw data from view
+      console.log("🔍 Raw data from v_rateations_list_ui:", rateations?.slice(0, 2));
+      
+      if (rateations && rateations.length > 0) {
+        const firstRow = rateations[0];
+        console.log("🔍 First row monetary fields:", {
+          total_amount_cents: firstRow.total_amount_cents,
+          paid_amount_cents: firstRow.paid_amount_cents,
+          overdue_effective_cents: firstRow.overdue_effective_cents,  
+          residual_effective_cents: firstRow.residual_effective_cents,
+          number: firstRow.number
+        });
+      }
+
       // Simple helper for safe number conversion
       const toNum = (v: any): number => {
         if (v === null || v === undefined) return 0;
@@ -185,6 +199,19 @@ export const useAllRateations = (): UseAllRateationsReturn => {
           excluded_from_stats: false,
         } as RateationRow;
       });
+      
+      // Debug: Log final mapped data  
+      if (finalRows.length > 0) {
+        const firstMapped = finalRows[0];
+        console.log("🔍 After mapping - first row monetary fields:", {
+          numero: firstMapped.numero,
+          importoTotale: firstMapped.importoTotale,
+          importoPagato: firstMapped.importoPagato,
+          importoRitardo: firstMapped.importoRitardo,
+          residuo: firstMapped.residuo,
+          residuoEffettivo: firstMapped.residuoEffettivo
+        });
+      }
       
       setRows(finalRows);
       saveToCache(finalRows, userId);
