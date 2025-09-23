@@ -44,7 +44,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     if (open) {
       loadData();
     }
-  }, [open, rateation.id]);
+  }, [open, rateation.id, migrationMode]);
 
   // Determine migration mode based on rateation type and target
   useEffect(() => {
@@ -70,7 +70,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         
         // Auto-select the current PagoPA if it's migratable
         if (pagopaData.length > 0) {
-          setSelectedPagopaIds([pagopaData[0].id]);
+          // Auto-select the current rateation if it's in the list and nothing is selected
+          setSelectedPagopaIds(prev => prev.length ? prev : [pagopaData[0].id]);
         }
       } else {
         // Load debts for normal debt migration
@@ -118,27 +119,33 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
   };
 
+  const nothingSelected = migrationMode === 'pagopa'
+    ? selectedPagopaIds.length === 0
+    : selectedDebtIds.length === 0;
+
+  const disableMigrate = processing || nothingSelected || !targetRateationId;
+
   const handleMigration = async () => {
+    if (nothingSelected) {
+      toast({
+        title: migrationMode === 'pagopa' ? "Nessuna cartella PagoPA selezionata" : "Nessuna cartella selezionata",
+        description: migrationMode === 'pagopa' ? "Seleziona almeno una cartella PagoPA da migrare" : "Seleziona almeno una cartella da migrare",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!targetRateationId) {
+      toast({
+        title: "Piano RQ non selezionato",
+        description: "Seleziona il piano Riam.Quater di destinazione",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (migrationMode === 'pagopa') {
       // PagoPA → RQ migration
-      if (selectedPagopaIds.length === 0) {
-        toast({
-          title: "Errore",
-          description: "Seleziona almeno una cartella PagoPA da migrare",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!targetRateationId) {
-        toast({
-          title: "Errore", 
-          description: "Seleziona una rateazione RQ di destinazione",
-          variant: "destructive"
-        });
-        return;
-      }
-
       setProcessing(true);
       try {
         // Use markPagopaInterrupted for each selected PagoPA
@@ -175,24 +182,6 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       }
     } else {
       // Normal debt migration
-      if (selectedDebtIds.length === 0) {
-        toast({
-          title: "Errore",
-          description: "Seleziona almeno una cartella da migrare",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!targetRateationId) {
-        toast({
-          title: "Errore", 
-          description: "Seleziona una rateazione di destinazione",
-          variant: "destructive"
-        });
-        return;
-      }
-
       setProcessing(true);
       try {
         await migrateDebtsToRQ({

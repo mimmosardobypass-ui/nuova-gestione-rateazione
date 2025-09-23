@@ -157,9 +157,5 @@ export function getIneligibilityReasons(
     reasons.push('La PagoPA è già collegata a una RQ');
   }
 
-  if (rateation?.type_id && rateation.type_name !== 'PagoPA') {
-    reasons.push('Il tipo non è PagoPA');
-  }
-
   return reasons;
 }
