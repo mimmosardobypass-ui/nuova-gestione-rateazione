@@ -123,7 +123,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  const disableMigrate = processing || nothingSelected || !targetRateationId;
+  const disableMigrate = processing || nothingSelected || typeof targetRateationId !== "string" || !targetRateationId;
+
+  // Helper to generate safe RQ labels for toast messages
+  const rqLabel = (id: unknown) => {
+    const strId = String(id ?? "");
+    const found = rqRateations.find(r => r.id === strId);
+    return found?.number ?? strId.slice(-6); // prefer RQ number if available
+  };
 
   const handleMigration = async () => {
     if (nothingSelected) {
@@ -157,7 +164,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
         toast({
           title: "Successo",
-          description: `Migrate ${selectedPagopaIds.length} cartelle PagoPA verso la RQ ${targetRateationId.slice(-6)}`,
+          description: `Migrate ${selectedPagopaIds.length} cartelle PagoPA verso la RQ ${rqLabel(targetRateationId)}`,
           duration: 5000
         });
 
@@ -193,7 +200,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
         toast({
           title: "Successo",
-          description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${targetRateationId.slice(-6)}`,
+          description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${rqLabel(targetRateationId)}`,
           duration: 5000
         });
 
