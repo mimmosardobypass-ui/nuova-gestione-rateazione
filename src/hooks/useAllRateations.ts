@@ -112,9 +112,9 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         return;
       }
 
-      // Fetch ALL rateations without filters (including RQ, estinte, decadute, etc.)
+      // Fetch ALL rateations from canonical view
       const { data: rateations, error: rateationsError } = await supabase
-        .from('v_rateations_with_kpis')
+        .from('v_rateations_list_ui')
         .select('*')
         .eq('owner_uid', userId)
         .order('created_at', { ascending: false });
@@ -123,118 +123,38 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         throw rateationsError;
       }
 
-      // Helpers robusti
+      // Simple helper for safe number conversion
       const toNum = (v: any): number => {
         if (v === null || v === undefined) return 0;
-        if (typeof v === "string" && v.trim() === "") return 0;
         const n = typeof v === "string" ? Number(v) : v;
         return Number.isFinite(n) ? n : 0;
       };
 
-      type Unit = "cents" | "euro";
-      type Candidate = { key: string; unit: Unit };
-
-      /** Prende il primo campo esistente tra i candidati e lo restituisce in EURO */
-      const pickMoneyEUR = (row: any, candidates: Candidate[]): number => {
-        for (const c of candidates) {
-          const raw = row[c.key];
-          if (raw !== null && raw !== undefined) {
-            const n = toNum(raw);
-            if (!n) continue;
-            return c.unit === "cents" ? n / 100 : n; // ← conversione sicura
-          }
-        }
-        return 0;
-      };
-
-      /** Comodità: prende tanti possibili alias "cents" e "euro" */
-      const moneyPicker = (row: any, cents: string[], euros: string[]) =>
-        pickMoneyEUR(
-          row,
-          [
-            ...cents.map((k) => ({ key: k, unit: "cents" as const })),
-            ...euros.map((k) => ({ key: k, unit: "euro" as const })),
-          ]
-        );
+      // Simple cents to euro conversion
+      const centsToEUR = (cents?: number) => (typeof cents === "number" ? cents / 100 : 0);
 
       const finalRows: RateationRow[] = (rateations || []).map((r: any) => {
-        // 1) Totale (preferisci qualsiasi campo disponibile)
-        const totalEUR = moneyPicker(
-          r,
-          // cents
-          ["total_amount_cents", "total_due_cents", "dovuto_cents"],
-          // euro
-          ["total_amount", "total_due", "dovuto", "importo_totale"]
-        );
-
-        // 2) Pagato (fallback + derivazione se manca)
-        let paidEUR = moneyPicker(
-          r,
-          // cents
-          ["paid_amount_cents", "total_paid_cents", "paid_cents", "paid_effective_cents"],
-          // euro
-          ["paid_amount", "total_paid", "paid_effective", "importo_pagato"]
-        );
-
-        // 3) Residuo (preferisci effettivo; se assente, gross; se ancora assente, derivato)
-        let residualEffEUR = moneyPicker(
-          r,
-          // cents
-          ["residual_effective_cents"],
-          // euro
-          ["residual_effective", "residuo_effettivo"]
-        );
-        let residualGrossEUR = moneyPicker(
-          r,
-          // cents
-          ["residual_amount_cents", "residual_gross_cents"],
-          // euro
-          ["residual_amount", "residual_gross", "residuo"]
-        );
-
-        // Derivazioni: se mancano i residui ma ho total/pagato
-        if (!residualEffEUR && totalEUR && paidEUR) residualEffEUR = Math.max(0, totalEUR - paidEUR);
-        if (!residualGrossEUR && totalEUR && paidEUR) residualGrossEUR = Math.max(0, totalEUR - paidEUR);
-
-        // 4) In ritardo (preferisci effettivo; se assente prendi lordo/oggi)
-        const overdueEUR =
-          moneyPicker(
-            r,
-            // cents
-            ["overdue_effective_cents", "overdue_amount_cents", "overdue_gross_cents", "unpaid_overdue_amount_cents"],
-            // euro
-            ["overdue_effective", "overdue_amount", "overdue_gross", "importo_in_ritardo"]
-          ) || 0;
-
-        // 5) Campi UI
-        const importoTotale = totalEUR;
-        const importoPagato = paidEUR;
-        const importoRitardo = overdueEUR;
-        const residuo = residualEffEUR || residualGrossEUR; // lista = vista operativa
-
         return {
           id: String(r.id),
-          numero: r.number || r.numero || "",
+          numero: r.number || "",
           tipo: r.tipo || "N/A",
-          contribuente: r.taxpayer_name || r.contribuente || "",
+          contribuente: r.taxpayer_name || "",
 
-          // EURO già pronti
-          importoTotale,
-          importoPagato,
-          importoRitardo,
-          residuo,
-          residuoEffettivo: residualEffEUR || residuo,
+          // Monetary fields in EURO (from canonical view)
+          importoTotale: centsToEUR(r.total_amount_cents),
+          importoPagato: centsToEUR(r.paid_amount_cents),
+          importoRitardo: centsToEUR(r.overdue_effective_cents),
+          residuo: centsToEUR(r.residual_effective_cents),
+          residuoEffettivo: centsToEUR(r.residual_effective_cents),
 
-          // Contatori
-          rateTotali: toNum(r.rate_totali ?? r.installments_total ?? 0),
-          ratePagate: toNum(r.rate_pagate ?? r.installments_paid ?? 0),
-          rateNonPagate:
-            toNum(r.rate_totali ?? r.installments_total ?? 0) -
-            toNum(r.rate_pagate ?? r.installments_paid ?? 0),
-          rateInRitardo: toNum(r.unpaid_overdue_today ?? r.installments_overdue ?? 0),
+          // Counters
+          rateTotali: toNum(r.installments_total),
+          ratePagate: toNum(r.installments_paid),
+          rateNonPagate: toNum(r.installments_total) - toNum(r.installments_paid),
+          rateInRitardo: toNum(r.installments_overdue_today),
           ratePaidLate: 0,
 
-          // Metadati
+          // Metadata
           status: r.status || "attiva",
           created_at: r.created_at,
           updated_at: r.updated_at,
@@ -244,25 +164,25 @@ export const useAllRateations = (): UseAllRateationsReturn => {
 
           // Quater
           is_quater: !!r.is_quater,
-          original_total_due_cents: toNum(r.original_total_due_cents),
-          quater_total_due_cents: toNum(r.quater_total_due_cents),
+          original_total_due_cents: 0,
+          quater_total_due_cents: 0,
 
-          // PagoPA misc
-          is_pagopa: !!r.is_pagopa,
-          unpaid_overdue_today: toNum(r.unpaid_overdue_today),
-          unpaid_due_today: toNum(r.unpaid_due_today),
-          max_skips_effective: r.max_skips_effective ?? 8,
-          skip_remaining: r.skip_remaining ?? 8,
-          at_risk_decadence: !!r.at_risk_decadence,
+          // PagoPA misc - defaults for missing fields
+          is_pagopa: false,
+          unpaid_overdue_today: toNum(r.installments_overdue_today),
+          unpaid_due_today: 0,
+          max_skips_effective: 8,
+          skip_remaining: 8,
+          at_risk_decadence: false,
 
-          // Migration & flags
-          debts_total: toNum(r.debts_total),
-          debts_migrated: toNum(r.debts_migrated),
-          migrated_debt_numbers: r.migrated_debt_numbers || [],
-          remaining_debt_numbers: r.remaining_debt_numbers || [],
-          rq_target_ids: r.rq_target_ids || [],
-          rq_migration_status: r.rq_migration_status || "none",
-          excluded_from_stats: !!r.excluded_from_stats,
+          // Migration & flags - defaults for missing fields
+          debts_total: 0,
+          debts_migrated: 0,
+          migrated_debt_numbers: [],
+          remaining_debt_numbers: [],
+          rq_target_ids: [],
+          rq_migration_status: "none",
+          excluded_from_stats: false,
         } as RateationRow;
       });
       
