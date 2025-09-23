@@ -132,7 +132,55 @@ export const markPagopaInterrupted = async (
 ): Promise<void> => {
   const todayIso = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
 
-  // 1) Update PagoPA -> stato "INTERROTTA" + link a Riam.Quater
+  // 1) Calcola snapshot degli importi PRIMA dell'interruzione
+  
+  // Somma rate NON pagate della PagoPA (residuo originario)
+  const { data: instPA, error: instPAError } = await supabase
+    .from('installments')
+    .select('amount, is_paid')
+    .eq('rateation_id', pagopaId);
+
+  if (instPAError) throw instPAError;
+
+  const residuoPagopaEuro = (instPA || [])
+    .filter(i => !i.is_paid)
+    .reduce((s, i) => s + Number(i.amount || 0), 0);
+
+  // Totale ratazioni RQ (senza interessi)
+  const { data: instRQ, error: instRQError } = await supabase
+    .from('installments')
+    .select('amount')
+    .eq('rateation_id', riamQuaterId);
+
+  if (instRQError) throw instRQError;
+
+  const totaleRQEuro = (instRQ || []).reduce((s, i) => s + Number(i.amount || 0), 0);
+
+  // Calcola snapshot in centesimi
+  const residuoCents = Math.round(residuoPagopaEuro * 100);
+  const totaleRQCents = Math.round(totaleRQEuro * 100);
+  const risparmioCents = Math.max(residuoCents - totaleRQCents, 0);
+
+  // 2) Upsert del collegamento con snapshot
+  const { error: linkError } = await supabase
+    .from('riam_quater_links')
+    .upsert(
+      { 
+        riam_quater_id: riamQuaterId, 
+        pagopa_id: pagopaId,
+        reason: reason || `Migrazione automatica del ${todayIso}`,
+        residuo_pagopa_at_link_cents: residuoCents,
+        totale_rq_at_link_cents: totaleRQCents,
+        risparmio_at_link_cents: risparmioCents
+      },
+      { 
+        onConflict: 'riam_quater_id,pagopa_id' 
+      }
+    );
+
+  if (linkError) throw linkError;
+
+  // 3) Update PagoPA -> stato "INTERROTTA" + link a Riam.Quater
   const { error: updateError } = await supabase
     .from("rateations")
     .update({
@@ -144,22 +192,6 @@ export const markPagopaInterrupted = async (
     .eq('id', pagopaId);
 
   if (updateError) throw updateError;
-
-  // 2) Upsert del collegamento nella tabella ponte
-  const { error: linkError } = await supabase
-    .from('riam_quater_links')
-    .upsert(
-      { 
-        riam_quater_id: riamQuaterId, 
-        pagopa_id: pagopaId,
-        reason: reason || `Migrazione automatica del ${todayIso}`
-      },
-      { 
-        onConflict: 'riam_quater_id,pagopa_id' 
-      }
-    );
-
-  if (linkError) throw linkError;
 };
 // LOVABLE:END markPagopaInterrupted
 
