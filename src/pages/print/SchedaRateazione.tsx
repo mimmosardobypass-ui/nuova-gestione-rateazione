@@ -11,6 +11,8 @@ import { toMidnightLocal as toMidnight } from "@/features/rateations/utils/pagop
 import type { InstallmentUI } from "@/features/rateations/types";
 import { ensureStringId } from "@/lib/utils/ids";
 import { totalsForExport } from "@/utils/rateation-export";
+import { getLinksForPagopa, type PagopaLinkRow } from "@/features/rateations/api/links";
+import { isPagoPAPlan } from "@/features/rateations/utils/isPagopa";
 
 interface RateationHeader {
   id: string;
@@ -63,6 +65,8 @@ export default function SchedaRateazione() {
   const [forecast, setForecast] = useState<MonthlyForecast[]>([]);
   const [qrCode, setQrCode] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [rqLinks, setRqLinks] = useState<PagopaLinkRow[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
 
   // calcolo locale per stampa (in cima al componente)
   const todayMid = React.useMemo(() => toMidnight(new Date()), []);
@@ -144,13 +148,31 @@ export default function SchedaRateazione() {
           calculated_residual = totals.residual;
         }
 
-        setHeader({
+        const headerWithExtras = {
           ...headerData,
           id: ensureStringId(headerData.id),
           status: rateationData?.status,
           interrupted_by_rateation_id: rateationData?.interrupted_by_rateation_id,
           calculated_residual
-        });
+        };
+        
+        setHeader(headerWithExtras);
+        
+        // Load RQ links if this is a PagoPA rateation
+        if (isPagoPAPlan({ is_pagopa: false, tipo: headerData.type_name })) {
+          try {
+            setLinksLoading(true);
+            const links = await getLinksForPagopa(id!);
+            setRqLinks(links);
+          } catch (error) {
+            console.error("Error loading RQ links:", error);
+            setRqLinks([]);
+          } finally {
+            setLinksLoading(false);
+          }
+        } else {
+          setRqLinks([]);
+        }
       }
       
       const convertedInstallments = (installmentsData || []).map(inst => ({
@@ -218,6 +240,81 @@ export default function SchedaRateazione() {
           {qrCode && <img src={qrCode} alt="QR Code" />}
         </div>
       </section>
+
+      {/* Collegamenti Riam.Quater Section */}
+      {isPagoPAPlan({ is_pagopa: false, tipo: header.type_name }) && (
+        <section style={{ pageBreakInside: 'avoid', marginTop: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Collegamenti Riam.Quater</h2>
+            {rqLinks.length > 0 && (
+              <div style={{ fontWeight: 600, color: '#0f7b0f' }}>
+                {rqLinks.length} {rqLinks.length === 1 ? 'collegamento' : 'collegamenti'} ·
+                {' '}Risparmio totale: {formatEuro(rqLinks.reduce((s, r) => s + (r.risparmio_at_link_cents ?? 0) / 100, 0))}
+              </div>
+            )}
+          </div>
+
+          {linksLoading ? (
+            <p style={{ opacity: 0.7, margin: '12px 0' }}>Caricamento collegamenti…</p>
+          ) : rqLinks.length === 0 ? (
+            <p style={{ opacity: 0.7, margin: '12px 0' }}>Nessun collegamento Riam.Quater per questa PagoPA.</p>
+          ) : (
+            rqLinks.map((row) => (
+              <div
+                key={`${row.riam_quater_id}-${row.linked_at ?? ''}`}
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 8,
+                  padding: 12,
+                  marginTop: 12
+                }}
+              >
+                {/* Header RQ + data */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600 }}>
+                    {row.rq_number || `RQ ${String(row.riam_quater_id ?? '').slice(-6) || '—'}`}
+                  </div>
+                  <div style={{ opacity: 0.8 }}>
+                    {row.linked_at ? new Date(row.linked_at).toLocaleDateString('it-IT', { 
+                      day: '2-digit', month: 'short', year: 'numeric' 
+                    }) : '—'}
+                  </div>
+                </div>
+
+                {/* Contribuenti */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Contribuente RQ</div>
+                    <div>{row.rq_taxpayer ?? '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Contribuente PagoPA</div>
+                    <div>{row.pagopa_taxpayer ?? '—'}</div>
+                  </div>
+                </div>
+
+                {/* Importi */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Totale RQ</div>
+                    <div>{formatEuro((row.totale_rq_at_link_cents ?? 0) / 100)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Residuo PagoPA</div>
+                    <div>{formatEuro((row.residuo_pagopa_at_link_cents ?? 0) / 100)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Risparmio stimato</div>
+                    <div style={{ color: '#0f7b0f', fontWeight: 600 }}>
+                      {formatEuro((row.risparmio_at_link_cents ?? 0) / 100)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </section>
+      )}
 
       {/* Installments Section */}
       <h2 className="mt-4 mb-3 font-semibold text-base">Rate</h2>
