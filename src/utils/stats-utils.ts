@@ -1,125 +1,292 @@
-/**
- * CENTRALIZED KPI CALCULATIONS
- * Definizioni uniformi per KPI lordi, effettivi e risparmio Quater
- */
+// src/utils/stats-utils.ts
+// ------------------------------------------------------------
+// Normalizzazione sicura di RateationRow + KPI lordi/effettivi
+// ------------------------------------------------------------
 
-import type { RateationRow } from "@/features/rateations/types";
+/** Valuta monetaria in EURO (number). Tutto ciò che esce da qui è in € */
+type Euro = number;
 
-export type GrossKpis = {
-  totalDueGross: number;
-  totalPaidGross: number;
-  residualGross: number;
-  overdueGross: number;
+/** Raw row (com'è nel tuo progetto). Manteniamo optional vari alias */
+export interface RateationRow {
+  // totali/paid/overdue/residual (possono essere in cents o in euro)
+  total_amount_cents?: number;
+  paid_amount_cents?: number;
+  overdue_amount_cents?: number;
+  residual_amount_cents?: number;
+
+  total_amount?: Euro;       // alias possibile
+  paid_amount?: Euro;        // alias possibile
+  overdue_amount?: Euro;     // alias possibile
+  residual_amount?: Euro;    // alias possibile
+
+  // alias italiani già presenti in alcuni tuoi snippet
+  importoTotale?: Euro;
+  importoPagato?: Euro;
+  importoRitardo?: Euro;
+  residuoEffettivo?: Euro;
+
+  // decadence / trasferimenti
+  residual_at_decadence_cents?: number;
+  transferred_amount_cents?: number;
+
+  residual_at_decadence?: Euro;
+  transferred_amount?: Euro;
+
+  decadence_info?: {
+    residual_at_decadence_cents?: number;
+    transferred_amount_cents?: number;
+    residual_at_decadence?: Euro;
+    transferred_amount?: Euro;
+  };
+
+  // Rottamazione Quater
+  is_quater?: boolean;
+  original_total_due_cents?: number;
+  quater_total_due_cents?: number;
+
+  // status (tanti formati possibili nella tua app)
+  status?: string | null;
+}
+
+/** Status normalizzati per la logica effettiva */
+export type NormalizedStatus =
+  | 'ATTIVA'
+  | 'DECADUTA'
+  | 'ESTINTA'
+  | 'ARCHIVIATA'
+  | 'SCONOSCIUTA';
+
+/** Riga normalizzata in euro + status coerente */
+export interface NormRow {
+  status: NormalizedStatus;
+  totalDue: Euro;        // totale dovuto lordo (euro)
+  totalPaid: Euro;       // totale pagato (euro)
+  overdue: Euro;         // in ritardo "lordo" base (euro)
+  residualEffective: Euro; // residuo effettivo della pratica (se disponibile)
+  residualAtDecadence: Euro; // residuo alla decadenza (se esiste)
+  transferredAmount: Euro;   // importo già trasferito (se esiste)
+  // Quater
+  isQuater: boolean;
+  originalTotalDue: Euro;
+  quaterTotalDue: Euro;
+}
+
+/* ----------------- Helpers di normalizzazione ----------------- */
+
+/** Prende la prima cifra disponibile tra vari alias in EURO o in *_cents */
+function pickMoneyEUR(
+  row: RateationRow,
+  euroFields: (keyof RateationRow)[],
+  centFields: (keyof RateationRow)[] = []
+): Euro {
+  for (const f of euroFields) {
+    const v = row[f];
+    if (typeof v === 'number' && !Number.isNaN(v)) return v;
+  }
+  for (const f of centFields) {
+    const v = row[f];
+    if (typeof v === 'number' && !Number.isNaN(v)) return v / 100;
+  }
+  return 0;
+}
+
+/** Cerca valori nell'oggetto principale o dentro decadence_info */
+function pickDecadenceEUR(
+  row: RateationRow,
+  euroFieldsTop: (keyof RateationRow)[],
+  centFieldsTop: (keyof RateationRow)[],
+  euroFieldsNested: (keyof NonNullable<RateationRow['decadence_info']>)[] = [],
+  centFieldsNested: (keyof NonNullable<RateationRow['decadence_info']>)[] = []
+): Euro {
+  // top-level
+  const top = pickMoneyEUR(row, euroFieldsTop, centFieldsTop);
+  if (top !== 0) return top;
+
+  // nested
+  const d = row.decadence_info;
+  if (d) {
+    // euro nested
+    for (const f of euroFieldsNested) {
+      const v = d[f];
+      if (typeof v === 'number' && !Number.isNaN(v)) return v;
+    }
+    // cents nested
+    for (const f of centFieldsNested) {
+      const v = d[f];
+      if (typeof v === 'number' && !Number.isNaN(v)) return v / 100;
+    }
+  }
+  return 0;
+}
+
+/** Normalizza gli status più comuni nella tua base dati */
+export function normalizeStatus(raw?: string | null): NormalizedStatus {
+  const s = (raw || '').trim().toUpperCase();
+
+  if (!s) return 'SCONOSCIUTA';
+
+  // varianti tipiche viste nei tuoi esempi/chat:
+  if (['ATTIVA', 'ACTIVE'].includes(s)) return 'ATTIVA';
+  if (['DECADUTA', 'DECADED', 'DECADENZA'].includes(s)) return 'DECADUTA';
+  if (['ESTINTA', 'CLOSED', 'CANCELLED', 'ESTINTO', 'ESTINTE'].includes(s)) return 'ESTINTA';
+  if (['ARCHIVIATA', 'ARCHIVED'].includes(s)) return 'ARCHIVIATA';
+
+  // alcune basi usano "DECADUTA" vs "ESTINTA" in modo intercambiabile:
+  if (s.includes('DECAD')) return 'DECADUTA';
+  if (s.includes('ESTINT')) return 'ESTINTA';
+  if (s.includes('ARCHIV')) return 'ARCHIVIATA';
+  if (s.includes('ATTIV')) return 'ATTIVA';
+
+  return 'SCONOSCIUTA';
+}
+
+/** Converte una riga raw in NormRow (tutti importi in €) */
+export function normalizeRow(row: RateationRow): NormRow {
+  const totalDue = pickMoneyEUR(
+    row,
+    ['total_amount', 'importoTotale'],
+    ['total_amount_cents']
+  );
+
+  const totalPaid = pickMoneyEUR(
+    row,
+    ['paid_amount', 'importoPagato'],
+    ['paid_amount_cents']
+  );
+
+  const overdue = pickMoneyEUR(
+    row,
+    ['overdue_amount', 'importoRitardo'],
+    ['overdue_amount_cents']
+  );
+
+  const residualEffective = pickMoneyEUR(
+    row,
+    ['residual_amount', 'residuoEffettivo'],
+    ['residual_amount_cents']
+  );
+
+  const residualAtDecadence = pickDecadenceEUR(
+    row,
+    ['residual_at_decadence'],
+    ['residual_at_decadence_cents'],
+    ['residual_at_decadence'],
+    ['residual_at_decadence_cents']
+  );
+
+  const transferredAmount = pickDecadenceEUR(
+    row,
+    ['transferred_amount'],
+    ['transferred_amount_cents'],
+    ['transferred_amount'],
+    ['transferred_amount_cents']
+  );
+
+  const originalTotalDue = pickMoneyEUR(
+    row,
+    [],
+    ['original_total_due_cents']
+  );
+
+  const quaterTotalDue = pickMoneyEUR(
+    row,
+    [],
+    ['quater_total_due_cents']
+  );
+
+  return {
+    status: normalizeStatus(row.status),
+    totalDue,
+    totalPaid,
+    overdue,
+    residualEffective,
+    residualAtDecadence,
+    transferredAmount,
+    isQuater: !!row.is_quater,
+    originalTotalDue,
+    quaterTotalDue,
+  };
+}
+
+/* ---------------------- KPI (EURO) ---------------------- */
+
+export type KpiGross = {
+  totalDueGross: Euro;
+  totalPaidGross: Euro;
+  residualGross: Euro;
+  overdueGross: Euro;
 };
 
-export type EffectiveKpis = {
-  residualEffective: number;
-  overdueEffective: number;
-  decadutoNet: number;
-  commitmentsTotal: number;
+export type KpiEffective = {
+  residualEffective: Euro;
+  overdueEffective: Euro;
+  decadutoNet: Euro;
+  commitmentsTotal: Euro;
 };
 
 export type QuaterKpis = {
-  quaterSaving: number;
+  quaterSaving: Euro;
 };
 
-/**
- * Calcola i KPI LORDI (include tutte le rateazioni, anche decadute/annullate)
- */
-export function calcGrossKpis(rows: RateationRow[]): GrossKpis {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
+/** Utility: somma con protezione NaN */
+const add = (a: number, b: number) => (a || 0) + (b || 0);
+
+/** KPI LORDI = quadratura base sul dataset selezionato */
+export function calcGrossKpis(rows: RateationRow[]): KpiGross {
   let totalDueGross = 0;
   let totalPaidGross = 0;
   let overdueGross = 0;
 
-  rows.forEach(row => {
-    // Somma tutto: totale, pagato, in ritardo
-    totalDueGross += row.importoTotale || 0;
-    totalPaidGross += row.importoPagato || 0;
-    overdueGross += row.importoRitardo || 0;
+  rows.forEach((raw) => {
+    const r = normalizeRow(raw);
+    totalDueGross = add(totalDueGross, r.totalDue);
+    totalPaidGross = add(totalPaidGross, r.totalPaid);
+    overdueGross = add(overdueGross, r.overdue);
   });
-
-  const residualGross = Math.max(0, totalDueGross - totalPaidGross);
 
   return {
     totalDueGross,
     totalPaidGross,
-    residualGross,
+    residualGross: totalDueGross - totalPaidGross,
     overdueGross,
   };
 }
 
-/**
- * Calcola i KPI EFFETTIVI (esclude decadute, applica tolleranze/skip)
- */
-export function calcEffectiveKpis(rows: RateationRow[]): EffectiveKpis {
-  // Separa rateazioni attive da estinte
-  const activeRows = rows.filter(row => row.status !== 'ESTINTA');
-  const estinteRows = rows.filter(row => row.status === 'ESTINTA');
-  
-  // Residuo effettivo = residuo delle rateazioni attive (non estinte)
-  const residualEffective = activeRows.reduce((sum, row) => {
-    return sum + (row.residuoEffettivo || 0);
+/** KPI EFFETTIVI = gestione reale (esclude estinte/decadute dal residuo eff.) */
+export function calcEffectiveKpis(rows: RateationRow[]): KpiEffective {
+  const norm = rows.map(normalizeRow);
+
+  const activeRows = norm.filter((r) => r.status !== 'ESTINTA' && r.status !== 'DECADUTA');
+  const decaduteRows = norm.filter((r) => r.status === 'DECADUTA');
+
+  // residuo effettivo: somma residui delle pratiche in gestione
+  const residualEffective = activeRows.reduce((sum, r) => add(sum, r.residualEffective), 0);
+
+  // in ritardo effettivo: per ora base = overdue delle attive
+  // (integra qui la tua logica di tolleranza/skip quando pronta)
+  const overdueEffective = activeRows.reduce((sum, r) => add(sum, r.overdue), 0);
+
+  // decaduto netto: residuo alla decadenza - trasferito
+  const decadutoNet = decaduteRows.reduce((sum, r) => {
+    const net = Math.max(0, (r.residualAtDecadence || 0) - (r.transferredAmount || 0));
+    return add(sum, net);
   }, 0);
 
-  // In ritardo effettivo = con tolleranze e skip applicati
-  // TODO: Implementare logica di graceDays e skip PagoPA
-  const overdueEffective = activeRows.reduce((sum, row) => {
-    // Per ora usiamo il valore base, ma si può raffinare con la logica di tolleranza
-    return sum + (row.importoRitardo || 0);
-  }, 0);
-
-  // Saldo decaduto (netto) = residuo delle pratiche estinte con decadenza
-  const decadutoNet = estinteRows.reduce((sum, row) => {
-    const decadenceInfo = row.decadence_info;
-    if (decadenceInfo) {
-      return sum + (decadenceInfo.residual_at_decadence || 0) - (decadenceInfo.transferred_amount || 0);
-    }
-    return sum;
-  }, 0);
-
-  // Totale impegni = residuo effettivo + saldo decaduto
   const commitmentsTotal = residualEffective + decadutoNet;
 
-  return {
-    residualEffective,
-    overdueEffective,
-    decadutoNet,
-    commitmentsTotal,
-  };
+  return { residualEffective, overdueEffective, decadutoNet, commitmentsTotal };
 }
 
-/**
- * Calcola il risparmio da Rottamazione Quater
- * Solo per rateazioni con is_quater = true
- */
+/** KPI Rottamazione Quater (valore positivo = risparmio) */
 export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
-  const quaterRows = rows.filter(row => row.is_quater === true);
-  
-  const quaterSaving = quaterRows.reduce((sum, row) => {
-    const originalTotal = (row.original_total_due_cents || 0) / 100;
-    const quaterTotal = (row.quater_total_due_cents || 0) / 100;
-    
-    // Il risparmio è la differenza tra debito originario e importo ridotto
-    return sum + Math.max(0, originalTotal - quaterTotal);
+  const norm = rows.map(normalizeRow).filter((r) => r.isQuater);
+
+  const quaterSaving = norm.reduce((sum, r) => {
+    const diff = Math.max(0, (r.originalTotalDue || 0) - (r.quaterTotalDue || 0));
+    return add(sum, diff);
   }, 0);
 
-  return {
-    quaterSaving,
-  };
-}
-
-/**
- * Calcola tutti i KPI in una volta
- */
-export function calcAllKpis(rows: RateationRow[]) {
-  return {
-    ...calcGrossKpis(rows),
-    ...calcEffectiveKpis(rows),
-    ...calcQuaterSaving(rows),
-  };
+  return { quaterSaving };
 }
 
 /**
@@ -136,3 +303,11 @@ export const KPI_TOOLTIPS = {
   totalPaidGross: "Importo totale pagato di tutte le rateazioni.",
   overdueGross: "Rate scadute non pagate senza tolleranze.",
 } as const;
+
+/* ---------------------- Consigli d'uso ----------------------
+ * - Passa sempre lo STESSO dataset filtrato (stessi filtri) sia alla Home
+ *   che alla "Vedi Rateazioni" per evitare discrepanze.
+ * - Tutti gli importi in uscita sono in EURO.
+ * - Se in futuro cambi i nomi dei campi, basta aggiornare gli alias in
+ *   `pickMoneyEUR`/`pickDecadenceEUR` senza toccare il resto.
+ * ------------------------------------------------------------ */

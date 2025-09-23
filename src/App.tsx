@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import SupabaseOutageBanner from "@/components/SupabaseOutageBanner";
 import Dashboard from "./pages/Dashboard";
+import HomePage from "./pages/HomePage";
+import RateationsGross from "./pages/RateationsGross";
 import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
@@ -40,7 +42,17 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/rateazioni-complete" element={
+              <ProtectedRoute>
+                <RateationsGross />
               </ProtectedRoute>
             } />
             <Route path="/rateazioni" element={
