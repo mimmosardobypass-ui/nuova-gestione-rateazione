@@ -1,14 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { calcQuaterSavingFromLinks } from "@/utils/stats-utils";
-
-type RowLite = {
-  id: string;
-  is_quater: boolean;
-  rq_target_ids: string[] | null;
-  residual_amount_cents: number | null;
-  quater_total_due_cents: number | null;
-};
 
 export function useQuaterSaving() {
   const [saving, setSaving] = useState(0);
@@ -35,54 +26,15 @@ export function useQuaterSaving() {
           return; 
         }
 
-        // prendiamo TUTTE le rateazioni dell'utente con i campi necessari
         const { data, error: qErr } = await supabase
-          .from("rateations")
-          .select("id, is_quater, residual_amount_cents, quater_total_due_cents")
-          .eq("owner_uid", session.user.id);
+          .from("v_quater_saving_per_user")
+          .select("saving_eur")
+          .eq("owner_uid", session.user.id)
+          .single();
 
-        if (qErr) throw qErr;
-
-        // otteniamo i collegamenti RQ -> PagoPA
-        const { data: links, error: linksErr } = await supabase
-          .from("riam_quater_links")
-          .select("riam_quater_id, pagopa_id");
-
-        if (linksErr) throw linksErr;
-
-        // mappa rq_id -> array di pagopa_ids
-        const rqToTargets = new Map<string, string[]>();
-        (links ?? []).forEach(link => {
-          const rqId = String(link.riam_quater_id);
-          const pagopaId = String(link.pagopa_id);
-          if (!rqToTargets.has(rqId)) {
-            rqToTargets.set(rqId, []);
-          }
-          rqToTargets.get(rqId)?.push(pagopaId);
-        });
-
-        // mappiamo nel formato atteso dalla funzione
-        const rows = (data ?? []).map((r: any) => ({
-          id: String(r.id),
-          is_quater: !!r.is_quater,
-          rq_target_ids: rqToTargets.get(String(r.id)) ?? [],
-          residuo: (r.residual_amount_cents ?? 0) / 100,          // euro
-          quater_total_due_cents: r.quater_total_due_cents ?? 0,  // cents
-          quater_total_due: (r.quater_total_due_cents ?? 0) / 100 // euro
-        })) as any[];
-
-        const { quaterSaving } = calcQuaterSavingFromLinks(rows);
-
-        console.debug('[useQuaterSaving] Debug info:', {
-          totalRows: rows.length,
-          quaterRows: rows.filter(r => r.is_quater).length,
-          linksCount: (links ?? []).length,
-          quaterSaving,
-          sampleRQ: rows.find(r => r.is_quater),
-          sampleTargets: rqToTargets.size > 0 ? Array.from(rqToTargets.entries())[0] : null
-        });
-
-        if (!cancelled) setSaving(quaterSaving);
+        if (qErr && qErr.code !== "PGRST116") throw qErr; // "no rows found" is OK
+        
+        if (!cancelled) setSaving(Number(data?.saving_eur ?? 0));
       } catch (e: any) {
         console.error('[useQuaterSaving] Error:', e);
         if (!cancelled) { 

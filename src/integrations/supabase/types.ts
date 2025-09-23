@@ -1257,6 +1257,13 @@ export type Database = {
         }
         Relationships: []
       }
+      v_quater_saving_per_user: {
+        Row: {
+          owner_uid: string | null
+          saving_eur: number | null
+        }
+        Relationships: []
+      }
       v_rateation_installments: {
         Row: {
           amount: number | null
