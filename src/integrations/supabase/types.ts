@@ -532,6 +532,7 @@ export type Database = {
           notes: string | null
           number: string
           overdue_amount_cents: number | null
+          overdue_at_interruption_cents: number | null
           owner_uid: string
           paid_amount_cents: number | null
           replaced_by_rateation_id: number | null
@@ -562,6 +563,7 @@ export type Database = {
           notes?: string | null
           number: string
           overdue_amount_cents?: number | null
+          overdue_at_interruption_cents?: number | null
           owner_uid: string
           paid_amount_cents?: number | null
           replaced_by_rateation_id?: number | null
@@ -592,6 +594,7 @@ export type Database = {
           notes?: string | null
           number?: string
           overdue_amount_cents?: number | null
+          overdue_at_interruption_cents?: number | null
           owner_uid?: string
           paid_amount_cents?: number | null
           replaced_by_rateation_id?: number | null
@@ -1179,6 +1182,12 @@ export type Database = {
         }
         Relationships: []
       }
+      v_kpi_rateations_overdue_effective: {
+        Row: {
+          effective_overdue_amount_cents: number | null
+        }
+        Relationships: []
+      }
       v_monthly_metrics: {
         Row: {
           due_amount: number | null
@@ -1466,6 +1475,8 @@ export type Database = {
           migrated_debt_numbers: string[] | null
           number: string | null
           overdue_amount_cents: number | null
+          overdue_at_interruption_cents: number | null
+          overdue_effective_cents: number | null
           owner_uid: string | null
           paid_amount_cents: number | null
           rate_in_ritardo: number | null
