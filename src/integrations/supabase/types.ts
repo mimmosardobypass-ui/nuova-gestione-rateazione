@@ -529,12 +529,15 @@ export type Database = {
           interrupted_by_rateation_id: number | null
           interruption_reason: string | null
           is_f24: boolean
+          is_quater: boolean | null
           notes: string | null
           number: string
+          original_total_due_cents: number | null
           overdue_amount_cents: number | null
           overdue_at_interruption_cents: number | null
           owner_uid: string
           paid_amount_cents: number | null
+          quater_total_due_cents: number | null
           replaced_by_rateation_id: number | null
           residual_amount_cents: number | null
           residual_at_decadence: number
@@ -560,12 +563,15 @@ export type Database = {
           interrupted_by_rateation_id?: number | null
           interruption_reason?: string | null
           is_f24?: boolean
+          is_quater?: boolean | null
           notes?: string | null
           number: string
+          original_total_due_cents?: number | null
           overdue_amount_cents?: number | null
           overdue_at_interruption_cents?: number | null
           owner_uid: string
           paid_amount_cents?: number | null
+          quater_total_due_cents?: number | null
           replaced_by_rateation_id?: number | null
           residual_amount_cents?: number | null
           residual_at_decadence?: number
@@ -591,12 +597,15 @@ export type Database = {
           interrupted_by_rateation_id?: number | null
           interruption_reason?: string | null
           is_f24?: boolean
+          is_quater?: boolean | null
           notes?: string | null
           number?: string
+          original_total_due_cents?: number | null
           overdue_amount_cents?: number | null
           overdue_at_interruption_cents?: number | null
           owner_uid?: string
           paid_amount_cents?: number | null
+          quater_total_due_cents?: number | null
           replaced_by_rateation_id?: number | null
           residual_amount_cents?: number | null
           residual_at_decadence?: number
