@@ -123,60 +123,122 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         throw rateationsError;
       }
 
-      // Helper function to convert cents to euros
-      const centsToEuro = (v?: number) => Math.max(0, (v ?? 0)) / 100;
-      
-      // Map view results to UI types
-      const finalRows: RateationRow[] = (rateations || []).map(r => ({
-        id: String(r.id),
-        numero: r.number || "",
-        tipo: r.tipo || "N/A",
-        contribuente: r.taxpayer_name || "",
-        
-        // Amounts in euros for compatibility with stats-utils
-        importoTotale: centsToEuro(r.total_amount_cents),
-        importoPagato: centsToEuro(r.paid_amount_cents),
-        importoRitardo: centsToEuro(r.overdue_amount_cents),
-        residuo: centsToEuro(r.residual_amount_cents),
-        residuoEffettivo: centsToEuro(r.residual_effective_cents),
-        
-        // Basic counts
-        rateTotali: r.rate_totali || 0,
-        ratePagate: r.rate_pagate || 0,
-        rateNonPagate: (r.rate_totali || 0) - (r.rate_pagate || 0),
-        rateInRitardo: r.unpaid_overdue_today || 0,
-        ratePaidLate: 0,
-        
-        // Metadata
-        status: r.status || 'attiva',
-        created_at: r.created_at,
-        updated_at: r.updated_at,
-        is_f24: Boolean(r.is_f24),
-        type_id: Number(r.type_id),
-        type_name: r.tipo || 'N/A',
-        
-        // Quater fields (mapped from database)
-        is_quater: Boolean(r.is_quater),
-        original_total_due_cents: r.original_total_due_cents || 0,
-        quater_total_due_cents: r.quater_total_due_cents || 0,
-        
-        // PagoPA fields
-        is_pagopa: !!r.is_pagopa,
-        unpaid_overdue_today: r.unpaid_overdue_today || 0,
-        unpaid_due_today: r.unpaid_due_today || 0,
-        max_skips_effective: r.max_skips_effective ?? 8,
-        skip_remaining: r.skip_remaining ?? 8,
-        at_risk_decadence: !!r.at_risk_decadence,
-        
-        // Migration fields
-        debts_total: r.debts_total || 0,
-        debts_migrated: r.debts_migrated || 0,
-        migrated_debt_numbers: r.migrated_debt_numbers || [],
-        remaining_debt_numbers: r.remaining_debt_numbers || [],
-        rq_target_ids: r.rq_target_ids || [],
-        rq_migration_status: r.rq_migration_status || 'none',
-        excluded_from_stats: !!r.excluded_from_stats,
-      }));
+      // helper sicuri
+      const toNum = (v: any): number => {
+        if (v === null || v === undefined) return 0;
+        if (typeof v === "string" && v.trim() === "") return 0;
+        const n = typeof v === "string" ? Number(v) : v;
+        return Number.isFinite(n) ? n : 0;
+      };
+      const firstDefined = (...vals: any[]) =>
+        vals.find((x) => x !== null && x !== undefined);
+
+      // converte CENTS (number | string | null) -> EURO (number)
+      const centsToEuroSafe = (v: any) => toNum(v) / 100;
+
+      const finalRows: RateationRow[] = (rateations || []).map((r: any) => {
+        // prendi il TOTALE dovuto in cents (con fallback)
+        const totalC =
+          toNum(
+            firstDefined(
+              r.total_amount_cents,
+              r.total_due_cents,
+              r.dovuto_cents
+            )
+          );
+
+        // prendi il PAGATO in cents (fallback su vari nomi)
+        let paidC =
+          toNum(
+            firstDefined(
+              r.paid_amount_cents,
+              r.total_paid_cents,
+              r.paid_cents,
+              r.paid_effective_cents
+            )
+          );
+
+        // prendi il RESIDUO in cents (fallback su lordo/effettivo)
+        let residC =
+          toNum(
+            firstDefined(
+              r.residual_amount_cents,
+              r.residual_gross_cents,
+              r.residual_effective_cents
+            )
+          );
+
+        // se il residuo manca ma ho total e paid, derivarlo
+        if (!residC && totalC && paidC) residC = Math.max(0, totalC - paidC);
+
+        // prendi IN RITARDO in cents (fallback su lordo/effettivo/oggi)
+        const overdueC =
+          toNum(
+            firstDefined(
+              r.overdue_amount_cents,
+              r.overdue_gross_cents,
+              r.overdue_effective_cents,
+              r.unpaid_overdue_amount_cents
+            )
+          );
+
+        return {
+          id: String(r.id),
+          numero: r.number || r.numero || "",
+          tipo: r.tipo || "N/A",
+          contribuente: r.taxpayer_name || r.contribuente || "",
+
+          // EURO già pronti per la UI
+          importoTotale: totalC / 100,
+          importoPagato: paidC / 100,
+          importoRitardo: overdueC / 100,
+          residuo: residC / 100,
+          residuoEffettivo: centsToEuroSafe(
+            firstDefined(r.residual_effective_cents, residC)
+          ),
+
+          // contatori
+          rateTotali: toNum(firstDefined(r.rate_totali, r.installments_total, 0)),
+          ratePagate: toNum(firstDefined(r.rate_pagate, r.installments_paid, 0)),
+          rateNonPagate:
+            toNum(firstDefined(r.rate_totali, r.installments_total, 0)) -
+            toNum(firstDefined(r.rate_pagate, r.installments_paid, 0)),
+          rateInRitardo: toNum(
+            firstDefined(r.unpaid_overdue_today, r.installments_overdue, 0)
+          ),
+          ratePaidLate: 0,
+
+          // stato e metadati
+          status: r.status || "attiva",
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+          is_f24: Boolean(r.is_f24),
+          type_id: toNum(r.type_id),
+          type_name: r.tipo || "N/A",
+
+          // campi Quater (se presenti)
+          is_quater: !!r.is_quater,
+          original_total_due_cents: toNum(r.original_total_due_cents),
+          quater_total_due_cents: toNum(r.quater_total_due_cents),
+
+          // PagoPA misc (se presenti)
+          is_pagopa: !!r.is_pagopa,
+          unpaid_overdue_today: toNum(r.unpaid_overdue_today),
+          unpaid_due_today: toNum(r.unpaid_due_today),
+          max_skips_effective: r.max_skips_effective ?? 8,
+          skip_remaining: r.skip_remaining ?? 8,
+          at_risk_decadence: !!r.at_risk_decadence,
+
+          // migration & flags
+          debts_total: toNum(r.debts_total),
+          debts_migrated: toNum(r.debts_migrated),
+          migrated_debt_numbers: r.migrated_debt_numbers || [],
+          remaining_debt_numbers: r.remaining_debt_numbers || [],
+          rq_target_ids: r.rq_target_ids || [],
+          rq_migration_status: r.rq_migration_status || "none",
+          excluded_from_stats: !!r.excluded_from_stats,
+        } as RateationRow;
+      });
       
       setRows(finalRows);
       saveToCache(finalRows, userId);
