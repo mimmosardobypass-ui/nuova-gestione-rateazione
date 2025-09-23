@@ -11,6 +11,8 @@ import { ArrowRight, Package, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, fetchRQRateations, migrateDebtsToRQ } from '../api/debts';
+import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
+import { markPagopaInterrupted } from '../api/rateations';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -26,11 +28,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeDebts, setActiveDebts] = useState<(RateationDebt & { debt: Debt })[]>([]);
+  const [migrablePagoPA, setMigrablePagoPA] = useState<MigrablePagopa[]>([]);
   const [rqRateations, setRqRateations] = useState<Array<{ id: string; number: string; taxpayer_name: string | null }>>([]);
   const [selectedDebtIds, setSelectedDebtIds] = useState<string[]>([]);
+  const [selectedPagopaIds, setSelectedPagopaIds] = useState<string[]>([]);
   const [targetRateationId, setTargetRateationId] = useState<string>('');
   const [note, setNote] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
 
   const { toast } = useToast();
 
@@ -41,16 +46,42 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
   }, [open, rateation.id]);
 
+  // Determine migration mode based on rateation type and target
+  useEffect(() => {
+    if (rateation.is_pagopa) {
+      setMigrationMode('pagopa');
+    } else {
+      setMigrationMode('debts');
+    }
+  }, [rateation.is_pagopa]);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [debtsData, rqData] = await Promise.all([
-        fetchActiveDebtsForRateation(rateation.id),
-        fetchRQRateations()
-      ]);
-      
-      setActiveDebts(debtsData);
-      setRqRateations(rqData);
+      if (migrationMode === 'pagopa') {
+        // Load migratable PagoPA for PagoPA → RQ migration
+        const [pagopaData, rqData] = await Promise.all([
+          getMigrablePagopaForRateation(rateation.id),
+          fetchRQRateations()
+        ]);
+        
+        setMigrablePagoPA(pagopaData);
+        setRqRateations(rqData);
+        
+        // Auto-select the current PagoPA if it's migratable
+        if (pagopaData.length > 0) {
+          setSelectedPagopaIds([pagopaData[0].id]);
+        }
+      } else {
+        // Load debts for normal debt migration
+        const [debtsData, rqData] = await Promise.all([
+          fetchActiveDebtsForRateation(rateation.id),
+          fetchRQRateations()
+        ]);
+        
+        setActiveDebts(debtsData);
+        setRqRateations(rqData);
+      }
     } catch (error) {
       console.error('Error loading migration data:', error);
       toast({
@@ -71,68 +102,133 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     );
   };
 
+  const handlePagopaSelection = (pagopaId: string, checked: boolean) => {
+    setSelectedPagopaIds(prev => 
+      checked 
+        ? [...prev, pagopaId]
+        : prev.filter(id => id !== pagopaId)
+    );
+  };
+
   const handleSelectAll = (checked: boolean) => {
-    setSelectedDebtIds(checked ? activeDebts.map(d => d.debt_id) : []);
+    if (migrationMode === 'pagopa') {
+      setSelectedPagopaIds(checked ? migrablePagoPA.map(p => p.id) : []);
+    } else {
+      setSelectedDebtIds(checked ? activeDebts.map(d => d.debt_id) : []);
+    }
   };
 
   const handleMigration = async () => {
-    if (selectedDebtIds.length === 0) {
-      toast({
-        title: "Errore",
-        description: "Seleziona almeno una cartella da migrare",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (migrationMode === 'pagopa') {
+      // PagoPA → RQ migration
+      if (selectedPagopaIds.length === 0) {
+        toast({
+          title: "Errore",
+          description: "Seleziona almeno una cartella PagoPA da migrare",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (!targetRateationId) {
-      toast({
-        title: "Errore", 
-        description: "Seleziona una rateazione di destinazione",
-        variant: "destructive"
-      });
-      return;
-    }
+      if (!targetRateationId) {
+        toast({
+          title: "Errore", 
+          description: "Seleziona una rateazione RQ di destinazione",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    setProcessing(true);
-    try {
-      await migrateDebtsToRQ({
-        sourceRateationId: rateation.id,
-        debtIds: selectedDebtIds,
-        targetRateationId: targetRateationId,
-        note: note.trim() || undefined
-      });
+      setProcessing(true);
+      try {
+        // Use markPagopaInterrupted for each selected PagoPA
+        await Promise.all(
+          selectedPagopaIds.map(pagopaId => 
+            markPagopaInterrupted(pagopaId, targetRateationId, note.trim() || undefined)
+          )
+        );
 
-      toast({
-        title: "Successo",
-        description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${targetRateationId.slice(-6)}`,
-        duration: 5000
-      });
+        toast({
+          title: "Successo",
+          description: `Migrate ${selectedPagopaIds.length} cartelle PagoPA verso la RQ ${targetRateationId.slice(-6)}`,
+          duration: 5000
+        });
 
-      setOpen(false);
-      onMigrationComplete?.();
-      
-      // Reset form
-      setSelectedDebtIds([]);
-      setTargetRateationId('');
-      setNote('');
-    } catch (error) {
-      console.error('Migration error:', error);
-      const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle";
-      toast({
-        title: "Errore",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 8000
-      });
-    } finally {
-      setProcessing(false);
+        setOpen(false);
+        onMigrationComplete?.();
+        
+        // Reset form
+        setSelectedPagopaIds([]);
+        setTargetRateationId('');
+        setNote('');
+      } catch (error) {
+        console.error('PagoPA migration error:', error);
+        const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle PagoPA";
+        toast({
+          title: "Errore",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 8000
+        });
+      } finally {
+        setProcessing(false);
+      }
+    } else {
+      // Normal debt migration
+      if (selectedDebtIds.length === 0) {
+        toast({
+          title: "Errore",
+          description: "Seleziona almeno una cartella da migrare",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!targetRateationId) {
+        toast({
+          title: "Errore", 
+          description: "Seleziona una rateazione di destinazione",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setProcessing(true);
+      try {
+        await migrateDebtsToRQ({
+          sourceRateationId: rateation.id,
+          debtIds: selectedDebtIds,
+          targetRateationId: targetRateationId,
+          note: note.trim() || undefined
+        });
+
+        toast({
+          title: "Successo",
+          description: `Migrate ${selectedDebtIds.length} cartelle verso il piano RQ ${targetRateationId.slice(-6)}`,
+          duration: 5000
+        });
+
+        setOpen(false);
+        onMigrationComplete?.();
+        
+        // Reset form
+        setSelectedDebtIds([]);
+        setTargetRateationId('');
+        setNote('');
+      } catch (error) {
+        console.error('Migration error:', error);
+        const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle";
+        toast({
+          title: "Errore",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 8000
+        });
+      } finally {
+        setProcessing(false);
+      }
     }
   };
-
-  if (!rateation.is_pagopa) {
-    return null;
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -179,43 +275,94 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
               </Card>
             )}
 
-            {/* Active Debts Selection */}
+            {/* Active Debts/PagoPA Selection */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm flex items-center justify-between">
-                  Cartelle Disponibili per Migrazione
+                  {migrationMode === 'pagopa' ? 'Cartelle PagoPA Disponibili per Migrazione' : 'Cartelle Disponibili per Migrazione'}
                   <Checkbox
-                    checked={selectedDebtIds.length === activeDebts.length && activeDebts.length > 0}
+                    checked={
+                      migrationMode === 'pagopa' 
+                        ? selectedPagopaIds.length === migrablePagoPA.length && migrablePagoPA.length > 0
+                        : selectedDebtIds.length === activeDebts.length && activeDebts.length > 0
+                    }
                     onCheckedChange={handleSelectAll}
-                    disabled={activeDebts.length === 0}
+                    disabled={migrationMode === 'pagopa' ? migrablePagoPA.length === 0 : activeDebts.length === 0}
                   />
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {activeDebts.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nessuna cartella disponibile per la migrazione</p>
-                 ) : (
-                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                     {activeDebts.map((item) => (
-                       <div key={item.debt_id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
-                         <Checkbox
-                           checked={selectedDebtIds.includes(item.debt_id)}
-                           onCheckedChange={(checked) => handleDebtSelection(item.debt_id, checked as boolean)}
-                         />
-                         <div className="flex-1 min-w-0">
-                           <div className="font-medium text-sm truncate">{item.debt.number}</div>
-                           {item.debt.description && (
-                             <div className="text-xs text-muted-foreground truncate">{item.debt.description}</div>
-                           )}
-                         </div>
-                         {item.debt.original_amount_cents && (
-                           <div className="text-sm text-right flex-shrink-0">
-                             €{(item.debt.original_amount_cents / 100).toFixed(2)}
-                           </div>
-                         )}
-                       </div>
-                     ))}
-                  </div>
+                {migrationMode === 'pagopa' ? (
+                  // PagoPA Selection UI
+                  migrablePagoPA.length === 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-sm">Nessuna cartella PagoPA migrabile.</p>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p><strong>Possibili motivi:</strong></p>
+                        <ul className="list-disc list-inside space-y-1 ml-2">
+                          <li>La PagoPA è già collegata a una RQ</li>
+                          <li>La PagoPA è già INTERROTTA</li>
+                          <li>La PagoPA è già collegata a un'altra rateazione</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="text-sm text-muted-foreground mb-2">
+                        <strong>Cartella corrente:</strong> {rateation.numero} - {rateation.taxpayer_name}
+                      </div>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {migrablePagoPA.map((pagopa) => (
+                          <div key={pagopa.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
+                            <Checkbox
+                              checked={selectedPagopaIds.includes(pagopa.id)}
+                              onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">
+                                {pagopa.number} - {pagopa.taxpayer_name}
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  {pagopa.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            {pagopa.total_amount && (
+                              <div className="text-sm text-right flex-shrink-0">
+                                €{pagopa.total_amount.toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  // Normal Debts Selection UI
+                  activeDebts.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">Nessuna cartella disponibile per la migrazione</p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {activeDebts.map((item) => (
+                        <div key={item.debt_id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            checked={selectedDebtIds.includes(item.debt_id)}
+                            onCheckedChange={(checked) => handleDebtSelection(item.debt_id, checked as boolean)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{item.debt.number}</div>
+                            {item.debt.description && (
+                              <div className="text-xs text-muted-foreground truncate">{item.debt.description}</div>
+                            )}
+                          </div>
+                          {item.debt.original_amount_cents && (
+                            <div className="text-sm text-right flex-shrink-0">
+                              €{(item.debt.original_amount_cents / 100).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
                 )}
               </CardContent>
             </Card>
@@ -225,12 +372,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Rateazione di Destinazione
+                  {migrationMode === 'pagopa' ? 'Rateazione RQ di Destinazione' : 'Rateazione di Destinazione'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="target-rateation">Seleziona Piano RQ</Label>
+                  <Label htmlFor="target-rateation">
+                    {migrationMode === 'pagopa' ? 'Seleziona Piano RQ per la Migrazione' : 'Seleziona Piano RQ'}
+                  </Label>
                   <Select value={targetRateationId} onValueChange={setTargetRateationId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Scegli una rateazione RQ..." />
@@ -243,13 +392,21 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
+                  {!targetRateationId && (migrationMode === 'pagopa' ? selectedPagopaIds.length > 0 : selectedDebtIds.length > 0) && (
+                    <p className="text-sm text-destructive mt-1">
+                      Seleziona la Riam.Quater per confermare la migrazione
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <Label htmlFor="migration-note">Note (opzionale)</Label>
                   <Textarea
                     id="migration-note"
-                    placeholder="Aggiungi note sulla migrazione..."
+                    placeholder={migrationMode === 'pagopa' ? 
+                      "Aggiungi note sulla migrazione PagoPA..." : 
+                      "Aggiungi note sulla migrazione..."
+                    }
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     rows={3}
@@ -265,7 +422,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
               </Button>
               <Button 
                 onClick={handleMigration}
-                disabled={selectedDebtIds.length === 0 || !targetRateationId || processing}
+                disabled={
+                  (migrationMode === 'pagopa' 
+                    ? selectedPagopaIds.length === 0 
+                    : selectedDebtIds.length === 0
+                  ) || !targetRateationId || processing
+                }
                 className="flex items-center gap-2"
               >
                 {processing ? (
@@ -273,7 +435,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                 ) : (
                   <ArrowRight className="h-4 w-4" />
                 )}
-                Migra {selectedDebtIds.length} Cartelle
+                {migrationMode === 'pagopa' 
+                  ? `Migra ${selectedPagopaIds.length} Cartella${selectedPagopaIds.length !== 1 ? 'e' : ''} PagoPA`
+                  : `Migra ${selectedDebtIds.length} Cartelle`
+                }
               </Button>
             </div>
           </div>
