@@ -154,7 +154,18 @@ export function RateationsTablePro({
                     <TableCell className={`text-right ${r.importoRitardo > 0 ? "text-destructive font-medium" : ""}`}>
                       {formatEuro(r.importoRitardo)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">{formatEuro(r.residuo)}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        {formatEuro(r.residuo)}
+                        {r.interrupted_by_rateation_id && (
+                          <InterruptionBadge 
+                            rateation={r as any}
+                            onClick={() => r.interrupted_by_rateation_id && navigateToRateation(r.interrupted_by_rateation_id)}
+                            className="ml-1"
+                          />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center">{r.rateTotali}</TableCell>
                     <TableCell className="text-center text-green-600">{r.ratePagate}</TableCell>
                     <TableCell className="text-center">{r.rateNonPagate}</TableCell>

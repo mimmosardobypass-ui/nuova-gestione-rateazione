@@ -1170,6 +1170,12 @@ export type Database = {
         }
         Relationships: []
       }
+      v_kpi_rateations_effective: {
+        Row: {
+          effective_residual_amount_cents: number | null
+        }
+        Relationships: []
+      }
       v_monthly_metrics: {
         Row: {
           due_amount: number | null
@@ -1449,6 +1455,7 @@ export type Database = {
           due_today_cents: number | null
           excluded_from_stats: boolean | null
           id: number | null
+          interrupted_by_rateation_id: number | null
           is_f24: boolean | null
           is_pagopa: boolean | null
           max_skips_effective: number | null
@@ -1462,6 +1469,7 @@ export type Database = {
           rate_totali: number | null
           remaining_debt_numbers: string[] | null
           residual_amount_cents: number | null
+          residual_effective_cents: number | null
           rq_migration_status: string | null
           rq_target_ids: number[] | null
           skip_remaining: number | null
@@ -1476,6 +1484,69 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_contribuenti_aggregati"
+            referencedColumns: ["riam_quater_id"]
+          },
           {
             foreignKeyName: "rateations_type_id_fkey"
             columns: ["type_id"]
