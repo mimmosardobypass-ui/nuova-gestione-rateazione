@@ -46,7 +46,7 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
             Collegamenti Riam.Quater
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent role="status" aria-live="polite">
           <div className="space-y-4">
             {[1, 2].map((i) => (
               <div key={i} className="space-y-2">
@@ -94,25 +94,50 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
     );
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("it-IT", {
-      day: "numeric",
-      month: "short",
-      year: "numeric"
-    });
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "—";
+    try {
+      return new Date(dateStr).toLocaleDateString("it-IT", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    } catch {
+      return "—";
+    }
   };
 
   const rqLabel = (number: string | null, id: string) => {
-    return number || `RQ ${id.slice(-6)}`;
+    if (number) return number;
+    const idStr = (id ?? '').toString();
+    return idStr.length >= 6 ? `RQ ${idStr.slice(-6)}` : `RQ ${idStr || '—'}`;
   };
+
+  // Calculate total estimated savings
+  const totalSavings = rows.reduce((sum, row) => sum + (row.risparmio_at_link_cents || 0), 0);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ExternalLink className="h-5 w-5" />
-          Collegamenti Riam.Quater
-        </CardTitle>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 mb-2">
+              <ExternalLink className="h-5 w-5" />
+              Collegamenti Riam.Quater
+            </CardTitle>
+            {totalSavings > 0 && (
+              <div className="flex items-center gap-4 text-sm">
+                <Badge variant="outline" className="font-medium">
+                  {rows.length} {rows.length === 1 ? 'collegamento' : 'collegamenti'}
+                </Badge>
+                <div className="flex items-center gap-1 text-green-600 font-semibold">
+                  <Euro className="h-4 w-4" />
+                  <span>Risparmio totale: {formatEuro(totalSavings / 100)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -138,6 +163,7 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
                     size="sm"
                     onClick={() => onGoToRQ(row.riam_quater_id)}
                     className="flex items-center gap-1"
+                    aria-label={`Apri ${rqLabel(row.rq_number, row.riam_quater_id)}`}
                   >
                     <ExternalLink className="h-3 w-3" />
                     Apri RQ
