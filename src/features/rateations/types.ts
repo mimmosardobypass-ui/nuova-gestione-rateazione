@@ -21,8 +21,8 @@ export interface RateationRow {
   importoTotale: number;
   importoPagato: number;
   importoRitardo: number;
-  residuo: number;                // residuo tecnico/storico (sempre mostrato)
-  residualEffective?: number;     // residuo effettivo (per KPI homepage)
+  residuo: number;                // residuo tecnico/storico (sempre mostrato nella riga)
+  residuoEffettivo: number;       // residuo effettivo (per KPI homepage, esclude interrotte)
   rateTotali: number;
   ratePagate: number;
   rateNonPagate: number;

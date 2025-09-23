@@ -24,6 +24,7 @@ export type RateationRowPro = {
   importoPagato: number;
   importoRitardo: number;
   residuo: number;
+  residuoEffettivo: number;
   rateTotali: number;
   ratePagate: number;
   rateNonPagate: number;

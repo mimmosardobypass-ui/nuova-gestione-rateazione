@@ -230,7 +230,7 @@ export const useRateations = (): UseRateationsReturn => {
         importoPagato: centsToEuro(r.paid_amount_cents),
         importoRitardo: centsToEuro(r.overdue_amount_cents),
         residuo: centsToEuro(r.residual_amount_cents),        // residuo tecnico/storico
-        residualEffective: centsToEuro(r.residual_effective_cents), // residuo effettivo
+        residuoEffettivo: centsToEuro(r.residual_effective_cents), // residuo effettivo
         
         // Basic counts
         rateTotali: r.rate_totali || 0,

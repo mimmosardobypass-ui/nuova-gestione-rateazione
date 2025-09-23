@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client-resilient";
 
 /**
  * Totale residuo EFFETTIVO in euro (esclude PagoPA interrotte).
- * Legge la vista v_kpi_rateations_effective per il calcolo homepage.
+ * Legge la vista v_kpi_rateations_effective che ritorna sempre 1 riga.
  */
 export async function fetchResidualEuro(signal?: AbortSignal): Promise<number> {
   if (!supabase) {
@@ -13,7 +13,7 @@ export async function fetchResidualEuro(signal?: AbortSignal): Promise<number> {
     .from("v_kpi_rateations_effective")
     .select("effective_residual_amount_cents")
     .abortSignal(signal)
-    .single();
+    .single();                // <-- single: la vista aggregata DEVE dare 1 riga
 
   if (error) {
     throw new Error(`fetchResidualEuro: ${error.message}`);

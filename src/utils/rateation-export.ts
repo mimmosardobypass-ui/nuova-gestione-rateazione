@@ -41,6 +41,7 @@ export function totalsForExport(
     importoPagato: headerRow.importo_pagato_quota ?? 0,
     importoRitardo: 0,
     residuo: 0, // Calcolato da computeRateationTotals
+    residuoEffettivo: 0, // Calcolato da computeRateationTotals 
     rateTotali: headerRow.rate_totali ?? 0,
     ratePagate: headerRow.rate_pagate ?? 0,
     rateNonPagate: 0,

@@ -125,6 +125,7 @@ export const useRateations = () => {
           importoPagato: importoPagato,
           importoRitardo: importoRitardo,
           residuo: 0, // Will be calculated by computeRateationTotals
+          residuoEffettivo: 0, // Will be calculated by computeRateationTotals
           rateTotali: its.length,
           ratePagate: ratePagate,
           rateNonPagate: rateNonPagate,
@@ -150,6 +151,7 @@ export const useRateations = () => {
           importoPagato,
           importoRitardo,
           residuo,
+          residuoEffettivo: totals.residual, // For now, use same as residuo (will be properly calculated in actual usage)
           rateTotali,
           ratePagate,
           rateNonPagate,

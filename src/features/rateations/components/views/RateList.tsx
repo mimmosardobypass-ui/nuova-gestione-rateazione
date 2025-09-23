@@ -38,6 +38,7 @@ export function RateList({
       importoRitardo: row.importoRitardo ?? 0,
       rateInRitardo: row.rateInRitardo ?? row.unpaid_overdue_today ?? 0,
       is_pagopa: !!row.is_pagopa,
+      residuoEffettivo: row.residuoEffettivo ?? row.residuo, // Fallback to residuo if not set
       // Migration fields with defaults
       debts_total: row.debts_total ?? 0,
       debts_migrated: row.debts_migrated ?? 0,
