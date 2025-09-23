@@ -1,11 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { calcQuaterSaving } from "@/utils/stats-utils";
+import { calcQuaterSavingFromLinks } from "@/utils/stats-utils";
+
+type RowLite = {
+  id: string;
+  is_quater: boolean;
+  rq_target_ids: string[] | null;
+  residual_amount_cents: number | null;
+  quater_total_due_cents: number | null;
+};
 
 export function useQuaterSaving() {
   const [saving, setSaving] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,29 +35,51 @@ export function useQuaterSaving() {
           return; 
         }
 
+        // prendiamo TUTTE le rateazioni dell'utente con i campi necessari
         const { data, error: qErr } = await supabase
           .from("rateations")
-          .select("is_quater, original_total_due_cents, quater_total_due_cents, number, id")
-          .eq("is_quater", true)
+          .select("id, is_quater, residual_amount_cents, quater_total_due_cents")
           .eq("owner_uid", session.user.id);
 
         if (qErr) throw qErr;
 
-        const rows = (data ?? []).map(r => ({
+        // otteniamo i collegamenti RQ -> PagoPA
+        const { data: links, error: linksErr } = await supabase
+          .from("riam_quater_links")
+          .select("riam_quater_id, pagopa_id");
+
+        if (linksErr) throw linksErr;
+
+        // mappa rq_id -> array di pagopa_ids
+        const rqToTargets = new Map<string, string[]>();
+        (links ?? []).forEach(link => {
+          const rqId = String(link.riam_quater_id);
+          const pagopaId = String(link.pagopa_id);
+          if (!rqToTargets.has(rqId)) {
+            rqToTargets.set(rqId, []);
+          }
+          rqToTargets.get(rqId)?.push(pagopaId);
+        });
+
+        // mappiamo nel formato atteso dalla funzione
+        const rows = (data ?? []).map((r: any) => ({
+          id: String(r.id),
           is_quater: !!r.is_quater,
-          original_total_due_cents: r.original_total_due_cents ?? 0,
-          quater_total_due_cents: r.quater_total_due_cents ?? 0,
-          numero: r.number,
-          id: r.id,
+          rq_target_ids: rqToTargets.get(String(r.id)) ?? [],
+          residuo: (r.residual_amount_cents ?? 0) / 100,          // euro
+          quater_total_due_cents: r.quater_total_due_cents ?? 0,  // cents
+          quater_total_due: (r.quater_total_due_cents ?? 0) / 100 // euro
         })) as any[];
 
-        const { quaterSaving } = calcQuaterSaving(rows);
+        const { quaterSaving } = calcQuaterSavingFromLinks(rows);
 
         console.debug('[useQuaterSaving] Debug info:', {
-          totalQuaterRows: rows.length,
+          totalRows: rows.length,
+          quaterRows: rows.filter(r => r.is_quater).length,
+          linksCount: (links ?? []).length,
           quaterSaving,
-          sample: rows.find(r => r.numero?.includes('36') || r.id === '36'),
-          allRows: rows.slice(0, 3)
+          sampleRQ: rows.find(r => r.is_quater),
+          sampleTargets: rqToTargets.size > 0 ? Array.from(rqToTargets.entries())[0] : null
         });
 
         if (!cancelled) setSaving(quaterSaving);
@@ -64,14 +95,12 @@ export function useQuaterSaving() {
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadTrigger]);
 
   // Listen for reload events
   useEffect(() => {
     const handleReload = () => {
-      setLoading(true);
-      // Trigger re-run of the main effect by changing a dependency
-      window.location.reload();
+      setReloadTrigger(prev => prev + 1);
     };
 
     window.addEventListener('rateations:reload-kpis', handleReload);

@@ -291,6 +291,48 @@ export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
   return { quaterSaving };
 }
 
+/** KPI Rottamazione Quater basato sui collegamenti (stessa logica della pagina dettaglio) */
+export function calcQuaterSavingFromLinks(rows: RateationRow[]): QuaterKpis {
+  // mappa id -> residuo (in euro)
+  const byIdResidualEUR = new Map<string, number>();
+  for (const r of rows) {
+    const id = String((r as any).id ?? (r as any).uuid ?? "");
+    const residualEUR =
+      (typeof (r as any).residual_amount === "number" ? (r as any).residual_amount : 0) ||
+      ((r as any).residuo ?? 0) ||
+      ((r as any).residuoEffettivo ?? 0) ||
+      ((typeof (r as any).residual_amount_cents === "number" ? (r as any).residual_amount_cents : 0) / 100);
+
+    if (id) byIdResidualEUR.set(id, residualEUR || 0);
+  }
+
+  let totalSaving = 0;
+
+  for (const r of rows) {
+    if (!(r as any).is_quater) continue;
+
+    // totale RQ (in €)
+    const rqTotalEUR =
+      ((r as any).quater_total_due ?? 0) ||
+      (typeof (r as any).quater_total_due_cents === "number" ? (r as any).quater_total_due_cents / 100 : 0);
+
+    // ids target (array)
+    const targets: any[] = Array.isArray((r as any).rq_target_ids) ? (r as any).rq_target_ids : [];
+
+    // somma residui target
+    let targetsResidualEUR = 0;
+    for (const tid of targets) {
+      const key = String(tid);
+      targetsResidualEUR += byIdResidualEUR.get(key) ?? 0;
+    }
+
+    const saving = Math.max(0, targetsResidualEUR - rqTotalEUR);
+    totalSaving += saving;
+  }
+
+  return { quaterSaving: totalSaving };
+}
+
 /**
  * Formattazione tooltip per KPI
  */
@@ -299,7 +341,7 @@ export const KPI_TOOLTIPS = {
   overdueEffective: "Rate scadute non pagate dopo tolleranza e regole di skip.",
   decadutoNet: "Importo residuo delle pratiche decadute da trasferire.",
   commitmentsTotal: "Somma di Residuo effettivo e Saldo decaduto.",
-  quaterSaving: "Differenza tra debito originario e importo ridotto con Rottamazione Quater.",
+  quaterSaving: "Risparmio stimato dai collegamenti tra pratiche Rottamazione Quater e PagoPA originarie.",
   residualGross: "Dovuto meno pagato, include anche pratiche decadute.",
   totalDueGross: "Importo totale dovuto di tutte le rateazioni.",
   totalPaidGross: "Importo totale pagato di tutte le rateazioni.",
