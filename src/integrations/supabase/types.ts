@@ -1473,6 +1473,7 @@ export type Database = {
           rate_totali: number | null
           remaining_debt_numbers: string[] | null
           residual_amount_cents: number | null
+          residual_at_interruption_cents: number | null
           residual_effective_cents: number | null
           rq_migration_status: string | null
           rq_target_ids: number[] | null
