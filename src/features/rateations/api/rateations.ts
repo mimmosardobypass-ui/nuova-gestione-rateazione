@@ -165,13 +165,13 @@ export const markPagopaInterrupted = async (
   const { error: linkError } = await supabase
     .from('riam_quater_links')
     .upsert(
-      { 
+      {
         riam_quater_id: riamQuaterId, 
         pagopa_id: pagopaId,
         reason: reason || `Migrazione automatica del ${todayIso}`,
         pagopa_residual_at_link_cents: residuoCents,
-        rq_total_at_link_cents: totaleRQCents,
-        risparmio_at_link_cents: risparmioCents
+        rq_total_at_link_cents: totaleRQCents
+        // risparmio_at_link_cents è ora una GENERATED COLUMN automatica
       },
       { 
         onConflict: 'riam_quater_id,pagopa_id' 
