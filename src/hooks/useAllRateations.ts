@@ -123,64 +123,94 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         throw rateationsError;
       }
 
-      // helper sicuri
+      // Helpers robusti
       const toNum = (v: any): number => {
         if (v === null || v === undefined) return 0;
         if (typeof v === "string" && v.trim() === "") return 0;
         const n = typeof v === "string" ? Number(v) : v;
         return Number.isFinite(n) ? n : 0;
       };
-      const firstDefined = (...vals: any[]) =>
-        vals.find((x) => x !== null && x !== undefined);
 
-      // converte CENTS (number | string | null) -> EURO (number)
-      const centsToEuroSafe = (v: any) => toNum(v) / 100;
+      type Unit = "cents" | "euro";
+      type Candidate = { key: string; unit: Unit };
+
+      /** Prende il primo campo esistente tra i candidati e lo restituisce in EURO */
+      const pickMoneyEUR = (row: any, candidates: Candidate[]): number => {
+        for (const c of candidates) {
+          const raw = row[c.key];
+          if (raw !== null && raw !== undefined) {
+            const n = toNum(raw);
+            if (!n) continue;
+            return c.unit === "cents" ? n / 100 : n; // ← conversione sicura
+          }
+        }
+        return 0;
+      };
+
+      /** Comodità: prende tanti possibili alias "cents" e "euro" */
+      const moneyPicker = (row: any, cents: string[], euros: string[]) =>
+        pickMoneyEUR(
+          row,
+          [
+            ...cents.map((k) => ({ key: k, unit: "cents" as const })),
+            ...euros.map((k) => ({ key: k, unit: "euro" as const })),
+          ]
+        );
 
       const finalRows: RateationRow[] = (rateations || []).map((r: any) => {
-        // prendi il TOTALE dovuto in cents (con fallback)
-        const totalC =
-          toNum(
-            firstDefined(
-              r.total_amount_cents,
-              r.total_due_cents,
-              r.dovuto_cents
-            )
-          );
+        // 1) Totale (preferisci qualsiasi campo disponibile)
+        const totalEUR = moneyPicker(
+          r,
+          // cents
+          ["total_amount_cents", "total_due_cents", "dovuto_cents"],
+          // euro
+          ["total_amount", "total_due", "dovuto", "importo_totale"]
+        );
 
-        // prendi il PAGATO in cents (fallback su vari nomi)
-        let paidC =
-          toNum(
-            firstDefined(
-              r.paid_amount_cents,
-              r.total_paid_cents,
-              r.paid_cents,
-              r.paid_effective_cents
-            )
-          );
+        // 2) Pagato (fallback + derivazione se manca)
+        let paidEUR = moneyPicker(
+          r,
+          // cents
+          ["paid_amount_cents", "total_paid_cents", "paid_cents", "paid_effective_cents"],
+          // euro
+          ["paid_amount", "total_paid", "paid_effective", "importo_pagato"]
+        );
 
-        // prendi il RESIDUO in cents (fallback su lordo/effettivo)
-        let residC =
-          toNum(
-            firstDefined(
-              r.residual_amount_cents,
-              r.residual_gross_cents,
-              r.residual_effective_cents
-            )
-          );
+        // 3) Residuo (preferisci effettivo; se assente, gross; se ancora assente, derivato)
+        let residualEffEUR = moneyPicker(
+          r,
+          // cents
+          ["residual_effective_cents"],
+          // euro
+          ["residual_effective", "residuo_effettivo"]
+        );
+        let residualGrossEUR = moneyPicker(
+          r,
+          // cents
+          ["residual_amount_cents", "residual_gross_cents"],
+          // euro
+          ["residual_amount", "residual_gross", "residuo"]
+        );
 
-        // se il residuo manca ma ho total e paid, derivarlo
-        if (!residC && totalC && paidC) residC = Math.max(0, totalC - paidC);
+        // Derivazioni: se mancano i residui ma ho total/pagato
+        if (!residualEffEUR && totalEUR && paidEUR) residualEffEUR = Math.max(0, totalEUR - paidEUR);
+        if (!residualGrossEUR && totalEUR && paidEUR) residualGrossEUR = Math.max(0, totalEUR - paidEUR);
 
-        // prendi IN RITARDO in cents (fallback su lordo/effettivo/oggi)
-        const overdueC =
-          toNum(
-            firstDefined(
-              r.overdue_amount_cents,
-              r.overdue_gross_cents,
-              r.overdue_effective_cents,
-              r.unpaid_overdue_amount_cents
-            )
-          );
+        // 4) In ritardo (preferisci effettivo; se assente prendi lordo/oggi)
+        const overdueEUR =
+          moneyPicker(
+            r,
+            // cents
+            ["overdue_effective_cents", "overdue_amount_cents", "overdue_gross_cents", "unpaid_overdue_amount_cents"],
+            // euro
+            ["overdue_effective", "overdue_amount", "overdue_gross", "importo_in_ritardo"]
+          ) || 0;
+
+        // 5) Campi UI
+        const importoTotale = totalEUR;
+        const importoPagato = paidEUR;
+        const importoRitardo = overdueEUR;
+        const residuo = residualEffEUR || residualGrossEUR; // lista = vista operativa
 
         return {
           id: String(r.id),
@@ -188,40 +218,36 @@ export const useAllRateations = (): UseAllRateationsReturn => {
           tipo: r.tipo || "N/A",
           contribuente: r.taxpayer_name || r.contribuente || "",
 
-          // EURO già pronti per la UI
-          importoTotale: totalC / 100,
-          importoPagato: paidC / 100,
-          importoRitardo: overdueC / 100,
-          residuo: residC / 100,
-          residuoEffettivo: centsToEuroSafe(
-            firstDefined(r.residual_effective_cents, residC)
-          ),
+          // EURO già pronti
+          importoTotale,
+          importoPagato,
+          importoRitardo,
+          residuo,
+          residuoEffettivo: residualEffEUR || residuo,
 
-          // contatori
-          rateTotali: toNum(firstDefined(r.rate_totali, r.installments_total, 0)),
-          ratePagate: toNum(firstDefined(r.rate_pagate, r.installments_paid, 0)),
+          // Contatori
+          rateTotali: toNum(r.rate_totali ?? r.installments_total ?? 0),
+          ratePagate: toNum(r.rate_pagate ?? r.installments_paid ?? 0),
           rateNonPagate:
-            toNum(firstDefined(r.rate_totali, r.installments_total, 0)) -
-            toNum(firstDefined(r.rate_pagate, r.installments_paid, 0)),
-          rateInRitardo: toNum(
-            firstDefined(r.unpaid_overdue_today, r.installments_overdue, 0)
-          ),
+            toNum(r.rate_totali ?? r.installments_total ?? 0) -
+            toNum(r.rate_pagate ?? r.installments_paid ?? 0),
+          rateInRitardo: toNum(r.unpaid_overdue_today ?? r.installments_overdue ?? 0),
           ratePaidLate: 0,
 
-          // stato e metadati
+          // Metadati
           status: r.status || "attiva",
           created_at: r.created_at,
           updated_at: r.updated_at,
-          is_f24: Boolean(r.is_f24),
+          is_f24: !!r.is_f24,
           type_id: toNum(r.type_id),
           type_name: r.tipo || "N/A",
 
-          // campi Quater (se presenti)
+          // Quater
           is_quater: !!r.is_quater,
           original_total_due_cents: toNum(r.original_total_due_cents),
           quater_total_due_cents: toNum(r.quater_total_due_cents),
 
-          // PagoPA misc (se presenti)
+          // PagoPA misc
           is_pagopa: !!r.is_pagopa,
           unpaid_overdue_today: toNum(r.unpaid_overdue_today),
           unpaid_due_today: toNum(r.unpaid_due_today),
@@ -229,7 +255,7 @@ export const useAllRateations = (): UseAllRateationsReturn => {
           skip_remaining: r.skip_remaining ?? 8,
           at_risk_decadence: !!r.at_risk_decadence,
 
-          // migration & flags
+          // Migration & flags
           debts_total: toNum(r.debts_total),
           debts_migrated: toNum(r.debts_migrated),
           migrated_debt_numbers: r.migrated_debt_numbers || [],
