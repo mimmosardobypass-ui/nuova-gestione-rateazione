@@ -55,6 +55,10 @@ export interface RateationRow {
   rq_target_ids?: string[];         // Array of target rateation IDs (consistent string type)
   rq_migration_status?: 'none' | 'partial' | 'full'; // Migration status
   excluded_from_stats?: boolean;    // Exclude from global statistics
+  // Rottamazione Quater fields
+  is_quater?: boolean;              // True if this is a Rottamazione Quater rateation
+  original_total_due_cents?: number; // Original debt amount before Quater reduction
+  quater_total_due_cents?: number;   // Reduced amount with Quater
 }
 
 export interface DecadenceDashboard {

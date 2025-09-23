@@ -36,9 +36,9 @@ export function calcGrossKpis(rows: RateationRow[]): GrossKpis {
 
   rows.forEach(row => {
     // Somma tutto: totale, pagato, in ritardo
-    totalDueGross += row.total_amount || 0;
-    totalPaidGross += (row.paid_amount_cents || 0) / 100;
-    overdueGross += (row.overdue_amount_cents || 0) / 100;
+    totalDueGross += row.importoTotale || 0;
+    totalPaidGross += row.importoPagato || 0;
+    overdueGross += row.importoRitardo || 0;
   });
 
   const residualGross = Math.max(0, totalDueGross - totalPaidGross);
@@ -55,25 +55,29 @@ export function calcGrossKpis(rows: RateationRow[]): GrossKpis {
  * Calcola i KPI EFFETTIVI (esclude decadute, applica tolleranze/skip)
  */
 export function calcEffectiveKpis(rows: RateationRow[]): EffectiveKpis {
-  // Separa rateazioni attive da decadute
-  const activeRows = rows.filter(row => row.status !== 'decaduta');
-  const decaduteRows = rows.filter(row => row.status === 'decaduta');
+  // Separa rateazioni attive da estinte
+  const activeRows = rows.filter(row => row.status !== 'ESTINTA');
+  const estinteRows = rows.filter(row => row.status === 'ESTINTA');
   
-  // Residuo effettivo = residuo delle rateazioni attive (non decadute)
+  // Residuo effettivo = residuo delle rateazioni attive (non estinte)
   const residualEffective = activeRows.reduce((sum, row) => {
-    return sum + ((row.residual_amount_cents || 0) / 100);
+    return sum + (row.residuoEffettivo || 0);
   }, 0);
 
   // In ritardo effettivo = con tolleranze e skip applicati
   // TODO: Implementare logica di graceDays e skip PagoPA
   const overdueEffective = activeRows.reduce((sum, row) => {
     // Per ora usiamo il valore base, ma si può raffinare con la logica di tolleranza
-    return sum + ((row.overdue_amount_cents || 0) / 100);
+    return sum + (row.importoRitardo || 0);
   }, 0);
 
-  // Saldo decaduto (netto) = residuo delle pratiche decadute
-  const decadutoNet = decaduteRows.reduce((sum, row) => {
-    return sum + (row.residual_at_decadence || 0) - (row.transferred_amount || 0);
+  // Saldo decaduto (netto) = residuo delle pratiche estinte con decadenza
+  const decadutoNet = estinteRows.reduce((sum, row) => {
+    const decadenceInfo = row.decadence_info;
+    if (decadenceInfo) {
+      return sum + (decadenceInfo.residual_at_decadence || 0) - (decadenceInfo.transferred_amount || 0);
+    }
+    return sum;
   }, 0);
 
   // Totale impegni = residuo effettivo + saldo decaduto
@@ -96,10 +100,10 @@ export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
   
   const quaterSaving = quaterRows.reduce((sum, row) => {
     const originalTotal = (row.original_total_due_cents || 0) / 100;
-    const quaterTotal = (row.quater_total_due_cents || row.total_amount || 0);
+    const quaterTotal = (row.quater_total_due_cents || 0) / 100;
     
     // Il risparmio è la differenza tra debito originario e importo ridotto
-    return sum + Math.max(0, originalTotal - (typeof quaterTotal === 'number' ? quaterTotal : quaterTotal));
+    return sum + Math.max(0, originalTotal - quaterTotal);
   }, 0);
 
   return {
