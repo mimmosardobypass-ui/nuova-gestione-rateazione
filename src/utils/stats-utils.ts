@@ -43,6 +43,8 @@ export interface RateationRow {
   is_quater?: boolean;
   original_total_due_cents?: number;
   quater_total_due_cents?: number;
+  original_total_due?: Euro;        // Euro alias
+  quater_total_due?: Euro;          // Euro alias
 
   // status (tanti formati possibili nella tua app)
   status?: string | null;
@@ -184,14 +186,14 @@ export function normalizeRow(row: RateationRow): NormRow {
 
   const originalTotalDue = pickMoneyEUR(
     row,
-    [],
-    ['original_total_due_cents']
+    ['original_total_due'],             // Euro alias
+    ['original_total_due_cents']        // Cents field
   );
 
   const quaterTotalDue = pickMoneyEUR(
     row,
-    [],
-    ['quater_total_due_cents']
+    ['quater_total_due'],               // Euro alias  
+    ['quater_total_due_cents']          // Cents field
   );
 
   return {
