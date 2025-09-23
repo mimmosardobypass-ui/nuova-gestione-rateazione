@@ -169,8 +169,8 @@ export const markPagopaInterrupted = async (
         riam_quater_id: riamQuaterId, 
         pagopa_id: pagopaId,
         reason: reason || `Migrazione automatica del ${todayIso}`,
-        residuo_pagopa_at_link_cents: residuoCents,
-        totale_rq_at_link_cents: totaleRQCents,
+        pagopa_residual_at_link_cents: residuoCents,
+        rq_total_at_link_cents: totaleRQCents,
         risparmio_at_link_cents: risparmioCents
       },
       { 

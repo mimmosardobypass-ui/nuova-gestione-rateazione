@@ -752,6 +752,7 @@ export type Database = {
           pagopa_taxpayer_at_link: string | null
           reason: string | null
           riam_quater_id: number
+          risparmio_at_link_cents: number | null
           rq_taxpayer_at_link: string | null
           rq_total_at_link_cents: number | null
         }
@@ -763,6 +764,7 @@ export type Database = {
           pagopa_taxpayer_at_link?: string | null
           reason?: string | null
           riam_quater_id: number
+          risparmio_at_link_cents?: number | null
           rq_taxpayer_at_link?: string | null
           rq_total_at_link_cents?: number | null
         }
@@ -774,6 +776,7 @@ export type Database = {
           pagopa_taxpayer_at_link?: string | null
           reason?: string | null
           riam_quater_id?: number
+          risparmio_at_link_cents?: number | null
           rq_taxpayer_at_link?: string | null
           rq_total_at_link_cents?: number | null
         }
