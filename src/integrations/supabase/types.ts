@@ -538,6 +538,7 @@ export type Database = {
           residual_amount_cents: number | null
           residual_at_decadence: number
           residual_at_decadence_cents: number | null
+          residual_at_interruption_cents: number | null
           start_due_date: string | null
           status: string | null
           taxpayer_name: string | null
@@ -567,6 +568,7 @@ export type Database = {
           residual_amount_cents?: number | null
           residual_at_decadence?: number
           residual_at_decadence_cents?: number | null
+          residual_at_interruption_cents?: number | null
           start_due_date?: string | null
           status?: string | null
           taxpayer_name?: string | null
@@ -596,6 +598,7 @@ export type Database = {
           residual_amount_cents?: number | null
           residual_at_decadence?: number
           residual_at_decadence_cents?: number | null
+          residual_at_interruption_cents?: number | null
           start_due_date?: string | null
           status?: string | null
           taxpayer_name?: string | null
@@ -1455,6 +1458,7 @@ export type Database = {
           due_today_cents: number | null
           excluded_from_stats: boolean | null
           id: number | null
+          interrupted_at: string | null
           interrupted_by_rateation_id: number | null
           is_f24: boolean | null
           is_pagopa: boolean | null
