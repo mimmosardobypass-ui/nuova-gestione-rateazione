@@ -29,6 +29,7 @@ import { getLegacySkipRisk } from "@/features/rateations/utils/pagopaSkips";
 import { toIntId } from "@/lib/utils/ids";
 import { MigrationDialog } from "./MigrationDialog";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
+import { PagopaLinks } from "./PagopaLinks";
 import { isPagoPAPlan } from "../utils/isPagopa";
 
 // --- SAFE HELPERS ---
@@ -475,6 +476,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           </div>
         </div>
       </div>
+
+      {/* Collegamenti RQ per piani PagoPA */}
+      {rateationInfo && isPagoPAPlan({ is_pagopa: rateationInfo.is_pagopa, tipo: rateationInfo.type_name }) && (
+        <PagopaLinks 
+          pagopaId={rateationId}
+          onGoToRQ={(rqId) => {
+            // Navigate to RQ details - can be implemented later
+            console.log('Navigate to RQ:', rqId);
+          }}
+        />
+      )}
 
       {/* Sub-tabella rate con scroll */}
       <div className="mt-3 border rounded-lg overflow-x-auto">

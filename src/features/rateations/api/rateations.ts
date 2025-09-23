@@ -151,7 +151,8 @@ export const markPagopaInterrupted = async (
     .upsert(
       { 
         riam_quater_id: riamQuaterId, 
-        pagopa_id: pagopaId 
+        pagopa_id: pagopaId,
+        reason: reason || `Migrazione automatica del ${todayIso}`
       },
       { 
         onConflict: 'riam_quater_id,pagopa_id' 

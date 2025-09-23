@@ -748,19 +748,34 @@ export type Database = {
           created_at: string
           id: string
           pagopa_id: number
+          pagopa_residual_at_link_cents: number | null
+          pagopa_taxpayer_at_link: string | null
+          reason: string | null
           riam_quater_id: number
+          rq_taxpayer_at_link: string | null
+          rq_total_at_link_cents: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           pagopa_id: number
+          pagopa_residual_at_link_cents?: number | null
+          pagopa_taxpayer_at_link?: string | null
+          reason?: string | null
           riam_quater_id: number
+          rq_taxpayer_at_link?: string | null
+          rq_total_at_link_cents?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           pagopa_id?: number
+          pagopa_residual_at_link_cents?: number | null
+          pagopa_taxpayer_at_link?: string | null
+          reason?: string | null
           riam_quater_id?: number
+          rq_taxpayer_at_link?: string | null
+          rq_total_at_link_cents?: number | null
         }
         Relationships: [
           {
@@ -1172,6 +1187,22 @@ export type Database = {
           amount_paid: number | null
           month: string | null
           owner_uid: string | null
+        }
+        Relationships: []
+      }
+      v_pagopa_linked_rq: {
+        Row: {
+          linked_at: string | null
+          note: string | null
+          pagopa_id: string | null
+          pagopa_number: string | null
+          pagopa_taxpayer: string | null
+          residuo_pagopa_at_link_cents: number | null
+          riam_quater_id: string | null
+          risparmio_at_link_cents: number | null
+          rq_number: string | null
+          rq_taxpayer: string | null
+          totale_rq_at_link_cents: number | null
         }
         Relationships: []
       }
