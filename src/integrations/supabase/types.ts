@@ -2054,6 +2054,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_verify_kpi_coherence: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          details: Json
+          difference_cents: number
+          effettivo_cents: number
+          expected_difference_cents: number
+          interrotte_snapshot_cents: number
+          is_coherent: boolean
+          status: string
+          storico_cents: number
+        }[]
+      }
       installment_cancel_payment: {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined

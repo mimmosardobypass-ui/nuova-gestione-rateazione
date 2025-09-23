@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, RotateCcw, TrendingUp, ShieldX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,31 +73,43 @@ export function ResidualDecadenceRow({
   onOpenDecadenze,
 }: ResidualDecadenceRowProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <CompactKpiCard
-        title="Totale residuo"
-        value={residualEuro}
-        icon={<RotateCcw className="h-4 w-4 text-muted-foreground" />}
-        loading={loading}
-        highlight="default"
-      />
-      <CompactKpiCard
-        title="Saldo Decaduto"
-        value={decNetEuro}
-        subtitle="Netto da trasferire"
-        icon={<ShieldX className="h-4 w-4 text-muted-foreground" />}
-        loading={loading}
-        highlight="destructive"
-        onClick={onOpenDecadenze}
-      />
-      <CompactKpiCard
-        title="Totale impegni"
-        value={totalEuro}
-        subtitle="Residuo + Decaduto"
-        icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
-        loading={loading}
-        highlight="primary"
-      />
-    </div>
+    <TooltipProvider>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <CompactKpiCard
+                title="Totale residuo"
+                value={residualEuro}
+                icon={<RotateCcw className="h-4 w-4 text-muted-foreground" />}
+                loading={loading}
+                highlight="default"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Il totale esclude le PagoPA interrotte; i loro residui storici sono visibili nelle rispettive righe</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        <CompactKpiCard
+          title="Saldo Decaduto"
+          value={decNetEuro}
+          subtitle="Netto da trasferire"
+          icon={<ShieldX className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+          highlight="destructive"
+          onClick={onOpenDecadenze}
+        />
+        <CompactKpiCard
+          title="Totale impegni"
+          value={totalEuro}
+          subtitle="Residuo + Decaduto"
+          icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+          highlight="primary"
+        />
+      </div>
+    </TooltipProvider>
   );
 }
