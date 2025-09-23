@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertCircle, RotateCcw, TrendingUp, ShieldX } from "lucide-react";
+import { AlertCircle, RotateCcw, TrendingUp, ShieldX, Clock, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { formatEuro } from "@/lib/formatters";
@@ -15,6 +15,7 @@ type CompactKpiCardProps = {
   highlight?: "default" | "primary" | "destructive";
   loading?: boolean;
   className?: string;
+  tooltip?: string;
 };
 
 export function CompactKpiCard({
@@ -26,8 +27,9 @@ export function CompactKpiCard({
   highlight = "default",
   loading,
   className,
+  tooltip,
 }: CompactKpiCardProps) {
-  return (
+  const cardContent = (
     <Card
       onClick={onClick}
       className={cn(
@@ -54,13 +56,29 @@ export function CompactKpiCard({
       </CardContent>
     </Card>
   );
+
+  if (tooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div>{cardContent}</div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return cardContent;
 }
 
-// Block with 3 cards side by side (responsive)
+// Block with 4 cards side by side (responsive)
 type ResidualDecadenceRowProps = {
   residualEuro: number;
   decNetEuro: number;
   totalEuro: number;
+  overdueEffectiveEuro: number;
   loading?: boolean;
   onOpenDecadenze?: () => void;
 };
@@ -69,28 +87,30 @@ export function ResidualDecadenceRow({
   residualEuro,
   decNetEuro,
   totalEuro,
+  overdueEffectiveEuro,
   loading,
   onOpenDecadenze,
 }: ResidualDecadenceRowProps) {
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <CompactKpiCard
-                title="Totale residuo"
-                value={residualEuro}
-                icon={<RotateCcw className="h-4 w-4 text-muted-foreground" />}
-                loading={loading}
-                highlight="default"
-              />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Il totale esclude le PagoPA interrotte; i loro residui storici sono visibili nelle rispettive righe</p>
-          </TooltipContent>
-        </Tooltip>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CompactKpiCard
+          title="Totale residuo"
+          value={residualEuro}
+          icon={<RotateCcw className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+          highlight="default"
+          tooltip="Il totale esclude le PagoPA interrotte; l'importo residuo storico resta visibile sulle relative righe"
+        />
+        
+        <CompactKpiCard
+          title="Importo in ritardo"
+          value={overdueEffectiveEuro}
+          icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+          highlight="destructive"
+          tooltip="Il totale esclude le PagoPA interrotte; l'importo in ritardo storico resta visibile sulle relative righe"
+        />
         
         <CompactKpiCard
           title="Saldo Decaduto"
@@ -100,12 +120,14 @@ export function ResidualDecadenceRow({
           loading={loading}
           highlight="destructive"
           onClick={onOpenDecadenze}
+          tooltip="Da trasferire al creditore"
         />
+        
         <CompactKpiCard
           title="Totale impegni"
           value={totalEuro}
           subtitle="Residuo + Decaduto"
-          icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
+          icon={<Target className="h-4 w-4 text-muted-foreground" />}
           loading={loading}
           highlight="primary"
         />

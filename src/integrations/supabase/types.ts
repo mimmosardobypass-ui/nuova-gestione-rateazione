@@ -2069,13 +2069,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           details: Json
-          difference_cents: number
-          effettivo_cents: number
-          expected_difference_cents: number
-          interrotte_snapshot_cents: number
           is_coherent: boolean
+          is_overdue_coherent: boolean
+          is_residual_coherent: boolean
+          overdue_difference_cents: number
+          overdue_effettivo_cents: number
+          overdue_expected_difference_cents: number
+          overdue_interrotte_snapshot_cents: number
+          overdue_storico_cents: number
+          residual_difference_cents: number
+          residual_effettivo_cents: number
+          residual_expected_difference_cents: number
+          residual_interrotte_snapshot_cents: number
+          residual_storico_cents: number
           status: string
-          storico_cents: number
         }[]
       }
       installment_cancel_payment: {

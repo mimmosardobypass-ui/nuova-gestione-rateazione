@@ -10,6 +10,7 @@ export default function ResidualDecadenceSection() {
     residualEuro,
     decNetEuro,
     totalEuro,
+    overdueEffectiveEuro,
   } = useResidualAndDecadenceKpis();
 
   return (
@@ -18,6 +19,7 @@ export default function ResidualDecadenceSection() {
         residualEuro={residualEuro}
         decNetEuro={decNetEuro}
         totalEuro={totalEuro}
+        overdueEffectiveEuro={overdueEffectiveEuro}
         loading={loading}
         onOpenDecadenze={() => nav("/rateazioni?view=decadenze")}
       />
