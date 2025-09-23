@@ -127,9 +127,22 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
   // Helper to generate safe RQ labels for toast messages
   const rqLabel = (id: unknown) => {
-    const strId = String(id ?? "");
+    if (!id) return '';
+    const strId = String(id);
     const found = rqRateations.find(r => r.id === strId);
     return found?.number ?? strId.slice(-6); // prefer RQ number if available
+  };
+
+  // Custom close handler to reset all selections
+  const onClose = (open: boolean) => {
+    setOpen(open);
+    if (!open) {
+      // Reset selections when dialog closes
+      setSelectedPagopaIds([]);
+      setSelectedDebtIds([]);
+      setTargetRateationId('');
+      setNote('');
+    }
   };
 
   const handleMigration = async () => {
@@ -227,7 +240,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
@@ -305,7 +318,20 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                   ) : (
                     <div className="space-y-3">
                       <div className="text-sm text-muted-foreground mb-2">
-                        <strong>Cartella corrente:</strong> {rateation.numero} - {rateation.taxpayer_name}
+                        <strong>Cartella corrente:</strong>{' '}
+                        {rateation?.numero ? (
+                          <span>
+                            {rateation.numero}
+                            {rateation?.taxpayer_name ? ` — ${rateation.taxpayer_name}` : ''}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                        {typeof rateation?.residuo === 'number' && (
+                          <span className="ml-2">
+                            (Residuo: €{rateation.residuo.toFixed(2)})
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {migrablePagoPA.map((pagopa) => (
@@ -418,13 +444,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setOpen(false)} disabled={processing}>
+              <Button variant="outline" onClick={() => onClose(false)} disabled={processing}>
                 Annulla
               </Button>
               <Button 
                 onClick={handleMigration}
                 disabled={disableMigrate}
                 className="flex items-center gap-2"
+                data-testid="migrate-button"
               >
                 {processing ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
