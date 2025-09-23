@@ -206,6 +206,9 @@ export default function SchedaRateazione() {
     return <div>Caricamento...</div>;
   }
 
+  // Calculate total savings in cents once
+  const totalSavingsCents = rqLinks.reduce((s, r) => s + (r.risparmio_at_link_cents ?? 0), 0);
+
   return (
     <PrintLayout
       title={`Scheda Rateazione #${header.numero}`}
@@ -242,14 +245,14 @@ export default function SchedaRateazione() {
       </section>
 
       {/* Collegamenti Riam.Quater Section */}
-      {isPagoPAPlan({ is_pagopa: false, tipo: header.type_name }) && (
+      {header && isPagoPAPlan({ is_pagopa: false, tipo: header.type_name }) && (
         <section style={{ pageBreakInside: 'avoid', marginTop: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Collegamenti Riam.Quater</h2>
             {rqLinks.length > 0 && (
               <div style={{ fontWeight: 600, color: '#0f7b0f' }}>
                 {rqLinks.length} {rqLinks.length === 1 ? 'collegamento' : 'collegamenti'} ·
-                {' '}Risparmio totale: {formatEuro(rqLinks.reduce((s, r) => s + (r.risparmio_at_link_cents ?? 0) / 100, 0))}
+                {' '}Risparmio totale: {formatEuro(totalSavingsCents / 100)}
               </div>
             )}
           </div>
