@@ -10,9 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Package, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RateationRow, Debt, RateationDebt } from '../types';
-import { fetchActiveDebtsForRateation, fetchRQRateations, migrateDebtsToRQ } from '../api/debts';
+import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
-import { markPagopaInterrupted } from '../api/rateations';
+import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -29,7 +29,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [activeDebts, setActiveDebts] = useState<(RateationDebt & { debt: Debt })[]>([]);
   const [migrablePagoPA, setMigrablePagoPA] = useState<MigrablePagopa[]>([]);
-  const [rqRateations, setRqRateations] = useState<Array<{ id: string; number: string; taxpayer_name: string | null }>>([]);
+  const [rqRateations, setRqRateations] = useState<{ id: string; number: string | null; taxpayer_name: string | null }[]>([]);
   const [selectedDebtIds, setSelectedDebtIds] = useState<string[]>([]);
   const [selectedPagopaIds, setSelectedPagopaIds] = useState<string[]>([]);
   const [targetRateationId, setTargetRateationId] = useState<string>('');
@@ -62,7 +62,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         // Load migratable PagoPA for PagoPA → RQ migration
         const [pagopaData, rqData] = await Promise.all([
           getMigrablePagopaForRateation(rateation.id),
-          fetchRQRateations()
+          getRiamQuaterOptions()
         ]);
         
         setMigrablePagoPA(pagopaData);
@@ -77,7 +77,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         // Load debts for normal debt migration
         const [debtsData, rqData] = await Promise.all([
           fetchActiveDebtsForRateation(rateation.id),
-          fetchRQRateations()
+          getRiamQuaterOptions()
         ]);
         
         setActiveDebts(debtsData);
@@ -376,7 +376,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                     <SelectContent>
                       {rqRateations.map((rq) => (
                         <SelectItem key={rq.id} value={rq.id}>
-                          {rq.number} {rq.taxpayer_name ? `- ${rq.taxpayer_name}` : ''}
+                          {rq.number ?? '—'} {rq.taxpayer_name ? `- ${rq.taxpayer_name}` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -385,10 +385,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                     <p className="text-sm text-destructive mt-1">
                       Seleziona la Riam.Quater per confermare la migrazione
                     </p>
-                  )}
-                </div>
+                   )}
+                   {rqRateations.length === 0 && (
+                     <p className="text-sm text-amber-600 mt-2">
+                       Nessuna Riam.Quater trovata. Crea prima un piano RQ e riprova.
+                     </p>
+                   )}
+                 </div>
 
-                <div>
+                 <div>
                   <Label htmlFor="migration-note">Note (opzionale)</Label>
                   <Textarea
                     id="migration-note"
@@ -411,12 +416,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
               </Button>
               <Button 
                 onClick={handleMigration}
-                disabled={
-                  (migrationMode === 'pagopa' 
-                    ? selectedPagopaIds.length === 0 
-                    : selectedDebtIds.length === 0
-                  ) || !targetRateationId || processing
-                }
+                disabled={disableMigrate}
                 className="flex items-center gap-2"
               >
                 {processing ? (
