@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useOnline } from "@/hooks/use-online";
 import type { RateationRow } from "@/features/rateations/types";
 import { supabase } from "@/integrations/supabase/client-resilient";
+import { RateationListRowsSchema } from "@/schemas/RateationListRow.schema";
+import { mapListRowToUI } from "@/mappers/mapRateationListRow";
 
 interface UseAllRateationsReturn {
   rows: RateationRow[];
@@ -10,7 +12,7 @@ interface UseAllRateationsReturn {
   online: boolean;
 }
 
-const CACHE_KEY = "all_rateations_cache_v4"; // Updated for corrected canonical view
+const CACHE_KEY = "rateations:list_ui:v7"; // Runtime-safe with Zod validation
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -112,8 +114,8 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         return;
       }
 
-      // Fetch ALL rateations from canonical view with corrected logic
-      const { data: rateations, error: rateationsError } = await supabase
+      // Fetch ALL rateations from canonical view with runtime validation
+      const { data: rawData, error: rateationsError } = await supabase
         .from('v_rateations_list_ui')
         .select('*')
         .eq('owner_uid', userId)
@@ -123,63 +125,23 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         throw rateationsError;
       }
 
-      // Helper function for cents to EUR conversion
-      const centsToEUR = (cents?: number | null): number => 
-        typeof cents === 'number' ? cents / 100 : 0;
+      // Runtime validation with Zod (stops schema mismatches immediately)
+      const parsed = RateationListRowsSchema.safeParse(rawData ?? []);
+      if (!parsed.success) {
+        console.error("[useAllRateations] Schema validation failed:", parsed.error.flatten());
+        // Safe fallback: no rows to prevent inconsistent UI data
+        setRows([]);
+        setLoading(false);
+        return;
+      }
 
-      // Simplified mapping using canonical view data (all monetary values already calculated correctly in cents)
-      const finalRows: RateationRow[] = (rateations || []).map((r: any) => ({
-        id: String(r.id),
-        numero: r.number || "",
-        tipo: r.tipo || "N/A",
-        contribuente: r.taxpayer_name || "",
-
-        importoTotale: centsToEUR(r.total_amount_cents),
-        importoPagato: centsToEUR(r.paid_amount_cents),
-        importoRitardo: centsToEUR(r.overdue_effective_cents),
-        residuo: centsToEUR(r.residual_effective_cents),
-        residuoEffettivo: centsToEUR(r.residual_effective_cents),
-
-        rateTotali: Number(r.installments_total || 0),
-        ratePagate: Number(r.installments_paid || 0),
-        rateNonPagate: Number(r.installments_total || 0) - Number(r.installments_paid || 0),
-        rateInRitardo: Number(r.installments_overdue_today || 0),
-
-        status: r.status || "attiva",
-        created_at: r.created_at,
-        updated_at: r.updated_at,
-        is_f24: !!r.is_f24,
-        type_id: Number(r.type_id || 0),
-        type_name: r.tipo || "N/A",
-        ratePaidLate: 0,
-
-        // Quater fields
-        is_quater: !!r.is_quater,
-        original_total_due_cents: Number(r.original_total_due_cents || 0),
-        quater_total_due_cents: Number(r.quater_total_due_cents || 0),
-
-        // PagoPA fields  
-        is_pagopa: !!r.is_pagopa,
-        unpaid_overdue_today: Number(r.installments_overdue_today || 0),
-        unpaid_due_today: 0,
-        max_skips_effective: 8,
-        skip_remaining: 8,
-        at_risk_decadence: false,
-
-        // Migration & flags - defaults for missing fields
-        debts_total: 0,
-        debts_migrated: 0,
-        migrated_debt_numbers: [],
-        remaining_debt_numbers: [],
-        rq_target_ids: [],
-        rq_migration_status: "none",
-        excluded_from_stats: false,
-      } as RateationRow));
+      // Centralized, type-safe mapping
+      const finalRows = parsed.data.map(mapListRowToUI);
       
       // Debug: Log final mapped data  
       if (finalRows.length > 0) {
         const firstMapped = finalRows[0];
-        console.log("🔍 After mapping - first row monetary fields:", {
+        console.log("🔍 After validated mapping - first row monetary fields:", {
           numero: firstMapped.numero,
           importoTotale: firstMapped.importoTotale,
           importoPagato: firstMapped.importoPagato,

@@ -27,6 +27,7 @@ import { RateList } from "@/features/rateations/components/views/RateList";
 import AnnualMatrixCard from "@/features/rateations/components/AnnualMatrixCard";
 import { Deadlines } from "@/features/rateations/components/views/Deadlines";
 import { AdvancedStats } from "@/features/rateations/components/views/AdvancedStats";
+import { RateationsHealthBanner } from "@/components/RateationsHealthBanner";
 
 
 export default function Rateations() {
@@ -202,6 +203,9 @@ export default function Rateations() {
           </Button>
         </div>
       )}
+
+      {/* Health Check Banner */}
+      <RateationsHealthBanner />
 
       {/* KPI Cards and Saldo Decaduto - Always visible */}
       <div className="grid gap-4 mb-6">
