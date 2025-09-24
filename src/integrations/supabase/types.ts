@@ -2674,6 +2674,21 @@ export type Database = {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
       }
+      link_pagopa_to_rq_atomic: {
+        Args: {
+          p_alloc_cents: number
+          p_pagopa_id: number
+          p_reason?: string
+          p_rq_id: number
+        }
+        Returns: {
+          action: string
+          allocated_residual_cents: number
+          pagopa_id: number
+          reason: string
+          riam_quater_id: number
+        }[]
+      }
       mark_installment_paid: {
         Args: { p_paid_at: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
