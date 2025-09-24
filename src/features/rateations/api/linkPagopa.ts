@@ -1,92 +1,119 @@
 import { supabase } from '@/integrations/supabase/client';
+import { toIntId } from '@/lib/utils/ids';
+
+/**
+ * Tipo di ritorno per linkPagopaToRQ
+ */
+export interface RqLinkResult {
+  pagopa_id: number;
+  riam_quater_id: number;
+  allocated_residual_cents: number;
+  reason?: string;
+  action: 'created' | 'updated';
+}
+
+/**
+ * Mappatura errori DB → messaggi utente
+ */
+export function mapRqLinkError(error: any): string {
+  const errorMessage = error?.message || String(error);
+  
+  // Errori strutturati dalla RPC
+  if (errorMessage.includes('INVALID_QUOTA:')) {
+    return 'La quota deve essere maggiore di zero';
+  }
+  if (errorMessage.includes('PAGOPA_ACCESS_DENIED:')) {
+    return 'Piano PagoPA non trovato o accesso negato';
+  }
+  if (errorMessage.includes('RQ_ACCESS_DENIED:')) {
+    return 'Riammissione Quater non trovata o accesso negato';
+  }
+  if (errorMessage.includes('INVALID_PAGOPA_TYPE:')) {
+    return 'Il piano selezionato deve essere di tipo PagoPA';
+  }
+  if (errorMessage.includes('INVALID_RQ_TYPE:')) {
+    return 'Il piano destinazione deve essere una Riammissione Quater';
+  }
+  if (errorMessage.includes('INSUFFICIENT_QUOTA:')) {
+    const match = errorMessage.match(/Available: (\d+), requested: (\d+)/);
+    if (match) {
+      const available = Number(match[1]) / 100;
+      const requested = Number(match[2]) / 100;
+      return `Quota richiesta (€ ${requested.toFixed(2)}) superiore al residuo disponibile (€ ${available.toFixed(2)})`;
+    }
+    return 'Quota richiesta superiore al residuo disponibile della PagoPA';
+  }
+  
+  // Errori generici
+  if (errorMessage.includes('access denied') || errorMessage.includes('not found')) {
+    return 'Accesso negato o piano non trovato';
+  }
+  
+  return 'Errore durante il collegamento. Riprovare o contattare il supporto.';
+}
 
 /**
  * Crea o aggiorna un collegamento tra PagoPA e RQ con quota allocata
+ * Usa RPC transazionale per massima robustezza
  */
 export async function linkPagopaToRQ(
-  pagopaId: number, 
-  rqId: number, 
+  pagopaId: number | string, 
+  rqId: number | string, 
   allocatedCents: number,
   note?: string
-): Promise<void> {
+): Promise<RqLinkResult> {
   try {
-    // Guardia: quota deve essere positiva
-    if (allocatedCents <= 0) {
-      throw new Error('Allocated quota must be greater than 0');
+    // 1. Validazioni tipo-safe
+    const validPagopaId = toIntId(pagopaId, 'pagopaId');
+    const validRqId = toIntId(rqId, 'rqId');
+    
+    if (!Number.isInteger(allocatedCents) || allocatedCents <= 0) {
+      throw new Error('INVALID_QUOTA: Allocated quota must be an integer > 0');
     }
 
-    // 1) Verifica che l'utente possieda entrambe le rateazioni
-    const { data: userRateations, error: ownershipError } = await supabase
-      .from('rateations')
-      .select('id, owner_uid')
-      .in('id', [pagopaId, rqId]);
-
-    if (ownershipError) throw ownershipError;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const ownedIds = userRateations
-      ?.filter(r => r.owner_uid === user.id)
-      .map(r => r.id) || [];
-
-    if (!ownedIds.includes(pagopaId) || !ownedIds.includes(rqId)) {
-      throw new Error('Access denied to one or both rateations');
-    }
-
-    // 2) Verifica quota disponibile (escludendo allocazione corrente per upsert)
-    const { data: allocation, error: allocationError } = await supabase
-      .from('v_pagopa_allocations')
-      .select('allocatable_cents, residual_cents')
-      .eq('pagopa_id', pagopaId)
-      .single();
-
-    if (allocationError) throw allocationError;
-
-    // Per upsert: considera quota già allocata a questa RQ
-    const { data: existingLink } = await supabase
-      .from('riam_quater_links')
-      .select('allocated_residual_cents')
-      .eq('pagopa_id', pagopaId)
-      .eq('riam_quater_id', rqId)
-      .maybeSingle();
-
-    const currentAllocation = existingLink?.allocated_residual_cents || 0;
-    const availableQuota = (allocation?.allocatable_cents || 0) + currentAllocation;
-
-    if (availableQuota < allocatedCents) {
-      throw new Error(`Insufficient allocatable quota. Available: ${availableQuota}, requested: ${allocatedCents}`);
-    }
-
-    // 3) Upsert: crea o aggiorna il collegamento
-    const { error: upsertError } = await supabase
-      .from('riam_quater_links')
-      .upsert({
-        pagopa_id: pagopaId,
-        riam_quater_id: rqId,
-        allocated_residual_cents: allocatedCents,
-        reason: note || undefined,
-      }, {
-        onConflict: 'riam_quater_id,pagopa_id'
-      });
-
-    if (upsertError) throw upsertError;
-
-    // 4) Logging per osservabilità
-    console.log('RQ allocation upsert:', {
-      pagopaId,
-      rqId,
-      allocatedCents,
-      previousAllocation: currentAllocation,
-      userId: user.id,
-      action: existingLink ? 'update' : 'create'
+    // 2. Chiamata RPC transazionale (race-condition proof)
+    const { data, error } = await supabase.rpc('link_pagopa_to_rq_atomic', {
+      p_pagopa_id: validPagopaId,
+      p_rq_id: validRqId,
+      p_alloc_cents: allocatedCents,
+      p_reason: note || null
     });
 
-    // 5) Trigger per calcolare altri campi viene gestito dal database
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error('Nessun risultato dalla funzione di collegamento');
+    }
+
+    const result = data[0];
+    
+    // 3. Logging per osservabilità
+    console.log('RQ allocation success:', {
+      pagopaId: validPagopaId,
+      rqId: validRqId,
+      allocatedCents,
+      action: result.action,
+      timestamp: new Date().toISOString()
+    });
+
+    // 4. Return typed result per UI refresh
+    return {
+      pagopa_id: Number(result.pagopa_id),
+      riam_quater_id: Number(result.riam_quater_id),
+      allocated_residual_cents: Number(result.allocated_residual_cents),
+      reason: result.reason || undefined,
+      action: result.action as 'created' | 'updated'
+    };
 
   } catch (error) {
     console.error('Error linking PagoPA to RQ:', error);
-    throw error;
+    
+    // Mappa errore per UX
+    const userMessage = mapRqLinkError(error);
+    const enhancedError = new Error(userMessage);
+    (enhancedError as any).originalError = error;
+    
+    throw enhancedError;
   }
 }
 
