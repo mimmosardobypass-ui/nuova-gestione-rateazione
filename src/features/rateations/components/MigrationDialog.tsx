@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ArrowRight, Package, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RateationRow, Debt, RateationDebt } from '../types';
@@ -245,15 +245,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-[900px] md:w-[85vw] md:max-w-[960px] max-h-[90vh] overflow-hidden p-0 md:rounded-2xl">
-        <DialogHeader className="px-6 py-4 sticky top-0 bg-background z-10 border-b">
+      <DialogContent className="w-[95vw] max-w-[900px] md:w-[85vw] md:max-w-[960px] max-h-[88dvh] md:max-h-[90vh] overflow-hidden p-0 md:rounded-2xl overscroll-contain">
+        <DialogHeader className="px-6 py-4 sticky top-0 bg-white z-10 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
             Gestisci Migrazione Cartelle - {rateation.numero}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="px-6 py-4 overflow-y-auto overflow-x-hidden max-h-[calc(90vh-140px)]">
+        <div className="px-6 py-4 overflow-y-auto overflow-x-hidden max-h-[calc(88dvh-140px)] overscroll-contain touch-pan-y">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -275,14 +275,27 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         <span className="font-medium">Cartelle già migrate:</span>
                         <div className="flex flex-wrap gap-1">
                           {rateation.migrated_debt_numbers.slice(0, 10).map((number, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs px-2 py-1">
+                            <Badge key={idx} variant="outline" className="text-xs px-2 py-1 max-w-full break-all">
                               {number}
                             </Badge>
                           ))}
                           {rateation.migrated_debt_numbers.length > 10 && (
-                            <Badge variant="secondary" className="text-xs px-2 py-1">
-                              +{rateation.migrated_debt_numbers.length - 10}
-                            </Badge>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Badge variant="secondary" className="text-xs px-2 py-1 cursor-pointer hover:bg-secondary/80">
+                                  +{rateation.migrated_debt_numbers.length - 10}
+                                </Badge>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 max-h-64 overflow-auto">
+                                <div className="flex flex-wrap gap-2">
+                                  {rateation.migrated_debt_numbers.slice(10).map((number, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs px-2 py-1 break-all">
+                                      {number}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           )}
                         </div>
                       </div>
@@ -292,14 +305,27 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         <span className="font-medium">Cartelle rimanenti:</span>
                         <div className="flex flex-wrap gap-1">
                           {rateation.remaining_debt_numbers.slice(0, 10).map((number, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs px-2 py-1">
+                            <Badge key={idx} variant="outline" className="text-xs px-2 py-1 max-w-full break-all">
                               {number}
                             </Badge>
                           ))}
                           {rateation.remaining_debt_numbers.length > 10 && (
-                            <Badge variant="secondary" className="text-xs px-2 py-1">
-                              +{rateation.remaining_debt_numbers.length - 10}
-                            </Badge>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Badge variant="secondary" className="text-xs px-2 py-1 cursor-pointer hover:bg-secondary/80">
+                                  +{rateation.remaining_debt_numbers.length - 10}
+                                </Badge>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 max-h-64 overflow-auto">
+                                <div className="flex flex-wrap gap-2">
+                                  {rateation.remaining_debt_numbers.slice(10).map((number, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs px-2 py-1 break-all">
+                                      {number}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           )}
                         </div>
                       </div>
@@ -357,7 +383,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             </span>
                           )}
                         </div>
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                        <div className="border rounded-lg">
+                          <div className="space-y-2 max-h-72 overflow-y-auto px-3 py-2">
                           {migrablePagoPA.map((pagopa) => (
                             <div key={pagopa.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
                               <Checkbox
@@ -380,6 +407,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             </div>
                           ))}
                         </div>
+                        </div>
                       </div>
                     )
                   ) : (
@@ -387,7 +415,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                     activeDebts.length === 0 ? (
                       <p className="text-muted-foreground text-sm">Nessuna cartella disponibile per la migrazione</p>
                     ) : (
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                      <div className="border rounded-lg">
+                        <div className="space-y-2 max-h-72 overflow-y-auto px-3 py-2">
                         {activeDebts.map((item) => (
                           <div key={item.debt_id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
                             <Checkbox
@@ -407,6 +436,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             )}
                           </div>
                         ))}
+                        </div>
                       </div>
                     )
                   )}
@@ -470,9 +500,9 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
               </Card>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="px-6 py-4 sticky bottom-0 bg-background z-10 border-t">
+        <DialogFooter className="px-6 py-4 sticky bottom-0 bg-white z-10 border-t">
           <Button variant="outline" onClick={() => onClose(false)} disabled={processing}>
             Annulla
           </Button>
