@@ -72,7 +72,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         // Auto-select the current PagoPA if it's migratable
         if (pagopaData.length > 0) {
           // Auto-select the current rateation if it's in the list and nothing is selected
-          setSelectedPagopaIds(prev => prev.length ? prev : [pagopaData[0].id]);
+          setSelectedPagopaIds(prev => prev.length ? prev : [String(pagopaData[0].id)]);
         }
       } else {
         // Load debts for normal debt migration
@@ -115,7 +115,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
   const handleSelectAll = (checked: boolean) => {
     if (migrationMode === 'pagopa') {
-      setSelectedPagopaIds(checked ? migrablePagoPA.map(p => p.id) : []);
+      setSelectedPagopaIds(checked ? migrablePagoPA.map(p => String(p.id)) : []);
     } else {
       setSelectedDebtIds(checked ? activeDebts.map(d => d.debt_id) : []);
     }
