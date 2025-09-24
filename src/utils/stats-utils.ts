@@ -298,23 +298,22 @@ export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
 
 /** KPI Rottamazione Quater basato sui collegamenti con quotas (prevenire doppi conteggi) */
 export function calcQuaterSavingFromLinks(rows: RateationRow[]): QuaterKpis {
+  // Calcolo preciso in centesimi per-RQ per evitare doppi conteggi
   // rows devono rappresentare le RQ (una riga per RQ), con quota già aggregata
-  // campi attesi: is_quater, allocated_residual_cents (somma quote verso la RQ),
-  // quater_total_due_cents (totale dovuto RQ)
   const rqRows = rows.filter((r: any) => r.is_quater);
 
   let savingCents = 0;
 
   for (const rq of rqRows) {
-    const allocated = Number(rq.allocated_residual_cents ?? 0);     // cents
-    const rqTotal   = Number(
-      rq.rq_total_at_link_cents ?? rq.quater_total_due_cents ?? 0   // cents
+    const allocated = Number(rq.allocated_residual_cents ?? 0); // cents
+    const rqTotal = Number(
+      rq.rq_total_at_link_cents ?? rq.quater_total_due_cents ?? 0 // cents
     );
-    const perRq = Math.max(0, allocated - rqTotal);                 // cents
+    const perRq = Math.max(0, allocated - rqTotal); // cents
     savingCents += perRq;
   }
 
-  return { quaterSaving: savingCents / 100 };
+  return { quaterSaving: savingCents / 100 }; // convert to EUR
 }
 
 /**
