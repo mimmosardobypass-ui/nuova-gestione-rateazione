@@ -544,49 +544,47 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                 <div className="flex gap-2 mt-2">
                                   <div className="relative flex-1">
                                     <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                      id="quota-input"
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      max={selectedPagopaAllocatable / 100}
-                                      value={allocationQuotaEur}
-                                      onChange={(e) => setAllocationQuotaEur(e.target.value)}
-                                      className="pl-9"
-                                      placeholder="0,00"
-                                      disabled={selectedPagopaAllocatable === 0}
-                                      aria-invalid={!quotaInputValid}
-                                      aria-describedby="quota-help quota-error"
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={() => setAllocationQuotaEur((selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2}))}
-                                    disabled={selectedPagopaAllocatable === 0}
-                                  >
-                                    Usa tutto
-                                  </Button>
+                                     <Input
+                                       id="quota-input"
+                                       type="text"
+                                       inputMode="decimal"
+                                       pattern="[0-9\.,]*"
+                                       value={allocationQuotaEur}
+                                       onChange={(e) => setAllocationQuotaEur(e.target.value)}
+                                       onKeyDown={(e) => {
+                                         if (e.key === 'Enter' && disableMigrate) e.preventDefault();
+                                       }}
+                                       className="pl-9"
+                                       placeholder="0,00"
+                                       disabled={selectedPagopaAllocatable === 0}
+                                       aria-invalid={!quotaInputValid}
+                                       aria-describedby="quota-help quota-error"
+                                     />
+                                   </div>
+                                   <Button
+                                     type="button"
+                                     variant="secondary"
+                                     size="sm"
+                                     onClick={() => setAllocationQuotaEur((selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2}))}
+                                     disabled={selectedPagopaAllocatable === 0 || processing}
+                                   >
+                                     Usa tutto
+                                   </Button>
                                 </div>
-                                {selectedPagopaAllocatable === 0 ? (
-                                  <div className="text-xs text-amber-600 mt-1">
-                                    Nessuna quota disponibile: sgancia o riduci una quota esistente
-                                  </div>
-                                ) : (
-                                  <small id="quota-help" className="text-xs text-muted-foreground mt-1 block">
-                                    Massimo disponibile: €{(selectedPagopaAllocatable / 100).toLocaleString('it-IT', {minimumFractionDigits:2})}
-                                  </small>
-                                )}
+                                <small id="quota-help" className="text-xs text-muted-foreground mt-1 block">
+                                  {selectedPagopaAllocatable === 0
+                                    ? 'Nessuna quota disponibile: sgancia o riduci una quota esistente'
+                                    : <>Massimo disponibile: €{(selectedPagopaAllocatable / 100).toLocaleString('it-IT', {minimumFractionDigits:2})}</>}
+                                </small>
                                 {allocationQuotaEur && selectedPagopaAllocatable > 0 && (
                                   <>
                                     {!quotaInputValid && (
-                                      <div id="quota-error" role="alert" aria-live="polite" className="text-xs text-red-600 mt-1">
+                                      <div id="quota-error" role="alert" aria-live="polite" className="text-xs text-destructive mt-1">
                                         Inserire un importo valido
                                       </div>
                                     )}
                                     {quotaInputValid && !isQuotaInRange(quotaCents, selectedPagopaAllocatable) && (
-                                      <div id="quota-error" role="alert" aria-live="polite" className="text-xs text-red-600 mt-1">
+                                      <div className="text-xs text-destructive mt-1" role="alert" aria-live="polite">
                                         La quota deve essere tra €0,01 e €{(selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2})}
                                       </div>
                                     )}
