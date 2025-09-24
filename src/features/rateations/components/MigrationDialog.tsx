@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,6 +17,7 @@ import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa 
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
 import { linkPagopaToRQ, unlinkPagopaFromRQ, getPagopaLinks } from '../api/linkPagopa';
 import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
+import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -156,18 +157,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  // Consolidated button disabling logic
-  const quotaCents = migrationMode === 'pagopa' && allocationQuotaEur && allocationQuotaEur !== '0' 
-    ? (() => {
-        try {
-          return eurToCentsForAllocation(allocationQuotaEur);
-        } catch {
-          return -1; // Invalid input
-        }
-      })()
-    : 0;
+  // Safe UI parsing - never throws during render
+  const { cents: quotaCents, valid: quotaInputValid } = useMemo(
+    () => safeParseAllocation(allocationQuotaEur),
+    [allocationQuotaEur]
+  );
   const disableMigrate = processing || 
-    (migrationMode === 'pagopa' && (selectedPagopaIds.length !== 1 || !targetRateationId || quotaCents <= 0 || quotaCents > selectedPagopaAllocatable)) ||
+    (migrationMode === 'pagopa' && (
+      selectedPagopaIds.length !== 1 || 
+      !targetRateationId || 
+      !quotaInputValid ||
+      !isQuotaInRange(quotaCents, selectedPagopaAllocatable)
+    )) ||
     (migrationMode === 'debts' && (nothingSelected || !targetRateationId));
 
   // Debug logging for button state
@@ -249,22 +250,25 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
 
     if (migrationMode === 'pagopa') {
-      // Validate quota allocation using robust validation
+      // Strict validation at submit
+      let quotaCents: number;
       try {
-        const quotaCents = eurToCentsForAllocation(allocationQuotaEur || '0');
-        if (quotaCents > selectedPagopaAllocatable) {
-          toast({
-            title: "Quota non valida",
-            description: `La quota deve essere compresa tra €0.01 e €${(selectedPagopaAllocatable / 100).toFixed(2)}`,
-            variant: "destructive"
-          });
-          return;
-        }
-      } catch (error) {
-        toast({
-          title: "Quota non valida",
-          description: "Inserire un importo valido",
-          variant: "destructive"
+        quotaCents = eurToCentsForAllocation(allocationQuotaEur);
+      } catch {
+        toast({ 
+          title: 'Quota non valida', 
+          description: 'Inserire un importo valido', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      if (quotaCents <= 0 || quotaCents > selectedPagopaAllocatable) {
+        const maxEur = (selectedPagopaAllocatable / 100).toFixed(2);
+        toast({ 
+          title: 'Quota non valida', 
+          description: `La quota deve essere tra €0,01 e €${maxEur}`, 
+          variant: 'destructive' 
         });
         return;
       }
@@ -275,13 +279,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       setProcessing(true);
       try {
         // Use linkPagopaToRQ with allocated quota for each selected PagoPA
-        const quotaCents = eurToCentsForAllocation(allocationQuotaEur);
         await Promise.all(
           selectedPagopaIds.map(pagopaId => 
             linkPagopaToRQ(
               Number(pagopaId), 
               Number(targetRateationId), 
-              quotaCents, 
+              quotaCents,
               note.trim() || undefined
             )
           )
