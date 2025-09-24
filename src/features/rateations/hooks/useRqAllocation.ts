@@ -41,7 +41,13 @@ export function useRqAllocation() {
     setData(prev => ({ ...prev, loading: true, error: undefined }));
 
     try {
-      // Strategia difensiva: prova prima con has_links, poi fallback se la colonna non esiste
+      // SICUREZZA: Verifica autenticazione
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utente non autenticato');
+      }
+
+      // Strategia difensiva: prova prima con has_links, poi fallback intelligente
       let pagopaData: any[] = [];
       
       try {
@@ -49,36 +55,64 @@ export function useRqAllocation() {
         const res = await supabase
           .from('v_pagopa_allocations')
           .select('*')
+          .eq('owner_uid', user.id) // SICUREZZA: filtro per utente
           .or('allocatable_cents.gt.0,has_links.eq.true')
           .order('pagopa_number');
-        if (res.error) throw res.error;
+        
+        if (res.error) {
+          // Fallback intelligente: solo se errore di colonna mancante
+          const msg = (res.error.message || '').toLowerCase();
+          const isMissingColumn = msg.includes('has_links') || 
+                                 msg.includes('column') || 
+                                 msg.includes('unknown') ||
+                                 msg.includes('does not exist');
+          
+          if (!isMissingColumn) {
+            throw res.error; // Altri errori non vengono mascherati
+          }
+          throw new Error('missing_column'); // Trigger fallback
+        }
+        
         pagopaData = res.data || [];
       } catch (e: any) {
-        // 2) Fallback se 'has_links' non esiste sulla view
+        if (e.message !== 'missing_column') throw e;
+        
+        // 2) Fallback: carica solo PagoPA con quota disponibile
         const allocRes = await supabase
           .from('v_pagopa_allocations')
           .select('*')
+          .eq('owner_uid', user.id) // SICUREZZA: filtro per utente
           .gt('allocatable_cents', 0)
           .order('pagopa_number');
 
+        if (allocRes.error) throw allocRes.error;
         pagopaData = allocRes.data || [];
 
-        // 3) Recupera gli id pagopa già linkati (per permettere l'editing anche con allocazione = 0)
+        // 3) Recupera PagoPA linkate (per editing anche con allocazione = 0)
         const { data: linkRows } = await supabase
           .from('riam_quater_links')
           .select('pagopa_id')
-          .limit(10000);
+          .limit(5000); // Performance: limite ragionevole
 
-        const linkedIds = [...new Set((linkRows || []).map(r => r.pagopa_id))]
-          .filter(id => !pagopaData.some(p => p.pagopa_id === id));
+        if (linkRows?.length) {
+          const linkedIds = [...new Set(linkRows.map(r => r.pagopa_id))]
+            .filter(id => !pagopaData.some(p => p.pagopa_id === id));
 
-        if (linkedIds.length) {
-          const { data: extra } = await supabase
-            .from('v_pagopa_allocations')
-            .select('*')
-            .in('pagopa_id', linkedIds);
+          if (linkedIds.length) {
+            const { data: extra } = await supabase
+              .from('v_pagopa_allocations')
+              .select('*')
+              .eq('owner_uid', user.id) // SICUREZZA: filtro per utente
+              .in('pagopa_id', linkedIds);
 
-          pagopaData = [...pagopaData, ...(extra || [])];
+            if (extra?.length) {
+              // Deduplicazione e ordinamento stabile
+              const combined = [...pagopaData, ...extra];
+              const map = new Map(combined.map(r => [r.pagopa_id, r]));
+              pagopaData = Array.from(map.values())
+                .sort((a, b) => String(a.pagopa_number || '').localeCompare(String(b.pagopa_number || '')));
+            }
+          }
         }
       }
 
@@ -86,6 +120,7 @@ export function useRqAllocation() {
       const { data: rqData, error: rqError } = await supabase
         .from('v_rateations_list_ui')
         .select('id, number, taxpayer_name, quater_total_due_cents')
+        .eq('owner_uid', user.id) // SICUREZZA: filtro per utente
         .eq('is_quater', true)
         .neq('status', 'INTERROTTA')
         .order('number');
