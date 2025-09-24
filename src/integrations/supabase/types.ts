@@ -1495,9 +1495,11 @@ export type Database = {
           is_pagopa: boolean | null
           is_quater: boolean | null
           number: string | null
+          original_total_due_cents: number | null
           overdue_effective_cents: number | null
           owner_uid: string | null
           paid_amount_cents: number | null
+          quater_total_due_cents: number | null
           residual_effective_cents: number | null
           status: string | null
           taxpayer_name: string | null

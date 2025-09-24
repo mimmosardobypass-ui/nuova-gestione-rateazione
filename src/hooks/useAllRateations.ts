@@ -10,7 +10,7 @@ interface UseAllRateationsReturn {
   online: boolean;
 }
 
-const CACHE_KEY = "all_rateations_cache_v3"; // Updated for canonical view
+const CACHE_KEY = "all_rateations_cache_v4"; // Updated for corrected canonical view
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -112,86 +112,69 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         return;
       }
 
-      // Fetch ALL rateations from canonical view
+      // Fetch ALL rateations from canonical view with corrected logic
       const { data: rateations, error: rateationsError } = await supabase
         .from('v_rateations_list_ui')
         .select('*')
         .eq('owner_uid', userId)
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: false });
       
       if (rateationsError) {
         throw rateationsError;
       }
 
-      // Debug: Log raw data from canonical view
-      console.log("🔍 Raw data from v_rateations_list_ui:", rateations?.slice(0, 2));
-      
-      if (rateations && rateations.length > 0) {
-        const firstRow = rateations[0];
-        console.log("🔍 First row monetary fields:", {
-          total_amount_cents: firstRow.total_amount_cents,
-          paid_amount_cents: firstRow.paid_amount_cents,
-          overdue_effective_cents: firstRow.overdue_effective_cents,  
-          residual_effective_cents: firstRow.residual_effective_cents,
-          number: firstRow.number
-        });
-      }
+      // Helper function for cents to EUR conversion
+      const centsToEUR = (cents?: number | null): number => 
+        typeof cents === 'number' ? cents / 100 : 0;
 
-      // Simplified mapping using canonical view data (all monetary values in cents)
-      const finalRows: RateationRow[] = (rateations || []).map((r: any) => {
-        const totalEUR = (r.total_amount_cents || 0) / 100;
-        const paidEUR = (r.paid_amount_cents || 0) / 100;
-        const overdueEUR = (r.overdue_effective_cents || 0) / 100;
-        const residualEUR = (r.residual_effective_cents || 0) / 100;
+      // Simplified mapping using canonical view data (all monetary values already calculated correctly in cents)
+      const finalRows: RateationRow[] = (rateations || []).map((r: any) => ({
+        id: String(r.id),
+        numero: r.number || "",
+        tipo: r.tipo || "N/A",
+        contribuente: r.taxpayer_name || "",
 
-        return {
-          id: String(r.id),
-          numero: r.number || "",
-          tipo: r.tipo || "N/A",
-          contribuente: r.taxpayer_name || "",
+        importoTotale: centsToEUR(r.total_amount_cents),
+        importoPagato: centsToEUR(r.paid_amount_cents),
+        importoRitardo: centsToEUR(r.overdue_effective_cents),
+        residuo: centsToEUR(r.residual_effective_cents),
+        residuoEffettivo: centsToEUR(r.residual_effective_cents),
 
-          importoTotale: totalEUR,
-          importoPagato: paidEUR,
-          importoRitardo: overdueEUR,
-          residuo: residualEUR,
-          residuoEffettivo: residualEUR,
+        rateTotali: Number(r.installments_total || 0),
+        ratePagate: Number(r.installments_paid || 0),
+        rateNonPagate: Number(r.installments_total || 0) - Number(r.installments_paid || 0),
+        rateInRitardo: Number(r.installments_overdue_today || 0),
 
-          rateTotali: Number(r.installments_total || 0),
-          ratePagate: Number(r.installments_paid || 0),
-          rateNonPagate: Number(r.installments_total || 0) - Number(r.installments_paid || 0),
-          rateInRitardo: Number(r.installments_overdue_today || 0),
+        status: r.status || "attiva",
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        is_f24: !!r.is_f24,
+        type_id: Number(r.type_id || 0),
+        type_name: r.tipo || "N/A",
+        ratePaidLate: 0,
 
-          status: r.status || "attiva",
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-          is_f24: !!r.is_f24,
-          type_id: Number(r.type_id || 0),
-          type_name: r.tipo || "N/A",
-          ratePaidLate: 0,
+        // Quater fields
+        is_quater: !!r.is_quater,
+        original_total_due_cents: Number(r.original_total_due_cents || 0),
+        quater_total_due_cents: Number(r.quater_total_due_cents || 0),
 
-          // Quater fields
-          is_quater: !!r.is_quater,
-          original_total_due_cents: Number(r.original_total_due_cents || 0),
-          quater_total_due_cents: Number(r.quater_total_due_cents || 0),
+        // PagoPA fields  
+        is_pagopa: !!r.is_pagopa,
+        unpaid_overdue_today: Number(r.installments_overdue_today || 0),
+        unpaid_due_today: 0,
+        max_skips_effective: 8,
+        skip_remaining: 8,
+        at_risk_decadence: false,
 
-          // PagoPA misc - defaults for missing fields
-          is_pagopa: !!r.is_pagopa,
-          unpaid_overdue_today: Number(r.installments_overdue_today || 0),
-          unpaid_due_today: 0,
-          max_skips_effective: 8,
-          skip_remaining: 8,
-          at_risk_decadence: false,
-
-          // Migration & flags - defaults for missing fields
-          debts_total: 0,
-          debts_migrated: 0,
-          migrated_debt_numbers: [],
-          remaining_debt_numbers: [],
-          rq_target_ids: [],
-          rq_migration_status: "none",
-          excluded_from_stats: false,
-        } as RateationRow;
-      });
+        // Migration & flags - defaults for missing fields
+        debts_total: 0,
+        debts_migrated: 0,
+        migrated_debt_numbers: [],
+        remaining_debt_numbers: [],
+        rq_target_ids: [],
+        rq_migration_status: "none",
+        excluded_from_stats: false,
+      } as RateationRow));
       
       // Debug: Log final mapped data  
       if (finalRows.length > 0) {
