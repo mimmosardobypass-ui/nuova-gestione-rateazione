@@ -157,7 +157,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     : selectedDebtIds.length === 0;
 
   // Consolidated button disabling logic
-  const quotaCents = migrationMode === 'pagopa' ? eurToCentsForAllocation(allocationQuotaEur || '0') : 0;
+  const quotaCents = migrationMode === 'pagopa' && allocationQuotaEur && allocationQuotaEur !== '0' 
+    ? (() => {
+        try {
+          return eurToCentsForAllocation(allocationQuotaEur);
+        } catch {
+          return -1; // Invalid input
+        }
+      })()
+    : 0;
   const disableMigrate = processing || 
     (migrationMode === 'pagopa' && (selectedPagopaIds.length !== 1 || !targetRateationId || quotaCents <= 0 || quotaCents > selectedPagopaAllocatable)) ||
     (migrationMode === 'debts' && (nothingSelected || !targetRateationId));
