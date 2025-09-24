@@ -546,6 +546,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                     <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                      <Input
                                        id="quota-input"
+                                       data-testid="rq-quota-input"
                                        type="text"
                                        inputMode="decimal"
                                        pattern="[0-9\.,]*"
@@ -565,6 +566,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                      type="button"
                                      variant="secondary"
                                      size="sm"
+                                     data-testid="rq-use-all"
                                      onClick={() => setAllocationQuotaEur((selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2}))}
                                      disabled={selectedPagopaAllocatable === 0 || processing}
                                    >
@@ -734,7 +736,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           <Button variant="outline" onClick={() => onClose(false)} disabled={processing}>
             Annulla
           </Button>
-          <Button onClick={handleMigration} disabled={disableMigrate}>
+          <Button onClick={handleMigration} disabled={disableMigrate} data-testid="rq-migrate-btn">
             {processing && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
             {processing 
               ? 'Migrazione...' 
