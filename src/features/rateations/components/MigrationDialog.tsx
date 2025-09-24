@@ -16,6 +16,7 @@ import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
 import { linkPagopaToRQ, unlinkPagopaFromRQ, getPagopaLinks } from '../api/linkPagopa';
+import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -155,12 +156,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  // Quota validation for PagoPA mode
-  const quotaValid = migrationMode === 'pagopa' 
-    ? parseFloat(allocationQuotaEur || '0') > 0 && parseFloat(allocationQuotaEur || '0') <= (selectedPagopaAllocatable / 100)
-    : true;
-
-  const disableMigrate = processing || nothingSelected || !targetRateationId || (migrationMode === 'pagopa' && !quotaValid);
+  // Consolidated button disabling logic
+  const quotaCents = migrationMode === 'pagopa' ? eurToCentsForAllocation(allocationQuotaEur || '0') : 0;
+  const disableMigrate = processing || 
+    (migrationMode === 'pagopa' && (selectedPagopaIds.length !== 1 || !targetRateationId || quotaCents <= 0 || quotaCents > selectedPagopaAllocatable)) ||
+    (migrationMode === 'debts' && (nothingSelected || !targetRateationId));
 
   // Debug logging for button state
   console.debug('[Migration] Button state', { 
@@ -191,8 +191,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         description: "Collegamento rimosso con successo"
       });
       
-      // Reload existing links and refresh data
-      await loadExistingLinks(pagopaId);
+      // Reload existing links and refresh allocation data
+      await Promise.all([
+        loadExistingLinks(pagopaId),
+        loadData()
+      ]);
       onMigrationComplete?.();
     } catch (error: any) {
       toast({
@@ -238,12 +241,21 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
 
     if (migrationMode === 'pagopa') {
-      // Validate quota allocation
-      const quotaCents = Math.round(parseFloat(allocationQuotaEur || '0') * 100);
-      if (quotaCents <= 0 || quotaCents > selectedPagopaAllocatable) {
+      // Validate quota allocation using robust validation
+      try {
+        const quotaCents = eurToCentsForAllocation(allocationQuotaEur || '0');
+        if (quotaCents > selectedPagopaAllocatable) {
+          toast({
+            title: "Quota non valida",
+            description: `La quota deve essere compresa tra €0.01 e €${(selectedPagopaAllocatable / 100).toFixed(2)}`,
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (error) {
         toast({
           title: "Quota non valida",
-          description: `La quota deve essere compresa tra €0.01 e €${(selectedPagopaAllocatable / 100).toFixed(2)}`,
+          description: "Inserire un importo valido",
           variant: "destructive"
         });
         return;
@@ -255,7 +267,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       setProcessing(true);
       try {
         // Use linkPagopaToRQ with allocated quota for each selected PagoPA
-        const quotaCents = Math.round(parseFloat(allocationQuotaEur) * 100);
+        const quotaCents = eurToCentsForAllocation(allocationQuotaEur);
         await Promise.all(
           selectedPagopaIds.map(pagopaId => 
             linkPagopaToRQ(
