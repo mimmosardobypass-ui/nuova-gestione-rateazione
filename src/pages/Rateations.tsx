@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { setSEO } from "@/lib/seo";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useRateations } from "@/features/rateations/hooks/useRateations";
+import { useAllRateations } from "@/hooks/useAllRateations";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
@@ -32,7 +32,7 @@ import { AdvancedStats } from "@/features/rateations/components/views/AdvancedSt
 export default function Rateations() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
-  const { rows, loading, error, online, loadData, handleDelete, deleting } = useRateations();
+  const { rows, loading, error, online } = useAllRateations();
   const { toast } = useToast();
   
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
@@ -44,7 +44,7 @@ export default function Rateations() {
   const [decadenceLoading, setDecadenceLoading] = React.useState(false);
   
   const { debouncedReload, debouncedReloadStats, cleanup } = useDebouncedReload({
-    loadData,
+    loadData: () => Promise.resolve(), // useAllRateations handles loading automatically
     reloadStats
   });
 
@@ -87,9 +87,9 @@ export default function Rateations() {
   React.useEffect(() => {
     if (authLoading) return; // Wait for auth to finish loading
     if (!session) return;    // Don't load data if not authenticated
-    loadData();              // Load data only when authenticated
-    loadDecadenceData();     // Load decadence data too
-  }, [authLoading, session, loadData, loadDecadenceData]);
+    // useAllRateations handles loading automatically
+    loadDecadenceData();     // Load decadence data
+  }, [authLoading, session, loadDecadenceData]);
   // Key per far re-render la tabella dopo creazione
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -98,6 +98,9 @@ export default function Rateations() {
       "Rateazioni - Gestione Rate",
       "Gestisci le tue rateazioni e rate di pagamento"
     );
+    
+    // Clear cache after switching to useAllRateations
+    window.dispatchEvent(new Event('rateations:reload-kpis'));
   }, []);
 
 
@@ -233,8 +236,8 @@ export default function Rateations() {
           loading={loading}
           error={error}
           online={online}
-          onDelete={(id) => handleDelete(id, debouncedReloadStats)}
-          deleting={deleting}
+          onDelete={undefined} // Remove delete functionality for now
+          deleting={null}
           onRefresh={() => {
             debouncedReload();
             setRefreshKey(prev => prev + 1);
