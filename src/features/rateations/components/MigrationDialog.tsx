@@ -104,11 +104,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     );
   };
 
-  const handlePagopaSelection = (pagopaId: string, checked: boolean) => {
+  const handlePagopaSelection = (pagopaId: string | number, checked: boolean) => {
+    const id = String(pagopaId);
     setSelectedPagopaIds(prev => 
       checked 
-        ? [...prev, pagopaId]
-        : prev.filter(id => id !== pagopaId)
+        ? Array.from(new Set([...prev, id]))
+        : prev.filter(x => x !== id)
     );
   };
 
@@ -397,7 +398,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                           {migrablePagoPA.map((pagopa) => (
                             <div key={pagopa.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
                               <Checkbox
-                                checked={selectedPagopaIds.includes(pagopa.id)}
+                                checked={selectedPagopaIds.includes(String(pagopa.id))}
                                 onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
                               />
                               <div className="flex-1 min-w-0">
