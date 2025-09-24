@@ -67,7 +67,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         ]);
         
         setMigrablePagoPA(pagopaData);
-        setRqRateations(rqData);
+        setRqRateations((rqData ?? []).map(r => ({ ...r, id: String(r.id) })));
         
         // Auto-select the current PagoPA if it's migratable
         if (pagopaData.length > 0) {
@@ -82,7 +82,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         ]);
         
         setActiveDebts(debtsData);
-        setRqRateations(rqData);
+        setRqRateations((rqData ?? []).map(r => ({ ...r, id: String(r.id) })));
       }
     } catch (error) {
       console.error('Error loading migration data:', error);
@@ -124,7 +124,16 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  const disableMigrate = processing || nothingSelected || typeof targetRateationId !== "string" || !targetRateationId;
+  const disableMigrate = processing || nothingSelected || !targetRateationId;
+
+  // Debug logging for button state
+  console.debug('[Migration] Button state', { 
+    targetRateationId, 
+    type: typeof targetRateationId, 
+    disableMigrate, 
+    nothingSelected, 
+    processing 
+  });
 
   // Helper to generate safe RQ labels for toast messages
   const rqLabel = (id: unknown) => {
@@ -463,7 +472,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         </SelectTrigger>
                         <SelectContent>
                           {rqRateations.map((rq) => (
-                            <SelectItem key={rq.id} value={rq.id}>
+                            <SelectItem key={rq.id} value={String(rq.id)}>
                               {rq.number ?? '—'} {rq.taxpayer_name ? `- ${rq.taxpayer_name}` : ''}
                             </SelectItem>
                           ))}
