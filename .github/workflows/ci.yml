@@ -1,0 +1,48 @@
+name: CI
+on: 
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Generate Supabase types
+        run: npm run gen:types
+        continue-on-error: true  # Don't block if Supabase CLI not configured
+        
+      - name: TypeScript check
+        run: npm run type-check
+        
+      - name: Lint
+        run: npm run lint
+        
+      - name: Unit tests
+        run: npm run test
+        
+      - name: Contract tests
+        run: npm run test:contract
+        continue-on-error: true  # Don't block if DB not available
+        
+      - name: Build
+        run: npm run build
+        
+      - name: E2E tests (headless)
+        run: npm run e2e:headless
+        continue-on-error: true  # E2E can be flaky

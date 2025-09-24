@@ -24,6 +24,15 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // Anti-regression rules for data contract
+      "@typescript-eslint/no-explicit-any": ["warn", {
+        ignoreRestArgs: true
+      }],
+      "@typescript-eslint/ban-types": ["error", {
+        types: {
+          "any": "Use proper typing instead of any, especially in mappers"
+        }
+      }],
       "no-restricted-syntax": [
         "error",
         {
@@ -48,5 +57,14 @@ export default tseslint.config(
         }
       ],
     },
+  },
+  // Stricter rules for mapper files
+  {
+    files: ["src/mappers/**/*.ts", "src/schemas/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+    }
   }
 );

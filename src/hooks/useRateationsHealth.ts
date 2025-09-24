@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logHealthViolation } from "@/utils/observability";
 
 export interface RateationsHealthData {
   suspicious: number;
@@ -48,6 +49,11 @@ export function useRateationsHealth(): RateationsHealthData {
           totalRows: rows.length,
           loading: false,
         });
+
+        // Log health violations for observability
+        if (suspiciousRows.length > 0) {
+          logHealthViolation(suspiciousRows.length, rows.length, session.user.id);
+        }
       } catch (err) {
         console.warn("[useRateationsHealth] Unexpected error:", err);
         setHealth({ suspicious: 0, totalRows: 0, loading: false });

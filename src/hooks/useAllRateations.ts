@@ -12,8 +12,7 @@ interface UseAllRateationsReturn {
   online: boolean;
 }
 
-const CACHE_KEY = "rateations:list_ui:v7"; // Runtime-safe with Zod validation
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+import { RATEATIONS_CACHE_KEY, CACHE_TTL } from "@/constants/cache";
 
 interface CacheData {
   rows: RateationRow[];
@@ -40,7 +39,7 @@ export const useAllRateations = (): UseAllRateationsReturn => {
         timestamp: Date.now(),
         userId,
       };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      localStorage.setItem(RATEATIONS_CACHE_KEY, JSON.stringify(cacheData));
     } catch (err) {
       console.warn("Failed to save to cache:", err);
     }
@@ -48,7 +47,7 @@ export const useAllRateations = (): UseAllRateationsReturn => {
 
   const loadFromCache = useCallback((userId: string): RateationRow[] | null => {
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
+      const cached = localStorage.getItem(RATEATIONS_CACHE_KEY);
       if (!cached) return null;
       
       const cacheData: CacheData = JSON.parse(cached);
@@ -56,7 +55,7 @@ export const useAllRateations = (): UseAllRateationsReturn => {
       const isWrongUser = cacheData.userId !== userId;
       
       if (isExpired || isWrongUser) {
-        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(RATEATIONS_CACHE_KEY);
         return null;
       }
       
@@ -69,7 +68,7 @@ export const useAllRateations = (): UseAllRateationsReturn => {
 
   const clearCache = useCallback(() => {
     try {
-      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(RATEATIONS_CACHE_KEY);
     } catch (err) {
       console.warn("Failed to clear cache:", err);
     }
@@ -126,9 +125,23 @@ export const useAllRateations = (): UseAllRateationsReturn => {
       }
 
       // Runtime validation with Zod (stops schema mismatches immediately)
+      const startTime = Date.now();
       const parsed = RateationListRowsSchema.safeParse(rawData ?? []);
+      const validationDuration = Date.now() - startTime;
+
       if (!parsed.success) {
         console.error("[useAllRateations] Schema validation failed:", parsed.error.flatten());
+        
+        // Log validation error for observability
+        import("@/utils/observability").then(({ logValidationError }) => {
+          logValidationError({
+            userId,
+            error: JSON.stringify(parsed.error.flatten()),
+            timestamp: Date.now(),
+            context: { rowCount: rawData?.length ?? 0, validationDuration }
+          });
+        });
+
         // Safe fallback: no rows to prevent inconsistent UI data
         setRows([]);
         setLoading(false);
