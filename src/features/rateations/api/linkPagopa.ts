@@ -118,24 +118,56 @@ export async function linkPagopaToRQ(
 }
 
 /**
- * Rimuove un collegamento specifico tra PagoPA e RQ
+ * Rimuove un collegamento specifico tra PagoPA e RQ usando RPC transazionale
  */
 export async function unlinkPagopaFromRQ(
-  pagopaId: number, 
-  rqId: number
-): Promise<void> {
+  pagopaId: number | string, 
+  rqId: number | string,
+  note?: string
+): Promise<{ pagopa_id: number; riam_quater_id: number; action: string }> {
   try {
-    const { error } = await supabase
-      .from('riam_quater_links')
-      .delete()
-      .eq('pagopa_id', pagopaId)
-      .eq('riam_quater_id', rqId);
+    // Validazioni tipo-safe
+    const validPagopaId = toIntId(pagopaId, 'pagopaId');
+    const validRqId = toIntId(rqId, 'rqId');
+
+    // Chiamata RPC transazionale
+    const { data, error } = await supabase.rpc('link_pagopa_unlink', {
+      p_pagopa_id: validPagopaId,
+      p_rq_id: validRqId,
+      p_reason: note || null
+    });
 
     if (error) throw error;
 
+    if (!data || data.length === 0) {
+      throw new Error('Nessun risultato dalla funzione di scollegamento');
+    }
+
+    const result = data[0];
+    
+    // Logging per osservabilità
+    console.log('RQ unlink result:', {
+      pagopaId: validPagopaId,
+      rqId: validRqId,
+      action: result.action,
+      timestamp: new Date().toISOString()
+    });
+
+    return {
+      pagopa_id: Number(result.pagopa_id),
+      riam_quater_id: Number(result.riam_quater_id),
+      action: result.action
+    };
+
   } catch (error) {
     console.error('Error unlinking PagoPA from RQ:', error);
-    throw error;
+    
+    // Mappa errore per UX
+    const userMessage = mapRqLinkError(error);
+    const enhancedError = new Error(userMessage);
+    (enhancedError as any).originalError = error;
+    
+    throw enhancedError;
   }
 }
 

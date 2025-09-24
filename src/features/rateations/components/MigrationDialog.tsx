@@ -15,7 +15,7 @@ import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
-import { linkPagopaToRQ } from '../api/linkPagopa';
+import { linkPagopaToRQ, unlinkPagopaFromRQ, getPagopaLinks } from '../api/linkPagopa';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -41,6 +41,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
   const [allocationQuotaEur, setAllocationQuotaEur] = useState<string>('');
   const [selectedPagopaAllocatable, setSelectedPagopaAllocatable] = useState<number>(0);
+  const [existingPagopaLinks, setExistingPagopaLinks] = useState<any[]>([]);
 
   const { toast } = useToast();
 
@@ -100,6 +101,16 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
   };
 
+  // Load existing PagoPA links when a PagoPA is selected
+  const loadExistingLinks = async (pagopaId: number) => {
+    try {
+      const links = await getPagopaLinks(pagopaId);
+      setExistingPagopaLinks(links);
+    } catch (error) {
+      console.error('Error loading existing links:', error);
+    }
+  };
+
   const handleDebtSelection = (debtId: string, checked: boolean) => {
     setSelectedDebtIds(prev => 
       checked 
@@ -123,9 +134,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         setSelectedPagopaAllocatable(selected.allocatable_cents);
         setAllocationQuotaEur((selected.allocatable_cents / 100).toFixed(2));
       }
+      // Load existing links for this PagoPA
+      loadExistingLinks(Number(pagopaId));
     } else {
       setSelectedPagopaAllocatable(0);
       setAllocationQuotaEur('');
+      setExistingPagopaLinks([]);
     }
   };
 
@@ -165,6 +179,32 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     return found?.number ?? strId.slice(-6); // prefer RQ number if available
   };
 
+  const handleUnlinkPagopa = async (pagopaId: number, rqId: number, rqNumber: string) => {
+    if (!confirm(`Sganciare la PagoPA da RQ ${rqNumber}?`)) return;
+    
+    setProcessing(true);
+    try {
+      await unlinkPagopaFromRQ(pagopaId, rqId);
+      
+      toast({
+        title: "Scollegata",
+        description: "Collegamento rimosso con successo"
+      });
+      
+      // Reload existing links and refresh data
+      await loadExistingLinks(pagopaId);
+      onMigrationComplete?.();
+    } catch (error: any) {
+      toast({
+        title: "Errore",
+        description: error.message || "Impossibile sganciare",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   // Custom close handler to reset all selections
   const onClose = (open: boolean) => {
     setOpen(open);
@@ -174,6 +214,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       setSelectedDebtIds([]);
       setTargetRateationId('');
       setNote('');
+      setExistingPagopaLinks([]);
     }
   };
 
@@ -500,9 +541,52 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                  </div>
                                )}
                              </CardContent>
-                           </Card>
-                         )}
-                      </div>
+                            </Card>
+                          )}
+                          
+                          {/* Existing PagoPA Links */}
+                          {existingPagopaLinks.length > 0 && selectedPagopaIds.length > 0 && (
+                            <Card className="bg-amber-50 border-amber-200">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-sm text-amber-800">Collegamenti esistenti</CardTitle>
+                              </CardHeader>
+                              <CardContent className="pt-0">
+                                <ul className="space-y-2">
+                                  {existingPagopaLinks.map((link: any) => (
+                                    <li key={link.riam_quater_id} className="flex items-center justify-between p-2 bg-white rounded border border-amber-200">
+                                      <div className="text-sm">
+                                        <span className="font-medium text-foreground">
+                                          RQ {link.rq?.number || link.riam_quater_id}
+                                        </span>
+                                        {link.rq?.taxpayer_name && (
+                                          <span className="text-muted-foreground"> — {link.rq.taxpayer_name}</span>
+                                        )}
+                                        <span className="ml-2 text-muted-foreground">
+                                          (€ {(link.allocated_residual_cents / 100).toLocaleString('it-IT', { 
+                                            minimumFractionDigits: 2 
+                                          })})
+                                        </span>
+                                      </div>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                                        disabled={processing}
+                                        onClick={() => handleUnlinkPagopa(
+                                          Number(selectedPagopaIds[0]), 
+                                          link.riam_quater_id, 
+                                          link.rq?.number || link.riam_quater_id
+                                        )}
+                                      >
+                                        Sgancia
+                                      </Button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </CardContent>
+                            </Card>
+                          )}
+                       </div>
                     )
                   ) : (
                     // Normal Debts Selection UI

@@ -2690,6 +2690,14 @@ export type Database = {
           riam_quater_id: number
         }[]
       }
+      link_pagopa_unlink: {
+        Args: { p_pagopa_id: number; p_reason?: string; p_rq_id: number }
+        Returns: {
+          action: string
+          pagopa_id: number
+          riam_quater_id: number
+        }[]
+      }
       mark_installment_paid: {
         Args: { p_paid_at: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
