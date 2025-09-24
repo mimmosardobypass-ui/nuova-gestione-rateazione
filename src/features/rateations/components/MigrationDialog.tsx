@@ -285,15 +285,17 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           duration: 5000
         });
 
+        // Reload existing links and refresh allocation data
+        await Promise.all([
+          loadExistingLinks(Number(selectedPagopaIds[0])),
+          loadData()
+        ]);
+
         setOpen(false);
         onMigrationComplete?.();
         
-        // Reset form
-        setSelectedPagopaIds([]);
-        setTargetRateationId('');
-        setNote('');
-        setAllocationQuotaEur('');
-        setSelectedPagopaAllocatable(0);
+        // Reset form - mantieni la PagoPA selezionata per migrazioni successive
+        setAllocationQuotaEur(''); // svuota input per evitare false-positivi
       } catch (error) {
         console.error('PagoPA migration error:', error);
         const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle PagoPA";
@@ -530,28 +532,44 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                </Label>
                                <div className="relative mt-2">
                                  <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                 <Input
-                                   id="quota-input"
-                                   type="number"
-                                   step="0.01"
-                                   min="0"
-                                   max={selectedPagopaAllocatable / 100}
-                                   value={allocationQuotaEur}
-                                   onChange={(e) => setAllocationQuotaEur(e.target.value)}
-                                   className="pl-9"
-                                   placeholder="0.00"
+                                  <Input
+                                    id="quota-input"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max={selectedPagopaAllocatable / 100}
+                                    value={allocationQuotaEur}
+                                    onChange={(e) => setAllocationQuotaEur(e.target.value)}
+                                    className="pl-9"
+                                    placeholder="0.00"
+                                    disabled={selectedPagopaAllocatable === 0}
                                  />
                                </div>
-                               <div className="text-xs text-muted-foreground mt-1">
-                                 Massimo disponibile: €{(selectedPagopaAllocatable / 100).toFixed(2)}
-                               </div>
-                               {allocationQuotaEur && (
-                                 parseFloat(allocationQuotaEur) <= 0 || parseFloat(allocationQuotaEur) > (selectedPagopaAllocatable / 100)
-                               ) && (
-                                 <div className="text-xs text-red-600 mt-1">
-                                   La quota deve essere compresa tra €0.01 e €{(selectedPagopaAllocatable / 100).toFixed(2)}
-                                 </div>
-                               )}
+                                {selectedPagopaAllocatable === 0 ? (
+                                  <div className="text-xs text-amber-600 mt-1">
+                                    Nessuna quota disponibile: sgancia o riduci una quota esistente
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Massimo disponibile: €{(selectedPagopaAllocatable / 100).toLocaleString('it-IT', {minimumFractionDigits:2})}
+                                  </div>
+                                )}
+                                {allocationQuotaEur && selectedPagopaAllocatable > 0 && (() => {
+                                  try {
+                                    const quotaCents = eurToCentsForAllocation(allocationQuotaEur);
+                                    return quotaCents > selectedPagopaAllocatable && (
+                                      <div className="text-xs text-red-600 mt-1">
+                                        Massimo disponibile: €{(selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2})}
+                                      </div>
+                                    );
+                                  } catch {
+                                    return (
+                                      <div className="text-xs text-red-600 mt-1">
+                                        Inserire un importo valido
+                                      </div>
+                                    );
+                                  }
+                                })()}
                              </CardContent>
                             </Card>
                           )}
