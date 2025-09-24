@@ -287,6 +287,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -460,6 +467,13 @@ export type Database = {
             foreignKeyName: "rateation_debts_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -539,6 +553,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
           },
           {
             foreignKeyName: "rateation_debts_target_rateation_id_fkey"
@@ -764,6 +785,13 @@ export type Database = {
             foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
             columns: ["interrupted_by_rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -964,6 +992,13 @@ export type Database = {
             foreignKeyName: "riam_quater_links_pagopa_id_fkey"
             columns: ["pagopa_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -1043,6 +1078,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
           },
           {
             foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
@@ -1206,6 +1248,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -1345,6 +1394,13 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -1455,6 +1511,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
           },
           {
             foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
@@ -1664,6 +1727,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
           },
           {
             foreignKeyName: "installments_rateation_id_fkey"
@@ -1939,6 +2009,13 @@ export type Database = {
             foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
             columns: ["interrupted_by_rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -2052,6 +2129,13 @@ export type Database = {
             foreignKeyName: "riam_quater_links_pagopa_id_fkey"
             columns: ["pagopa_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
@@ -2131,6 +2215,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
           },
           {
             foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
@@ -2232,10 +2323,26 @@ export type Database = {
             foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
             columns: ["riam_quater_id"]
             isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
             referencedRelation: "v_rq_contribuenti_aggregati"
             referencedColumns: ["riam_quater_id"]
           },
         ]
+      }
+      v_rq_allocations: {
+        Row: {
+          allocated_residual_cents: number | null
+          owner_uid: string | null
+          quater_total_due_cents: number | null
+          rq_id: number | null
+        }
+        Relationships: []
       }
       v_rq_contribuenti_aggregati: {
         Row: {
@@ -2344,6 +2451,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_rateations_with_kpis"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
           },
           {
             foreignKeyName: "installments_rateation_id_fkey"

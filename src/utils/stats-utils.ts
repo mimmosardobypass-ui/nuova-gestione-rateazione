@@ -298,18 +298,23 @@ export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
 
 /** KPI Rottamazione Quater basato sui collegamenti con quotas (prevenire doppi conteggi) */
 export function calcQuaterSavingFromLinks(rows: RateationRow[]): QuaterKpis {
-  const quaterRows = rows.filter(r => r.is_quater);
-  
-  const total = quaterRows.reduce((sum, quaterRow) => {
-    // Use allocated quota instead of full residual to prevent double-counting
-    const allocatedEUR = (quaterRow.allocated_residual_cents ?? 0) / 100;
-    const rqTotalEUR = (quaterRow.rq_total_at_link_cents ?? quaterRow.quater_total_due_cents ?? 0) / 100;
-    const saving = Math.max(0, allocatedEUR - rqTotalEUR);
-    
-    return sum + saving;
-  }, 0);
+  // rows devono rappresentare le RQ (una riga per RQ), con quota già aggregata
+  // campi attesi: is_quater, allocated_residual_cents (somma quote verso la RQ),
+  // quater_total_due_cents (totale dovuto RQ)
+  const rqRows = rows.filter((r: any) => r.is_quater);
 
-  return { quaterSaving: total };
+  let savingCents = 0;
+
+  for (const rq of rqRows) {
+    const allocated = Number(rq.allocated_residual_cents ?? 0);     // cents
+    const rqTotal   = Number(
+      rq.rq_total_at_link_cents ?? rq.quater_total_due_cents ?? 0   // cents
+    );
+    const perRq = Math.max(0, allocated - rqTotal);                 // cents
+    savingCents += perRq;
+  }
+
+  return { quaterSaving: savingCents / 100 };
 }
 
 /**
