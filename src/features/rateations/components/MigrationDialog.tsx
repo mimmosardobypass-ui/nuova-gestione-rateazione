@@ -253,7 +253,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 py-4 overflow-y-auto overflow-x-hidden max-h-[calc(88dvh-140px)] overscroll-contain touch-pan-y">
+        <div className="px-6 py-4 overflow-y-auto overflow-x-hidden max-h-[calc(88dvh-140px)] overscroll-contain touch-pan-y min-w-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -286,7 +286,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                   +{rateation.migrated_debt_numbers.length - 10}
                                 </Badge>
                               </PopoverTrigger>
-                              <PopoverContent className="w-80 max-h-64 overflow-auto">
+                              <PopoverContent className="z-[60] w-80 max-h-64 overflow-auto">
                                 <div className="flex flex-wrap gap-2">
                                   {rateation.migrated_debt_numbers.slice(10).map((number, idx) => (
                                     <Badge key={idx} variant="outline" className="text-xs px-2 py-1 break-all">
@@ -316,7 +316,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                   +{rateation.remaining_debt_numbers.length - 10}
                                 </Badge>
                               </PopoverTrigger>
-                              <PopoverContent className="w-80 max-h-64 overflow-auto">
+                              <PopoverContent className="z-[60] w-80 max-h-64 overflow-auto">
                                 <div className="flex flex-wrap gap-2">
                                   {rateation.remaining_debt_numbers.slice(10).map((number, idx) => (
                                     <Badge key={idx} variant="outline" className="text-xs px-2 py-1 break-all">
