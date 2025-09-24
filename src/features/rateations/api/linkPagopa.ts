@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Crea un collegamento tra PagoPA e RQ con quota allocata
+ * Crea o aggiorna un collegamento tra PagoPA e RQ con quota allocata
  */
 export async function linkPagopaToRQ(
   pagopaId: number, 
@@ -10,6 +10,11 @@ export async function linkPagopaToRQ(
   note?: string
 ): Promise<void> {
   try {
+    // Guardia: quota deve essere positiva
+    if (allocatedCents <= 0) {
+      throw new Error('Allocated quota must be greater than 0');
+    }
+
     // 1) Verifica che l'utente possieda entrambe le rateazioni
     const { data: userRateations, error: ownershipError } = await supabase
       .from('rateations')
@@ -29,32 +34,55 @@ export async function linkPagopaToRQ(
       throw new Error('Access denied to one or both rateations');
     }
 
-    // 2) Verifica quota disponibile
+    // 2) Verifica quota disponibile (escludendo allocazione corrente per upsert)
     const { data: allocation, error: allocationError } = await supabase
       .from('v_pagopa_allocations')
-      .select('allocatable_cents')
+      .select('allocatable_cents, residual_cents')
       .eq('pagopa_id', pagopaId)
       .single();
 
     if (allocationError) throw allocationError;
 
-    if (!allocation || allocation.allocatable_cents < allocatedCents) {
-      throw new Error(`Insufficient allocatable quota. Available: ${allocation?.allocatable_cents || 0}, requested: ${allocatedCents}`);
+    // Per upsert: considera quota già allocata a questa RQ
+    const { data: existingLink } = await supabase
+      .from('riam_quater_links')
+      .select('allocated_residual_cents')
+      .eq('pagopa_id', pagopaId)
+      .eq('riam_quater_id', rqId)
+      .maybeSingle();
+
+    const currentAllocation = existingLink?.allocated_residual_cents || 0;
+    const availableQuota = (allocation?.allocatable_cents || 0) + currentAllocation;
+
+    if (availableQuota < allocatedCents) {
+      throw new Error(`Insufficient allocatable quota. Available: ${availableQuota}, requested: ${allocatedCents}`);
     }
 
-    // 3) Crea il collegamento con quota allocata
-    const { error: insertError } = await supabase
+    // 3) Upsert: crea o aggiorna il collegamento
+    const { error: upsertError } = await supabase
       .from('riam_quater_links')
-      .insert({
+      .upsert({
         pagopa_id: pagopaId,
         riam_quater_id: rqId,
         allocated_residual_cents: allocatedCents,
         reason: note || undefined,
+      }, {
+        onConflict: 'riam_quater_id,pagopa_id'
       });
 
-    if (insertError) throw insertError;
+    if (upsertError) throw upsertError;
 
-    // 4) Trigger per calcolare altri campi viene gestito dal database
+    // 4) Logging per osservabilità
+    console.log('RQ allocation upsert:', {
+      pagopaId,
+      rqId,
+      allocatedCents,
+      previousAllocation: currentAllocation,
+      userId: user.id,
+      action: existingLink ? 'update' : 'create'
+    });
+
+    // 5) Trigger per calcolare altri campi viene gestito dal database
 
   } catch (error) {
     console.error('Error linking PagoPA to RQ:', error);
