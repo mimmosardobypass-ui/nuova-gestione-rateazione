@@ -1492,6 +1492,7 @@ export type Database = {
           installments_paid: number | null
           installments_total: number | null
           is_f24: boolean | null
+          is_pagopa: boolean | null
           is_quater: boolean | null
           number: string | null
           overdue_effective_cents: number | null
