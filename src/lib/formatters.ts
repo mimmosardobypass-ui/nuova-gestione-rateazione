@@ -8,10 +8,15 @@ const formatEUR = new Intl.NumberFormat('it-IT', {
 });
 
 /**
- * Format cents to EUR with explicit rounding for precision
+ * @deprecated Use formatEuroFromCents(cents) to avoid ambiguity between EUR and cents
+ * This function will be removed in future versions
  */
-export const formatEuro = (amount: number): string => 
-  amount.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+export const formatEuro = (amount: number): string => {
+  if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {
+    console.warn("[DEPRECATED] formatEuro(): Use formatEuroFromCents(cents) to avoid EUR/cents ambiguity");
+  }
+  return amount.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+};
 
 /**
  * Format cents to EUR with explicit rounding - bulletproof precision

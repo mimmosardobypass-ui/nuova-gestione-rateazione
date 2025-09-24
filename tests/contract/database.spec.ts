@@ -72,4 +72,25 @@ describe('Database Contract Tests', () => {
 
     expect(violatingRows.length).toBe(0);
   });
+
+  it('installments constraint: paid <= total installments', async () => {
+    const { data, error } = await supabase
+      .from('v_rateations_list_ui')
+      .select('installments_paid, installments_total')
+      .limit(200);
+
+    if (error) {
+      console.warn('[Contract Test] Database unavailable:', error.message);
+      return;
+    }
+
+    const rows = data ?? [];
+    const violations = rows.filter((row: any) => {
+      const paid = row.installments_paid ?? 0;
+      const total = row.installments_total ?? 0;
+      return paid > total;
+    });
+
+    expect(violations).toHaveLength(0);
+  });
 });

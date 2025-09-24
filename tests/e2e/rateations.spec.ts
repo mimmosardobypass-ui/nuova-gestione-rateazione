@@ -31,6 +31,42 @@ test.describe('Rateations Page', () => {
     expect(logs).toHaveLength(0);
   });
   
+  test('displays N.36 with correct amounts (deterministic)', async ({ page }) => {
+    // Mock deterministic response with canonical N.36 case (id 57)
+    await page.route(/\/rest\/v1\/v_rateations_list_ui.*/i, route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 57,
+            owner_uid: 'test-user',
+            number: '36',
+            tipo: 'PagoPA',
+            taxpayer_name: 'ACME Srl',
+            status: 'ATTIVA',
+            is_pagopa: true,
+            total_amount_cents: 1817457,    // € 18.174,57
+            paid_amount_cents: 32293,       // € 322,93
+            residual_effective_cents: 1785164, // € 17.851,64
+            overdue_effective_cents: 0,
+            installments_total: 84,
+            installments_paid: 1,
+            installments_overdue_today: 0
+          }
+        ])
+      });
+    });
+
+    await page.goto('/rateazioni');
+    await page.waitForLoadState('networkidle');
+
+    // Verify exact amounts for N.36 (non-breaking space in currency formatting)
+    await expect(page.getByText('€ 322,93')).toBeVisible();
+    await expect(page.getByText('€ 17.851,64')).toBeVisible();
+    await expect(page.getByText('N.36')).toBeVisible();
+  });
+  
   test('handles data validation gracefully', async ({ page }) => {
     // Mock invalid data response
     await page.route('/rest/v1/v_rateations_list_ui*', route => {
@@ -43,14 +79,14 @@ test.describe('Rateations Page', () => {
         }])
       });
     });
-    
+
     await page.goto('/rateazioni');
     await page.waitForLoadState('networkidle');
-    
+
     // Should not crash, should show fallback or empty state
     const errorBoundary = page.locator('[data-testid="error-boundary"]');
     const emptyState = page.locator('[data-testid="empty-rateations"]');
-    
+
     // Either error boundary or empty state should be visible
     const hasErrorHandling = await errorBoundary.isVisible() || await emptyState.isVisible();
     expect(hasErrorHandling).toBe(true);

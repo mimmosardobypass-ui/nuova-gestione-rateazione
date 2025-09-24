@@ -56,6 +56,18 @@ export default tseslint.config(
           "message": "Non usare format(date, 'yyyy-MM-dd'). Usa toLocalISO(date) per evitare problemi di timezone."
         }
       ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/formatters",
+              importNames: ["formatEuro"],
+              message: "Use formatEuroFromCents(cents) to avoid EUR/cents ambiguity"
+            }
+          ]
+        }
+      ],
     },
   },
   // Stricter rules for mapper files

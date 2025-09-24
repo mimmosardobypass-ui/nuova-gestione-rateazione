@@ -25,7 +25,7 @@ jobs:
         
       - name: Generate Supabase types
         run: npm run gen:types
-        continue-on-error: true  # Don't block if Supabase CLI not configured
+        continue-on-error: true  # Optional setup step
         
       - name: TypeScript check
         run: npm run type-check
@@ -38,19 +38,16 @@ jobs:
         
       - name: Contract tests
         run: npm run test:contract
-        continue-on-error: true  # Don't block if DB not available
         
       - name: Schema drift check
         run: npm run schema:check
-        continue-on-error: true  # Don't block if Supabase not configured
+        continue-on-error: true  # Optional if Supabase not configured
         
       - name: SQL smoke tests
         run: npm run smoke:sql
-        continue-on-error: true  # Don't block if DB not available
         
       - name: Build
         run: npm run build
         
       - name: E2E tests (headless)
         run: npm run e2e:headless
-        continue-on-error: true  # E2E can be flaky
