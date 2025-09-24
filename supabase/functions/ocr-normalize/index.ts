@@ -101,7 +101,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('OCR Normalize error:', error);
-    return new Response(`Internal server error: ${error.message}`, { 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return new Response(`Internal server error: ${errorMessage}`, { 
       status: 500, 
       headers: corsHeaders 
     });

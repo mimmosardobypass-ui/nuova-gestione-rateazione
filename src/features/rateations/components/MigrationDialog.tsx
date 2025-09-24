@@ -4,16 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowRight, Package, Target } from 'lucide-react';
+import { ArrowRight, Package, Target, Euro } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
+import { linkPagopaToRQ } from '../api/linkPagopa';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -37,6 +39,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [note, setNote] = useState('');
   const [processing, setProcessing] = useState(false);
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
+  const [allocationQuotaEur, setAllocationQuotaEur] = useState<string>('');
+  const [selectedPagopaAllocatable, setSelectedPagopaAllocatable] = useState<number>(0);
 
   const { toast } = useToast();
 
@@ -111,6 +115,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         ? Array.from(new Set([...prev, id]))
         : prev.filter(x => x !== id)
     );
+    
+    // Update allocatable amount when PagoPA selection changes
+    if (checked) {
+      const selected = migrablePagoPA.find(p => String(p.id) === id);
+      if (selected?.allocatable_cents) {
+        setSelectedPagopaAllocatable(selected.allocatable_cents);
+        setAllocationQuotaEur((selected.allocatable_cents / 100).toFixed(2));
+      }
+    } else {
+      setSelectedPagopaAllocatable(0);
+      setAllocationQuotaEur('');
+    }
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -125,7 +141,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  const disableMigrate = processing || nothingSelected || !targetRateationId;
+  // Quota validation for PagoPA mode
+  const quotaValid = migrationMode === 'pagopa' 
+    ? parseFloat(allocationQuotaEur || '0') > 0 && parseFloat(allocationQuotaEur || '0') <= (selectedPagopaAllocatable / 100)
+    : true;
+
+  const disableMigrate = processing || nothingSelected || !targetRateationId || (migrationMode === 'pagopa' && !quotaValid);
 
   // Debug logging for button state
   console.debug('[Migration] Button state', { 
@@ -176,19 +197,38 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
 
     if (migrationMode === 'pagopa') {
-      // PagoPA → RQ migration
+      // Validate quota allocation
+      const quotaCents = Math.round(parseFloat(allocationQuotaEur || '0') * 100);
+      if (quotaCents <= 0 || quotaCents > selectedPagopaAllocatable) {
+        toast({
+          title: "Quota non valida",
+          description: `La quota deve essere compresa tra €0.01 e €${(selectedPagopaAllocatable / 100).toFixed(2)}`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    if (migrationMode === 'pagopa') {
+      // PagoPA → RQ migration with quota allocation
       setProcessing(true);
       try {
-        // Use markPagopaInterrupted for each selected PagoPA
+        // Use linkPagopaToRQ with allocated quota for each selected PagoPA
+        const quotaCents = Math.round(parseFloat(allocationQuotaEur) * 100);
         await Promise.all(
           selectedPagopaIds.map(pagopaId => 
-            markPagopaInterrupted(pagopaId, targetRateationId, note.trim() || undefined)
+            linkPagopaToRQ(
+              Number(pagopaId), 
+              Number(targetRateationId), 
+              quotaCents, 
+              note.trim() || undefined
+            )
           )
         );
 
         toast({
-          title: "Successo",
-          description: `Migrate ${selectedPagopaIds.length} cartelle PagoPA verso la RQ ${rqLabel(targetRateationId)}`,
+          title: "Successo", 
+          description: `Collegata ${selectedPagopaIds.length} PagoPA alla RQ ${rqLabel(targetRateationId)} con quota €${allocationQuotaEur}`,
           duration: 5000
         });
 
@@ -199,6 +239,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         setSelectedPagopaIds([]);
         setTargetRateationId('');
         setNote('');
+        setAllocationQuotaEur('');
+        setSelectedPagopaAllocatable(0);
       } catch (error) {
         console.error('PagoPA migration error:', error);
         const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle PagoPA";
@@ -402,12 +444,19 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                 onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">
-                                  {pagopa.number} - {pagopa.taxpayer_name}
-                                  <Badge variant="secondary" className="ml-2 text-xs">
-                                    {pagopa.status}
-                                  </Badge>
-                                </div>
+                                 <div className="font-medium text-sm truncate">
+                                   {pagopa.number} - {pagopa.taxpayer_name}
+                                   <Badge variant="secondary" className="ml-2 text-xs">
+                                     {pagopa.status}
+                                   </Badge>
+                                 </div>
+                                 {pagopa.allocatable_cents && (
+                                   <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                     <span className="text-green-600">
+                                       Disponibile: €{(pagopa.allocatable_cents / 100).toFixed(2)}
+                                     </span>
+                                   </div>
+                                 )}
                               </div>
                               {pagopa.total_amount && (
                                 <div className="text-sm text-right flex-shrink-0">
@@ -416,8 +465,43 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                               )}
                             </div>
                           ))}
-                        </div>
-                        </div>
+                         </div>
+                         </div>
+                         
+                         {/* Quota allocation input for PagoPA mode */}
+                         {selectedPagopaIds.length > 0 && (
+                           <Card className="bg-blue-50 border-blue-200">
+                             <CardContent className="p-4">
+                               <Label htmlFor="quota-input" className="text-sm font-medium">
+                                 Quota da attribuire a questa RQ
+                               </Label>
+                               <div className="relative mt-2">
+                                 <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                 <Input
+                                   id="quota-input"
+                                   type="number"
+                                   step="0.01"
+                                   min="0"
+                                   max={selectedPagopaAllocatable / 100}
+                                   value={allocationQuotaEur}
+                                   onChange={(e) => setAllocationQuotaEur(e.target.value)}
+                                   className="pl-9"
+                                   placeholder="0.00"
+                                 />
+                               </div>
+                               <div className="text-xs text-muted-foreground mt-1">
+                                 Massimo disponibile: €{(selectedPagopaAllocatable / 100).toFixed(2)}
+                               </div>
+                               {allocationQuotaEur && (
+                                 parseFloat(allocationQuotaEur) <= 0 || parseFloat(allocationQuotaEur) > (selectedPagopaAllocatable / 100)
+                               ) && (
+                                 <div className="text-xs text-red-600 mt-1">
+                                   La quota deve essere compresa tra €0.01 e €{(selectedPagopaAllocatable / 100).toFixed(2)}
+                                 </div>
+                               )}
+                             </CardContent>
+                           </Card>
+                         )}
                       </div>
                     )
                   ) : (

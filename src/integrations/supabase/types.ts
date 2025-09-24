@@ -224,6 +224,20 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -383,6 +397,20 @@ export type Database = {
             foreignKeyName: "rateation_debts_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -448,6 +476,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateation_debts_target_rateation_id_fkey"
+            columns: ["target_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "rateation_debts_target_rateation_id_fkey"
@@ -659,6 +701,20 @@ export type Database = {
             foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
             columns: ["interrupted_by_rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -788,6 +844,7 @@ export type Database = {
       }
       riam_quater_links: {
         Row: {
+          allocated_residual_cents: number | null
           created_at: string
           id: string
           pagopa_id: number
@@ -800,6 +857,7 @@ export type Database = {
           rq_total_at_link_cents: number | null
         }
         Insert: {
+          allocated_residual_cents?: number | null
           created_at?: string
           id?: string
           pagopa_id: number
@@ -812,6 +870,7 @@ export type Database = {
           rq_total_at_link_cents?: number | null
         }
         Update: {
+          allocated_residual_cents?: number | null
           created_at?: string
           id?: string
           pagopa_id?: number
@@ -837,6 +896,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "riam_quater_links_pagopa_id_fkey"
@@ -907,6 +980,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
@@ -1056,6 +1143,20 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -1181,6 +1282,20 @@ export type Database = {
             foreignKeyName: "installments_rateation_id_fkey"
             columns: ["rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -1253,6 +1368,103 @@ export type Database = {
         }
         Relationships: []
       }
+      v_migrable_pagopa: {
+        Row: {
+          allocatable_cents: number | null
+          id: number | null
+          interrupted_by_rateation_id: number | null
+          number: string | null
+          status: string | null
+          taxpayer_name: string | null
+          total_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_list_ui"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_contribuenti_aggregati"
+            referencedColumns: ["riam_quater_id"]
+          },
+        ]
+      }
       v_monthly_metrics: {
         Row: {
           due_amount: number | null
@@ -1273,6 +1485,18 @@ export type Database = {
           amount_paid: number | null
           month: string | null
           owner_uid: string | null
+        }
+        Relationships: []
+      }
+      v_pagopa_allocations: {
+        Row: {
+          allocatable_cents: number | null
+          allocated_cents: number | null
+          owner_uid: string | null
+          pagopa_id: number | null
+          pagopa_number: string | null
+          residual_cents: number | null
+          taxpayer_name: string | null
         }
         Relationships: []
       }
@@ -1377,6 +1601,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "installments_rateation_id_fkey"
@@ -1638,6 +1876,20 @@ export type Database = {
             foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
             columns: ["interrupted_by_rateation_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
+            columns: ["interrupted_by_rateation_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -1737,6 +1989,20 @@ export type Database = {
             foreignKeyName: "riam_quater_links_pagopa_id_fkey"
             columns: ["pagopa_id"]
             isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
             referencedRelation: "v_pagopa_today_kpis"
             referencedColumns: ["rateation_id"]
           },
@@ -1802,6 +2068,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
@@ -1884,6 +2164,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
+            columns: ["riam_quater_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "riam_quater_links_riam_quater_id_fkey"
@@ -1987,6 +2281,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_decadute_dettaglio"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_rateation_id_fkey"
+            columns: ["rateation_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
           },
           {
             foreignKeyName: "installments_rateation_id_fkey"

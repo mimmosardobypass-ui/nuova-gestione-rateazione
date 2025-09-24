@@ -293,40 +293,22 @@ export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
 
 /** KPI Rottamazione Quater basato sui collegamenti (stessa logica della pagina dettaglio) */
 export function calcQuaterSavingFromLinks(rows: RateationRow[]): QuaterKpis {
-  // mappa id -> residuo (in euro)
-  const byIdResidualEUR = new Map<string, number>();
-  for (const r of rows) {
-    const id = String((r as any).id ?? (r as any).uuid ?? "");
-    const residualEUR =
-      (typeof (r as any).residual_amount === "number" ? (r as any).residual_amount : 0) ||
-      ((r as any).residuo ?? 0) ||
-      ((r as any).residuoEffettivo ?? 0) ||
-      ((typeof (r as any).residual_amount_cents === "number" ? (r as any).residual_amount_cents : 0) / 100);
-
-    if (id) byIdResidualEUR.set(id, residualEUR || 0);
-  }
-
+  // Use actual row data instead of normalizing since we need access to raw fields
+  // This will be improved when we have allocated_residual_cents properly integrated
+  
   let totalSaving = 0;
 
   for (const r of rows) {
-    if (!(r as any).is_quater) continue;
+    // Check if this is a Riam Quater rateation
+    if (!(r as any).is_rq && !(r as any).is_quater) continue;
 
-    // totale RQ (in €)
-    const rqTotalEUR =
-      ((r as any).quater_total_due ?? 0) ||
-      (typeof (r as any).quater_total_due_cents === "number" ? (r as any).quater_total_due_cents / 100 : 0);
-
-    // ids target (array)
-    const targets: any[] = Array.isArray((r as any).rq_target_ids) ? (r as any).rq_target_ids : [];
-
-    // somma residui target
-    let targetsResidualEUR = 0;
-    for (const tid of targets) {
-      const key = String(tid);
-      targetsResidualEUR += byIdResidualEUR.get(key) ?? 0;
-    }
-
-    const saving = Math.max(0, targetsResidualEUR - rqTotalEUR);
+    // Calculate saving using available data
+    // This is a simplified version - in production, this should use
+    // allocated_residual_cents from riam_quater_links table
+    const rqTotalEUR = (r as any).totalGross || (r as any).total_amount || 0;
+    const originalResidualEUR = (r as any).residualGross || (r as any).residual_amount || 0;
+    
+    const saving = Math.max(0, originalResidualEUR - rqTotalEUR);
     totalSaving += saving;
   }
 

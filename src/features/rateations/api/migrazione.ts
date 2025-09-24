@@ -7,11 +7,12 @@ export type MigrablePagopa = {
   status: 'ATTIVA' | 'INTERROTTA' | 'ESTINTA';
   interrupted_by_rateation_id: string | null;
   total_amount: number | null;
+  allocatable_cents?: number; // Available quota for allocation
 };
 
 /**
- * Carica le PagoPA migrabili per una rateazione.
- * Include sempre la PagoPA corrente se è eleggibile per la migrazione.
+ * Carica le PagoPA migrabili per una rateazione usando la nuova vista v_migrable_pagopa.
+ * Ora include anche PagoPA già parzialmente collegate se hanno quota residua.
  */
 export async function getMigrablePagopaForRateation(
   rateationId: string
@@ -19,7 +20,7 @@ export async function getMigrablePagopaForRateation(
   try {
     const numericId = parseInt(rateationId, 10);
     
-    // 1) Recupera il tipo PagoPA
+    // 1) Verifica che la rateazione corrente sia una PagoPA
     const { data: pagopaType, error: typeError } = await supabase
       .from('rateation_types')
       .select('id')
@@ -28,10 +29,9 @@ export async function getMigrablePagopaForRateation(
     
     if (typeError) throw typeError;
 
-    // 2) Recupera i dati della rateazione corrente
     const { data: currentRateation, error: rateationError } = await supabase
       .from('rateations')
-      .select('id, number, taxpayer_name, status, interrupted_by_rateation_id, type_id, total_amount')
+      .select('id, type_id')
       .eq('id', numericId)
       .single();
     
@@ -41,30 +41,23 @@ export async function getMigrablePagopaForRateation(
     const isPagoPA = currentRateation?.type_id === pagopaType.id;
     if (!isPagoPA) return []; // Non è una PagoPA → nulla da migrare
 
-    // 3) Verifica se è già collegata a una RQ
-    const { data: existingLinks, error: linkError } = await supabase
-      .from('riam_quater_links')
-      .select('pagopa_id')
-      .eq('pagopa_id', numericId);
+    // 2) Usa la nuova vista per ottenere PagoPA migrabili (include quota allocabile)
+    const { data: migrableData, error: migrableError } = await supabase
+      .from('v_migrable_pagopa')
+      .select('*')
+      .eq('id', numericId);
     
-    if (linkError) throw linkError;
+    if (migrableError) throw migrableError;
 
-    const alreadyLinked = (existingLinks ?? []).length > 0;
-    
-    // Verifica eleggibilità
-    const isEligible = currentRateation &&
-      currentRateation.status !== 'INTERROTTA' &&
-      !currentRateation.interrupted_by_rateation_id &&
-      !alreadyLinked;
-
-    return isEligible ? [{
-      id: currentRateation.id.toString(),
-      number: currentRateation.number,
-      taxpayer_name: currentRateation.taxpayer_name,
-      status: currentRateation.status as 'ATTIVA' | 'INTERROTTA' | 'ESTINTA',
-      interrupted_by_rateation_id: currentRateation.interrupted_by_rateation_id?.toString() ?? null,
-      total_amount: currentRateation.total_amount ?? null,
-    }] : [];
+    return (migrableData || []).map(pagopa => ({
+      id: pagopa.id.toString(),
+      number: pagopa.number,
+      taxpayer_name: pagopa.taxpayer_name,
+      status: pagopa.status as 'ATTIVA' | 'INTERROTTA' | 'ESTINTA',
+      interrupted_by_rateation_id: pagopa.interrupted_by_rateation_id?.toString() ?? null,
+      total_amount: pagopa.total_amount ?? null,
+      allocatable_cents: pagopa.allocatable_cents ?? 0,
+    }));
 
   } catch (error) {
     console.error('Error loading migrabile PagoPA:', error);
