@@ -41,19 +41,19 @@ export function useRqAllocation() {
     setData(prev => ({ ...prev, loading: true, error: undefined }));
 
     try {
-      // Carica PagoPA con allocatable > 0
+      // Carica PagoPA con allocatable > 0 OR has_links = true
       const { data: pagopaData, error: pagopaError } = await supabase
         .from('v_pagopa_allocations')
         .select('*')
-        .gt('allocatable_cents', 0)
+        .or('allocatable_cents.gt.0,has_links.eq.true')
         .order('pagopa_number');
 
       if (pagopaError) throw pagopaError;
 
-      // Carica RQ attive (is_quater = true, status != 'INTERROTTA')
+      // Carica RQ attive usando vista canonica
       const { data: rqData, error: rqError } = await supabase
-        .from('rateations')
-        .select('id, number, taxpayer_name, total_amount')
+        .from('v_rateations_list_ui')
+        .select('id, number, taxpayer_name, quater_total_due_cents')
         .eq('is_quater', true)
         .neq('status', 'INTERROTTA')
         .order('number');
@@ -73,7 +73,7 @@ export function useRqAllocation() {
         id: r.id,
         number: r.number,
         taxpayer_name: r.taxpayer_name,
-        total_cents: Math.round((r.total_amount || 0) * 100) // Convert to cents
+        total_cents: Number(r.quater_total_due_cents || 0) // Already in cents
       }));
 
       setData({

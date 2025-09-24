@@ -71,8 +71,8 @@ export function RqAllocationForm({
   );
 
   // Check if form is valid
-  const isFormValid = selectedPagopa && 
-                      selectedRq && 
+  const isFormValid = selectedPagopa !== null && 
+                      selectedRq !== null && 
                       quotaValidation.isValid && 
                       !isAllocating && 
                       !loading;
@@ -98,7 +98,7 @@ export function RqAllocationForm({
 
       toast({
         title: 'Allocazione completata',
-        description: `Quota € ${formatAllocationCents(quotaValidation.cents)} allocata (${result.action === 'created' ? 'nuova' : 'aggiornata'})`,
+        description: `Quota ${formatAllocationCents(quotaValidation.cents!)} ${result.action === 'created' ? '(nuova)' : '(aggiornata)'}`,
         variant: 'default',
       });
 
@@ -138,7 +138,7 @@ export function RqAllocationForm({
         {/* PagoPA Selection */}
         <div className="space-y-2">
           <Label htmlFor="pagopa-select">Piano PagoPA di origine</Label>
-          <Select value={selectedPagopa?.toString() || ''} onValueChange={(val) => setSelectedPagopa(Number(val))}>
+          <Select value={selectedPagopa?.toString() || ''} onValueChange={(val) => setSelectedPagopa(val ? Number(val) : null)}>
             <SelectTrigger id="pagopa-select">
               <SelectValue placeholder="Seleziona un piano PagoPA..." />
             </SelectTrigger>
@@ -174,7 +174,7 @@ export function RqAllocationForm({
         {/* RQ Selection */}
         <div className="space-y-2">
           <Label htmlFor="rq-select">Riammissione Quater di destinazione</Label>
-          <Select value={selectedRq?.toString() || ''} onValueChange={(val) => setSelectedRq(Number(val))}>
+          <Select value={selectedRq?.toString() || ''} onValueChange={(val) => setSelectedRq(val ? Number(val) : null)}>
             <SelectTrigger id="rq-select">
               <SelectValue placeholder="Seleziona una RQ..." />
             </SelectTrigger>

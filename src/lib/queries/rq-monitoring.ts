@@ -56,69 +56,46 @@ export interface OrphanedLink {
 
 export async function detectOrphanedLinks(): Promise<OrphanedLink[]> {
   try {
-    // Query semplificata per individuare link potenzialmente problematici
-    const { data: links, error: linksError } = await supabase
+    const { data: links, error } = await supabase
       .from('riam_quater_links')
       .select('id, pagopa_id, riam_quater_id, allocated_residual_cents')
-      .limit(100);
+      .limit(1000);
+    if (error || !links) return [];
 
-    if (linksError) throw linksError;
-    if (!links) return [];
+    const pagopaIds = [...new Set(links.map(l => l.pagopa_id))];
+    const rqIds = [...new Set(links.map(l => l.riam_quater_id))];
 
-    const orphanedLinks: OrphanedLink[] = [];
+    const [{ data: pagopas }, { data: rqs }] = await Promise.all([
+      supabase.from('rateations').select('id, owner_uid, type_id, rateation_types!inner(name)').in('id', pagopaIds),
+      supabase.from('rateations').select('id, owner_uid, is_quater').in('id', rqIds),
+    ]);
 
-    // Verifica esistenza delle rateazioni per ogni link
-    for (const link of links) {
-      const { data: pagopaCheck } = await supabase
-        .from('rateations')
-        .select(`
-          id, 
-          owner_uid, 
-          is_quater,
-          type_id,
-          rateation_types!inner(name)
-        `)
-        .eq('id', link.pagopa_id)
-        .maybeSingle();
+    const pMap = new Map((pagopas || []).map(r => [r.id, r]));  
+    const rMap = new Map((rqs || []).map(r => [r.id, r]));
 
-      const { data: rqCheck } = await supabase
-        .from('rateations')
-        .select('id, owner_uid, is_quater')
-        .eq('id', link.riam_quater_id)
-        .maybeSingle();
+    const out: OrphanedLink[] = [];
+    for (const l of links) {
+      const p = pMap.get(l.pagopa_id);
+      const r = rMap.get(l.riam_quater_id);
+      let issue: OrphanedLink['issue_type'] | null = null;
 
-      let issueType: OrphanedLink['issue_type'] | null = null;
+      if (!p) issue = 'pagopa_missing';
+      else if (!r) issue = 'rq_missing';
+      else if (p.owner_uid !== r.owner_uid || 
+               p.rateation_types?.name?.toUpperCase() !== 'PAGOPA' || 
+               !r.is_quater) issue = 'access_denied';
 
-      if (!pagopaCheck) {
-        issueType = 'pagopa_missing';
-      } else if (!rqCheck) {
-        issueType = 'rq_missing';
-      } else if (pagopaCheck.owner_uid !== rqCheck.owner_uid) {
-        issueType = 'access_denied';
-      } else {
-        // Verifica tipi: PagoPA dovrebbe avere type_name = 'PAGOPA', RQ dovrebbe avere is_quater = true
-        const isPagopa = pagopaCheck.rateation_types?.name?.toUpperCase() === 'PAGOPA';
-        const isRq = !!rqCheck.is_quater;
-        
-        if (!isPagopa || !isRq) {
-          issueType = 'access_denied';
-        }
-      }
-
-      if (issueType) {
-        orphanedLinks.push({
-          link_id: link.id,
-          pagopa_id: link.pagopa_id,
-          riam_quater_id: link.riam_quater_id,
-          allocated_cents: link.allocated_residual_cents || 0,
-          issue_type: issueType
-        });
-      }
+      if (issue) out.push({
+        link_id: l.id,
+        pagopa_id: l.pagopa_id,
+        riam_quater_id: l.riam_quater_id,
+        allocated_cents: l.allocated_residual_cents || 0,
+        issue_type: issue,
+      });
     }
-
-    return orphanedLinks;
-  } catch (error) {
-    console.error('Failed to detect orphaned links:', error);
+    return out;
+  } catch (e) {
+    console.error('detectOrphanedLinks failed:', e);
     return [];
   }
 }
