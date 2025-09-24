@@ -46,6 +46,11 @@ export interface RateationRow {
   original_total_due?: Euro;        // Euro alias
   quater_total_due?: Euro;          // Euro alias
 
+  // Link allocation fields for quota-based KPI calculation
+  allocated_residual_cents?: number;
+  pagopa_residual_at_link_cents?: number;
+  rq_total_at_link_cents?: number;
+
   // status (tanti formati possibili nella tua app)
   status?: string | null;
 }
@@ -291,28 +296,20 @@ export function calcQuaterSaving(rows: RateationRow[]): QuaterKpis {
   return { quaterSaving };
 }
 
-/** KPI Rottamazione Quater basato sui collegamenti (stessa logica della pagina dettaglio) */
+/** KPI Rottamazione Quater basato sui collegamenti con quotas (prevenire doppi conteggi) */
 export function calcQuaterSavingFromLinks(rows: RateationRow[]): QuaterKpis {
-  // Use actual row data instead of normalizing since we need access to raw fields
-  // This will be improved when we have allocated_residual_cents properly integrated
+  const quaterRows = rows.filter(r => r.is_quater);
   
-  let totalSaving = 0;
-
-  for (const r of rows) {
-    // Check if this is a Riam Quater rateation
-    if (!(r as any).is_rq && !(r as any).is_quater) continue;
-
-    // Calculate saving using available data
-    // This is a simplified version - in production, this should use
-    // allocated_residual_cents from riam_quater_links table
-    const rqTotalEUR = (r as any).totalGross || (r as any).total_amount || 0;
-    const originalResidualEUR = (r as any).residualGross || (r as any).residual_amount || 0;
+  const total = quaterRows.reduce((sum, quaterRow) => {
+    // Use allocated quota instead of full residual to prevent double-counting
+    const allocatedEUR = (quaterRow.allocated_residual_cents ?? 0) / 100;
+    const rqTotalEUR = (quaterRow.rq_total_at_link_cents ?? quaterRow.quater_total_due_cents ?? 0) / 100;
+    const saving = Math.max(0, allocatedEUR - rqTotalEUR);
     
-    const saving = Math.max(0, originalResidualEUR - rqTotalEUR);
-    totalSaving += saving;
-  }
+    return sum + saving;
+  }, 0);
 
-  return { quaterSaving: totalSaving };
+  return { quaterSaving: total };
 }
 
 /**
@@ -323,7 +320,7 @@ export const KPI_TOOLTIPS = {
   overdueEffective: "Rate scadute non pagate dopo tolleranza e regole di skip.",
   decadutoNet: "Importo residuo delle pratiche decadute da trasferire.",
   commitmentsTotal: "Somma di Residuo effettivo e Saldo decaduto.",
-  quaterSaving: "Risparmio stimato dai collegamenti tra pratiche Rottamazione Quater e PagoPA originarie.",
+  quaterSaving: "Risparmio calcolato utilizzando le quote allocate dai collegamenti PagoPA→RQ per evitare doppi conteggi.",
   residualGross: "Dovuto meno pagato, include anche pratiche decadute.",
   totalDueGross: "Importo totale dovuto di tutte le rateazioni.",
   totalPaidGross: "Importo totale pagato di tutte le rateazioni.",
