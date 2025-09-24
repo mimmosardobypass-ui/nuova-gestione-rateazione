@@ -70,7 +70,7 @@ export function RqAllocationForm({
     pagopaDetails?.allocatable_cents
   );
 
-  // Check if form is valid
+  // Check if form is valid - use strict null checks
   const isFormValid = selectedPagopa !== null && 
                       selectedRq !== null && 
                       quotaValidation.isValid && 
@@ -210,7 +210,7 @@ export function RqAllocationForm({
               value={quotaInput}
               onChange={(e) => setQuotaInput(e.target.value)}
               placeholder="es. 1.500,00"
-            className={quotaValidation.isValid ? 'border-green-500' : quotaValidation.errorMessage ? 'border-red-500' : ''}
+              className={quotaValidation.isValid ? 'border-green-500' : quotaValidation.errorMessage ? 'border-red-500' : ''}
             />
             
             {quotaValidation.errorMessage && (

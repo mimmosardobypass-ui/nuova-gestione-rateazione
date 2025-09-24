@@ -1555,6 +1555,7 @@ export type Database = {
         Row: {
           allocatable_cents: number | null
           allocated_cents: number | null
+          has_links: boolean | null
           owner_uid: string | null
           pagopa_id: number | null
           pagopa_number: string | null

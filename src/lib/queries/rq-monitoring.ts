@@ -66,11 +66,11 @@ export async function detectOrphanedLinks(): Promise<OrphanedLink[]> {
     const rqIds = [...new Set(links.map(l => l.riam_quater_id))];
 
     const [{ data: pagopas }, { data: rqs }] = await Promise.all([
-      supabase.from('rateations').select('id, owner_uid, type_id, rateation_types!inner(name)').in('id', pagopaIds),
+      supabase.from('rateations').select('id, owner_uid').in('id', pagopaIds),
       supabase.from('rateations').select('id, owner_uid, is_quater').in('id', rqIds),
     ]);
 
-    const pMap = new Map((pagopas || []).map(r => [r.id, r]));  
+    const pMap = new Map((pagopas || []).map(r => [r.id, r]));
     const rMap = new Map((rqs || []).map(r => [r.id, r]));
 
     const out: OrphanedLink[] = [];
@@ -81,9 +81,7 @@ export async function detectOrphanedLinks(): Promise<OrphanedLink[]> {
 
       if (!p) issue = 'pagopa_missing';
       else if (!r) issue = 'rq_missing';
-      else if (p.owner_uid !== r.owner_uid || 
-               p.rateation_types?.name?.toUpperCase() !== 'PAGOPA' || 
-               !r.is_quater) issue = 'access_denied';
+      else if (p.owner_uid !== r.owner_uid || !r.is_quater) issue = 'access_denied';
 
       if (issue) out.push({
         link_id: l.id,

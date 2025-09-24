@@ -41,7 +41,7 @@ export function useRqAllocation() {
     setData(prev => ({ ...prev, loading: true, error: undefined }));
 
     try {
-      // Carica PagoPA con allocatable > 0 OR has_links = true
+      // Carica PagoPA con quota disponibile OR con links esistenti (per editing)
       const { data: pagopaData, error: pagopaError } = await supabase
         .from('v_pagopa_allocations')
         .select('*')
@@ -50,7 +50,7 @@ export function useRqAllocation() {
 
       if (pagopaError) throw pagopaError;
 
-      // Carica RQ attive usando vista canonica
+      // Carica RQ attive dalla vista canonica con campi in cents
       const { data: rqData, error: rqError } = await supabase
         .from('v_rateations_list_ui')
         .select('id, number, taxpayer_name, quater_total_due_cents')
