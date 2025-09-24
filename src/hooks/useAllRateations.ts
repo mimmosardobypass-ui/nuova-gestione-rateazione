@@ -130,20 +130,22 @@ export const useAllRateations = (): UseAllRateationsReturn => {
       const validationDuration = Date.now() - startTime;
 
       if (!parsed.success) {
-        console.error("[useAllRateations] Schema validation failed:", parsed.error.flatten());
+        console.error('❌ [useAllRateations] Data validation failed:', parsed.error);
         
         // Log validation error for observability
         import("@/utils/observability").then(({ logValidationError }) => {
           logValidationError({
             userId,
-            error: JSON.stringify(parsed.error.flatten()),
+            error: 'Zod validation failed',
             timestamp: Date.now(),
-            context: { rowCount: rawData?.length ?? 0, validationDuration }
+            context: { zodError: parsed.error }
           });
         });
-
-        // Safe fallback: no rows to prevent inconsistent UI data
-        setRows([]);
+        
+        // FAIL-CLOSED: Don't show empty/zero data when validation fails
+        setError('Dati non validi - contattare supporto');
+        setRows([]); // Empty array but with error message
+        // Don't cache invalid data
         setLoading(false);
         return;
       }

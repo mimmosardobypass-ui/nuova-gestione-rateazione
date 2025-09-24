@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 import { RateationListRowSchema } from '@/schemas/RateationListRow.schema';
 
-describe.skip('Database Contract Tests', () => {
+describe('Database Contract Tests', () => {
   it('v_rateations_list_ui respects data integrity constraints', async () => {
     const { data, error } = await supabase
       .from('v_rateations_list_ui')
@@ -50,5 +50,26 @@ describe.skip('Database Contract Tests', () => {
       expect(row).toHaveProperty('installments_total');
       expect(row).toHaveProperty('installments_paid');
     }
+  });
+
+  it('ensures paid + residual does not exceed total amount', async () => {
+    const { data, error } = await supabase
+      .from('v_rateations_list_ui')
+      .select('paid_amount_cents, residual_effective_cents, total_amount_cents')
+      .limit(100);
+
+    if (error) {
+      console.warn('DB not available for contract test:', error.message);
+      return;
+    }
+
+    // Critical constraint: paid + residual should not exceed total
+    const violatingRows = data?.filter(
+      (row: any) => 
+        (row.paid_amount_cents ?? 0) + (row.residual_effective_cents ?? 0) > 
+        (row.total_amount_cents ?? 0)
+    ) ?? [];
+
+    expect(violatingRows.length).toBe(0);
   });
 });

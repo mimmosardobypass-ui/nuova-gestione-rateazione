@@ -1,9 +1,10 @@
 ## Anti-Regression Checklist
 
-**Data Contract Changes:**
-- [ ] If view `v_rateations_list_ui` changed: bump cache key in `src/constants/cache.ts`
-- [ ] If schema/mapping changed: update unit tests in `tests/mapRateationListRow.spec.ts`
-- [ ] Zod schema updated if new fields added to `RateationListRowSchema`
+**Mandatory Checks (All Required):**
+- [ ] 🔄 Bump cache key: `npm run cache:bump "reason"` if view/schema changed
+- [ ] ✅ Tests pass: `npm run test` + `npm run e2e:headless` 
+- [ ] 🔍 Smoke SQL: `npm run smoke:sql` passes
+- [ ] 📝 Changelog: View version history updated (v1→v2) if applicable
 
 **Testing:**
 - [ ] Unit tests pass: `npm run test`

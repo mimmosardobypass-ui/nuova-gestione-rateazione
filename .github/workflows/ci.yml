@@ -40,6 +40,14 @@ jobs:
         run: npm run test:contract
         continue-on-error: true  # Don't block if DB not available
         
+      - name: Schema drift check
+        run: npm run schema:check
+        continue-on-error: true  # Don't block if Supabase not configured
+        
+      - name: SQL smoke tests
+        run: npm run smoke:sql
+        continue-on-error: true  # Don't block if DB not available
+        
       - name: Build
         run: npm run build
         
