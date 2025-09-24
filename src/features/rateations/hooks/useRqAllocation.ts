@@ -41,14 +41,46 @@ export function useRqAllocation() {
     setData(prev => ({ ...prev, loading: true, error: undefined }));
 
     try {
-      // Carica PagoPA con quota disponibile OR con links esistenti (per editing)
-      const { data: pagopaData, error: pagopaError } = await supabase
-        .from('v_pagopa_allocations')
-        .select('*')
-        .or('allocatable_cents.gt.0,has_links.eq.true')
-        .order('pagopa_number');
+      // Strategia difensiva: prova prima con has_links, poi fallback se la colonna non esiste
+      let pagopaData: any[] = [];
+      
+      try {
+        // 1) Prova con il filtro desiderato (allocatable_cents > 0 OR has_links = true)
+        const res = await supabase
+          .from('v_pagopa_allocations')
+          .select('*')
+          .or('allocatable_cents.gt.0,has_links.eq.true')
+          .order('pagopa_number');
+        if (res.error) throw res.error;
+        pagopaData = res.data || [];
+      } catch (e: any) {
+        // 2) Fallback se 'has_links' non esiste sulla view
+        const allocRes = await supabase
+          .from('v_pagopa_allocations')
+          .select('*')
+          .gt('allocatable_cents', 0)
+          .order('pagopa_number');
 
-      if (pagopaError) throw pagopaError;
+        pagopaData = allocRes.data || [];
+
+        // 3) Recupera gli id pagopa già linkati (per permettere l'editing anche con allocazione = 0)
+        const { data: linkRows } = await supabase
+          .from('riam_quater_links')
+          .select('pagopa_id')
+          .limit(10000);
+
+        const linkedIds = [...new Set((linkRows || []).map(r => r.pagopa_id))]
+          .filter(id => !pagopaData.some(p => p.pagopa_id === id));
+
+        if (linkedIds.length) {
+          const { data: extra } = await supabase
+            .from('v_pagopa_allocations')
+            .select('*')
+            .in('pagopa_id', linkedIds);
+
+          pagopaData = [...pagopaData, ...(extra || [])];
+        }
+      }
 
       // Carica RQ attive dalla vista canonica con campi in cents
       const { data: rqData, error: rqError } = await supabase
