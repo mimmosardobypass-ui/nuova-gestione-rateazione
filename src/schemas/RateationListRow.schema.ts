@@ -28,6 +28,10 @@ export const RateationListRowSchema = z.object({
   // Quater fields (in cents)
   original_total_due_cents: z.number().nullable().optional(),
   quater_total_due_cents: z.number().nullable().optional(),
+  
+  // RQ allocation fields for quota-based saving calculation
+  allocated_residual_cents: z.number().nullable().optional(),
+  rq_total_at_link_cents: z.number().nullable().optional(),
 });
 
 export type RateationListRow = z.infer<typeof RateationListRowSchema>;

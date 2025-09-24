@@ -44,9 +44,13 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     original_total_due_cents: Number(r.original_total_due_cents || 0),
     quater_total_due_cents: Number(r.quater_total_due_cents || 0),
     
-    // RQ allocation fields for quota-based saving calculation
-    allocated_residual_cents: Number((r as any).allocated_residual_cents ?? 0),
-    rq_total_at_link_cents: Number((r as any).rq_total_at_link_cents ?? 0),
+    // RQ allocation fields for quota-based saving calculation (with camelCase fallback)
+    allocated_residual_cents: Number(
+      (r as any).allocated_residual_cents ?? (r as any).allocatedResidualCents ?? 0
+    ),
+    rq_total_at_link_cents: Number(
+      (r as any).rq_total_at_link_cents ?? (r as any).rqTotalAtLinkCents ?? 0
+    ),
 
     // PagoPA fields with safe defaults
     unpaid_overdue_today: Number(r.installments_overdue_today || 0),
