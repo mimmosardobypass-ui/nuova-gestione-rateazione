@@ -2787,6 +2787,10 @@ export type Database = {
         Args: { p_debt_ids: string[]; p_source_rateation_id: number }
         Returns: undefined
       }
+      sanitize_legacy_interruption_reasons: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       unmark_installment_paid: {
         Args: { p_rateation_id: number; p_seq: number }
         Returns: undefined
