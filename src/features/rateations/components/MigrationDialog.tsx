@@ -18,6 +18,8 @@ import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
 import { linkPagopaToRQ, unlinkPagopaFromRQ, unlockPagopaIfNoLinks, getPagopaLinks } from '../api/linkPagopa';
 import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
 import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
+import { useSelectableRq } from '@/features/rateations/hooks/useSelectableRq';
+import type { RqLight } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -157,14 +159,20 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  // Filter RQ rateations to show only non-linked ones
-  const selectableRq = useMemo(() => {
-    if (migrationMode !== 'pagopa' || selectedPagopaIds.length === 0) {
-      return rqRateations;
-    }
-    const linkedRqIds = new Set(existingPagopaLinks.map(l => l.riam_quater_id));
-    return rqRateations.filter(r => !linkedRqIds.has(Number(r.id)));
-  }, [rqRateations, existingPagopaLinks, migrationMode, selectedPagopaIds]);
+  // Use RQ available hook (DB-side with client fallback)
+  const selectedPagopaIdNumber = selectedPagopaIds.length ? Number(selectedPagopaIds[0]) : null;
+  const linkedRqIds = existingPagopaLinks.map((l: any) => Number(l.riam_quater_id));
+  const rqLightData: RqLight[] = rqRateations.map(r => ({
+    id: Number(r.id),
+    number: String(r.number ?? ''),
+    taxpayer_name: r.taxpayer_name ?? null,
+    quater_total_due_cents: 0, // Will be fetched by the RPC if needed
+  }));
+  const { selectableRq, loading: selectableLoading } = useSelectableRq(
+    selectedPagopaIdNumber,
+    rqLightData,
+    linkedRqIds
+  );
 
   // Safe UI parsing - never throws during render
   const { cents: quotaCents, valid: quotaInputValid } = useMemo(

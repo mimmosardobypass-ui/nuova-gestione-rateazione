@@ -2663,6 +2663,15 @@ export type Database = {
           status: string
         }[]
       }
+      get_rq_available_for_pagopa: {
+        Args: { p_pagopa_id: number }
+        Returns: {
+          id: number
+          number: string
+          quater_total_due_cents: number
+          taxpayer_name: string
+        }[]
+      }
       installment_cancel_payment: {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
