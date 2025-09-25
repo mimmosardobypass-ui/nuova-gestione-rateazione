@@ -124,7 +124,7 @@ export async function unlinkPagopaFromRQ(
   pagopaId: number | string, 
   rqId: number | string,
   note?: string
-): Promise<{ pagopa_id: number; riam_quater_id: number; action: string }> {
+): Promise<{ pagopa_id: number; riam_quater_id: number; action: string; unlocked: boolean }> {
   try {
     // Validazioni tipo-safe
     const validPagopaId = toIntId(pagopaId, 'pagopaId');
@@ -156,7 +156,8 @@ export async function unlinkPagopaFromRQ(
     return {
       pagopa_id: Number(result.pagopa_id),
       riam_quater_id: Number(result.riam_quater_id),
-      action: result.action
+      action: result.action,
+      unlocked: Boolean(result.unlocked)
     };
 
   } catch (error) {
@@ -168,6 +169,27 @@ export async function unlinkPagopaFromRQ(
     (enhancedError as any).originalError = error;
     
     throw enhancedError;
+  }
+}
+
+/**
+ * Sblocca una PagoPA se non ha collegamenti residui (per casi legacy)
+ */
+export async function unlockPagopaIfNoLinks(pagopaId: number | string): Promise<boolean> {
+  try {
+    const validPagopaId = toIntId(pagopaId, 'pagopaId');
+
+    const { data, error } = await supabase.rpc('pagopa_unlock_if_no_links', {
+      p_pagopa_id: validPagopaId
+    });
+
+    if (error) throw error;
+
+    return Boolean(data);
+
+  } catch (error) {
+    console.error('Error unlocking PagoPA:', error);
+    throw mapRqLinkError(error);
   }
 }
 

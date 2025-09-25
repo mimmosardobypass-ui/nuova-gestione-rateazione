@@ -2696,6 +2696,7 @@ export type Database = {
           action: string
           pagopa_id: number
           riam_quater_id: number
+          unlocked: boolean
         }[]
       }
       mark_installment_paid: {
@@ -2732,6 +2733,10 @@ export type Database = {
           p_target_rateation_id: number
         }
         Returns: undefined
+      }
+      pagopa_unlock_if_no_links: {
+        Args: { p_pagopa_id: number }
+        Returns: boolean
       }
       rateation_auto_flag_predecadence: {
         Args: Record<PropertyKey, never>

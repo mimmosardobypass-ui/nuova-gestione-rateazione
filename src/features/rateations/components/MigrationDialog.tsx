@@ -15,7 +15,7 @@ import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
-import { linkPagopaToRQ, unlinkPagopaFromRQ, getPagopaLinks } from '../api/linkPagopa';
+import { linkPagopaToRQ, unlinkPagopaFromRQ, unlockPagopaIfNoLinks, getPagopaLinks } from '../api/linkPagopa';
 import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
 import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
 
@@ -193,14 +193,16 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     
     setProcessing(true);
     try {
-      await unlinkPagopaFromRQ(pagopaId, rqId);
+      const result = await unlinkPagopaFromRQ(pagopaId, rqId);
       
       toast({
-        title: "Scollegata",
-        description: "Collegamento rimosso con successo"
+        title: "Collegamento rimosso",
+        description: result.unlocked
+          ? 'PagoPA sbloccata: stato ripristinato ad ATTIVA'
+          : `Scollegata da RQ ${rqNumber}`,
       });
       
-      // Reload existing links and refresh allocation data
+      // Ricarica i dati completi
       await Promise.all([
         loadExistingLinks(pagopaId),
         loadData()
