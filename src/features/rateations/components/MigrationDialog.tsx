@@ -15,11 +15,13 @@ import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
-import { linkPagopaToRQ, unlinkPagopaFromRQ, unlockPagopaIfNoLinks, getPagopaLinks } from '../api/linkPagopa';
+import { linkPagopaToRQ, unlinkPagopaFromRQ, getPagopaLinks } from '../api/linkPagopa';
 import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
 import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
 import { useSelectableRq } from '@/features/rateations/hooks/useSelectableRq';
-import { fetchPagopaQuotaInfo, type RqLight, type PagopaQuotaInfo } from '@/integrations/supabase/api/rq';
+import { fetchPagopaQuotaInfo, fetchSelectableRqForPagopa, RqLight, unlockPagopaIfNoLinks } from '@/integrations/supabase/api/rq';
+import { supabase } from '@/integrations/supabase/client';
+import type { PagopaQuotaInfo } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -110,9 +112,34 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     try {
       const links = await getPagopaLinks(pagopaId);
       setExistingPagopaLinks(links);
+      return links;
     } catch (error) {
       console.error('Error loading existing links:', error);
+      return [];
     }
+  };
+
+  // Self-healing: sblocca automaticamente PagoPA se quota 0 ma nessun link
+  const attemptSelfHeal = async (pagopaId: number, currentAlloc: PagopaQuotaInfo) => {
+    if (currentAlloc.allocatableCents === 0 && 
+        currentAlloc.residualCents > 0 && 
+        existingPagopaLinks.length === 0) {
+      console.log(`🔧 Self-healing: Attempting to unlock PagoPA ${pagopaId}`);
+      try {
+        const unlocked = await unlockPagopaIfNoLinks(pagopaId);
+        if (unlocked) {
+          console.log(`✅ Self-healing: PagoPA ${pagopaId} unlocked successfully`);
+          // Re-fetch quota after unlock
+          const newAlloc = await fetchPagopaQuotaInfo(pagopaId);
+          setAllocInfo(newAlloc);
+          console.log(`🎯 Self-healing: Updated quota to ${newAlloc.allocatableCents} cents`);
+          return true;
+        }
+      } catch (error) {
+        console.error('Self-healing failed:', error);
+      }
+    }
+    return false;
   };
 
   const handleDebtSelection = (debtId: string, checked: boolean) => {
@@ -123,7 +150,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     );
   };
 
-  const handlePagopaSelection = (pagopaId: string | number, checked: boolean) => {
+  const handlePagopaSelection = async (pagopaId: string | number, checked: boolean) => {
     const id = String(pagopaId);
     setSelectedPagopaIds(prev => 
       checked 
@@ -133,8 +160,19 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     
     // FASE 3.2: Load existing links and quota info when PagoPA selection changes
     if (checked) {
-      // Load existing links for this PagoPA
-      loadExistingLinks(Number(pagopaId));
+      try {
+        // Load existing links for this PagoPA
+        const links = await loadExistingLinks(Number(pagopaId));
+        
+        // Load quota info using the robust RPC
+        const quotaInfo = await fetchPagopaQuotaInfo(Number(pagopaId));
+        setAllocInfo(quotaInfo);
+        
+        // Attempt self-healing if needed
+        await attemptSelfHeal(Number(pagopaId), quotaInfo);
+      } catch (error) {
+        console.error('Error loading PagoPA data:', error);
+      }
     } else {
       // Reset quando PagoPA viene deselezionata per evitare inconsistenze
       setTargetRateationId('');
@@ -189,18 +227,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     [allocationQuotaEur]
   );
   
-  // FASE 3.2: Logica semplificata per abilitazione "Migra" 
-  const canMigrate = 
-    !processing &&
-    selectedPagopaIdNumber !== null &&
-    !!targetRateationId &&
-    quotaInputValid &&
-    quotaCents > 0 &&
-    quotaCents <= allocInfo.allocatableCents;
-    
-  const disableMigrate = processing || 
-    (migrationMode === 'pagopa' && !canMigrate) ||
-    (migrationMode === 'debts' && (nothingSelected || !targetRateationId));
+  // FASE 3.2: Condizioni semplificate per abilitare il bottone "Migra"
+  const disableMigrate = !selectedPagopaIdNumber || 
+                        !targetRateationId || 
+                        processing ||
+                        (migrationMode === 'pagopa' && (
+                          quotaCents <= 0 || 
+                          quotaCents > allocInfo.allocatableCents
+                        )) ||
+                        (migrationMode === 'debts' && nothingSelected);
 
   // Debug logging for button state
   console.debug('[Migration] Button state', { 

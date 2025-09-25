@@ -54,3 +54,12 @@ export async function fetchSelectableRqForPagopa(
     return fallbackAllRq.filter(r => !blocked.has(Number(r.id)));
   }
 }
+
+/**
+ * FASE 2.3: Sblocco automatico PagoPA se non ha link attivi
+ */
+export async function unlockPagopaIfNoLinks(pagopaId: number): Promise<boolean> {
+  const { data, error } = await supabase.rpc('pagopa_unlock_if_no_links', { p_pagopa_id: pagopaId });
+  if (error) throw error;
+  return data ?? false;
+}
