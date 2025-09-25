@@ -2743,6 +2743,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      pagopa_lock_for_rq: {
+        Args: { p_pagopa_id: number }
+        Returns: undefined
+      }
+      pagopa_quota_info: {
+        Args: { p_pagopa_id: number }
+        Returns: {
+          allocatable_cents: number
+          allocated_cents: number
+          residual_cents: number
+        }[]
+      }
       pagopa_unlock_if_no_links: {
         Args: { p_pagopa_id: number }
         Returns: boolean

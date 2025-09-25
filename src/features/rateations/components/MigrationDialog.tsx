@@ -19,7 +19,7 @@ import { linkPagopaToRQ, unlinkPagopaFromRQ, unlockPagopaIfNoLinks, getPagopaLin
 import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
 import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
 import { useSelectableRq } from '@/features/rateations/hooks/useSelectableRq';
-import type { RqLight } from '@/integrations/supabase/api/rq';
+import { fetchPagopaQuotaInfo, type RqLight, type PagopaQuotaInfo } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -44,7 +44,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [processing, setProcessing] = useState(false);
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
   const [allocationQuotaEur, setAllocationQuotaEur] = useState<string>('');
-  const [selectedPagopaAllocatable, setSelectedPagopaAllocatable] = useState<number>(0);
+  const [allocInfo, setAllocInfo] = useState<PagopaQuotaInfo>({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 });
   const [existingPagopaLinks, setExistingPagopaLinks] = useState<any[]>([]);
 
   const { toast } = useToast();
@@ -131,17 +131,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         : prev.filter(x => x !== id)
     );
     
-    // Update allocatable amount when PagoPA selection changes
+    // FASE 3.2: Load existing links and quota info when PagoPA selection changes
     if (checked) {
-      const selected = migrablePagoPA.find(p => String(p.id) === id);
-      if (selected?.allocatable_cents) {
-        setSelectedPagopaAllocatable(selected.allocatable_cents);
-        setAllocationQuotaEur((selected.allocatable_cents / 100).toFixed(2));
-      }
       // Load existing links for this PagoPA
       loadExistingLinks(Number(pagopaId));
     } else {
-      setSelectedPagopaAllocatable(0);
+      setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 });
       setAllocationQuotaEur('');
       setExistingPagopaLinks([]);
     }
@@ -159,7 +154,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  // Use RQ available hook (DB-side with client fallback)
+  // FASE 3.2: Use RQ available hook (DB-side with client fallback)
   const selectedPagopaIdNumber = selectedPagopaIds.length ? Number(selectedPagopaIds[0]) : null;
   const linkedRqIds = existingPagopaLinks.map((l: any) => Number(l.riam_quater_id));
   const rqLightData: RqLight[] = rqRateations.map(r => ({
@@ -174,18 +169,35 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     linkedRqIds
   );
 
+  // FASE 3.2: Quota disponibile dalla RPC
+  useEffect(() => {
+    if (!selectedPagopaIdNumber) { 
+      setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 }); 
+      return; 
+    }
+    
+    fetchPagopaQuotaInfo(selectedPagopaIdNumber)
+      .then(info => setAllocInfo(info))
+      .catch(() => setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 }));
+  }, [selectedPagopaIdNumber]);
+
   // Safe UI parsing - never throws during render
   const { cents: quotaCents, valid: quotaInputValid } = useMemo(
     () => safeParseAllocation(allocationQuotaEur),
     [allocationQuotaEur]
   );
+  
+  // FASE 3.2: Logica semplificata per abilitazione "Migra" 
+  const canMigrate = 
+    !processing &&
+    selectedPagopaIdNumber !== null &&
+    !!targetRateationId &&
+    quotaInputValid &&
+    quotaCents > 0 &&
+    quotaCents <= allocInfo.allocatableCents;
+    
   const disableMigrate = processing || 
-    (migrationMode === 'pagopa' && (
-      selectedPagopaIds.length !== 1 || 
-      !targetRateationId || 
-      !quotaInputValid ||
-      !isQuotaInRange(quotaCents, selectedPagopaAllocatable)
-    )) ||
+    (migrationMode === 'pagopa' && !canMigrate) ||
     (migrationMode === 'debts' && (nothingSelected || !targetRateationId));
 
   // Debug logging for button state
@@ -282,8 +294,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         return;
       }
 
-      if (quotaCents <= 0 || quotaCents > selectedPagopaAllocatable) {
-        const maxEur = (selectedPagopaAllocatable / 100).toFixed(2);
+      if (quotaCents <= 0 || quotaCents > allocInfo.allocatableCents) {
+        const maxEur = (allocInfo.allocatableCents / 100).toFixed(2);
         toast({ 
           title: 'Quota non valida', 
           description: `La quota deve essere tra €0,01 e €${maxEur}`, 
@@ -577,7 +589,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                        }}
                                        className="pl-9"
                                        placeholder="0,00"
-                                       disabled={selectedPagopaAllocatable === 0}
+                                       disabled={allocInfo.allocatableCents === 0}
                                        aria-invalid={!quotaInputValid}
                                        aria-describedby="quota-help quota-error"
                                      />
@@ -587,31 +599,31 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                      variant="secondary"
                                      size="sm"
                                      data-testid="rq-use-all"
-                                     onClick={() => setAllocationQuotaEur((selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2}))}
-                                     disabled={selectedPagopaAllocatable === 0 || processing}
+                                      onClick={() => setAllocationQuotaEur((allocInfo.allocatableCents/100).toLocaleString('it-IT', {minimumFractionDigits:2}))}
+                                      disabled={allocInfo.allocatableCents === 0 || processing}
                                    >
                                      Usa tutto
                                    </Button>
                                 </div>
                                 <small id="quota-help" className="text-xs text-muted-foreground mt-1 block">
-                                  {selectedPagopaAllocatable === 0
-                                    ? 'Nessuna quota disponibile: sgancia o riduci una quota esistente'
-                                    : <>Massimo disponibile: €{(selectedPagopaAllocatable / 100).toLocaleString('it-IT', {minimumFractionDigits:2})}</>}
+                                   {allocInfo.allocatableCents === 0
+                                     ? 'Nessuna quota disponibile: sgancia o riduci una quota esistente'
+                                     : <>Massimo disponibile: €{(allocInfo.allocatableCents / 100).toLocaleString('it-IT', {minimumFractionDigits:2})}</>}
                                 </small>
-                                {allocationQuotaEur && selectedPagopaAllocatable > 0 && (
-                                  <>
-                                    {!quotaInputValid && (
-                                      <div id="quota-error" role="alert" aria-live="polite" className="text-xs text-destructive mt-1">
-                                        Inserire un importo valido
-                                      </div>
-                                    )}
-                                    {quotaInputValid && !isQuotaInRange(quotaCents, selectedPagopaAllocatable) && (
-                                      <div className="text-xs text-destructive mt-1" role="alert" aria-live="polite">
-                                        La quota deve essere tra €0,01 e €{(selectedPagopaAllocatable/100).toLocaleString('it-IT', {minimumFractionDigits:2})}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
+                                 {allocationQuotaEur && allocInfo.allocatableCents > 0 && (
+                                   <>
+                                     {!quotaInputValid && (
+                                       <div id="quota-error" role="alert" aria-live="polite" className="text-xs text-destructive mt-1">
+                                         Inserire un importo valido
+                                       </div>
+                                     )}
+                                     {quotaInputValid && !isQuotaInRange(quotaCents, allocInfo.allocatableCents) && (
+                                       <div className="text-xs text-destructive mt-1" role="alert" aria-live="polite">
+                                         La quota deve essere tra €0,01 e €{(allocInfo.allocatableCents/100).toLocaleString('it-IT', {minimumFractionDigits:2})}
+                                       </div>
+                                     )}
+                                   </>
+                                 )}
                              </CardContent>
                             </Card>
                           )}
