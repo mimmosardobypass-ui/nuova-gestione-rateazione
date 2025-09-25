@@ -14,7 +14,7 @@ export interface PagopaQuotaInfo {
 }
 
 /**
- * FASE 2.1: Quota allocabile dalla RPC (singola fonte di verità)
+ * FASE 2.1: Quota allocabile dalla RPC robusta (SECURITY DEFINER, filtra per owner)
  */
 export async function fetchPagopaQuotaInfo(pagopaId: number): Promise<PagopaQuotaInfo> {
   const { data, error } = await supabase.rpc('pagopa_quota_info', { p_pagopa_id: pagopaId });
@@ -28,8 +28,8 @@ export async function fetchPagopaQuotaInfo(pagopaId: number): Promise<PagopaQuot
 }
 
 /**
- * FASE 2.2: RQ disponibili dalla RPC (con fallback robusto)
- * RQ disponibili lato DB (esclude quelle già collegate alla PagoPA).
+ * FASE 2.2: RQ disponibili dalla RPC robusta (SECURITY DEFINER, filtra per owner)
+ * RQ disponibili lato DB - esclude quelle già collegate e filtra per owner della PagoPA.
  * Fallback client-side se la RPC non è disponibile.
  */
 export async function fetchSelectableRqForPagopa(

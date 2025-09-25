@@ -136,6 +136,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       // Load existing links for this PagoPA
       loadExistingLinks(Number(pagopaId));
     } else {
+      // Reset quando PagoPA viene deselezionata per evitare inconsistenze
+      setTargetRateationId('');
       setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 });
       setAllocationQuotaEur('');
       setExistingPagopaLinks([]);

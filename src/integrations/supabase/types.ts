@@ -2684,6 +2684,10 @@ export type Database = {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
       }
+      is_rq_reason: {
+        Args: { txt: string }
+        Returns: boolean
+      }
       link_pagopa_to_rq_atomic: {
         Args: {
           p_alloc_cents: number
