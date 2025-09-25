@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAllRateations } from "@/hooks/useAllRateations";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
+import { useQuaterSaving } from "@/hooks/useQuaterSaving";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
 import type { RateationRowPro } from "@/features/rateations/components/RateationsTablePro";
 import { NewRateationDialog } from "@/features/rateations/components/NewRateationDialog";
@@ -14,6 +15,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { KpiCards } from "@/features/rateations/components/KpiCards";
 import { SaldoDecadutoCard } from "@/features/rateations/components/SaldoDecadutoCard";
+import { QuaterSavingCard } from "@/components/kpi/QuaterSavingCard";
 import { DecadenceDetailView } from "@/features/rateations/components/DecadenceDetailView";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,7 @@ export default function Rateations() {
   const { toast } = useToast();
   
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
+  const { saving: quaterSaving, loading: savingLoading, reload: reloadSaving } = useQuaterSaving();
   
   // Decadence state
   const [decadenceDashboard, setDecadenceDashboard] = React.useState<DecadenceDashboard | null>(null);
@@ -75,12 +78,13 @@ export default function Rateations() {
   React.useEffect(() => {
     const handleKpiReload = () => {
       reloadStats();          // Reload KPI stats
+      reloadSaving();         // Reload Quater saving
       loadDecadenceData();    // Reload Saldo Decaduto
     };
     
     window.addEventListener('rateations:reload-kpis', handleKpiReload);
     return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
-  }, [reloadStats, loadDecadenceData]);
+  }, [reloadStats, reloadSaving, loadDecadenceData]);
 
   // Cleanup timeouts on unmount
   React.useEffect(() => cleanup, [cleanup]);
@@ -213,6 +217,19 @@ export default function Rateations() {
           loading={statsLoading} 
           stats={stats} 
           previousStats={previousStats}
+        />
+        
+        {/* Quater Saving Card */}
+        <QuaterSavingCard 
+          saving={quaterSaving}
+          loading={savingLoading}
+          onClick={() => {
+            // Navigate to savings report or show modal
+            toast({
+              title: "Risparmio RQ",
+              description: `Risparmio totale stimato: €${quaterSaving.toLocaleString('it-IT', {minimumFractionDigits: 2})}`
+            });
+          }}
         />
         
         {/* Saldo Decaduto Card */}

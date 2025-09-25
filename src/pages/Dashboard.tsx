@@ -64,37 +64,48 @@ export default function Dashboard() {
   const [error, setError] = useState("");
 
   // Fetch da Supabase
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      
-      // Get current user for RLS compliance
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn("[Dashboard] User not authenticated, skipping data load");
-        setLoading(false);
-        return;
-      }
-
-      console.log("[Dashboard] Loading installments for user:", user.id);
-      
-      const { data, error } = await supabase
-        .from("installments")
-        .select("id, amount, is_paid, due_date, created_at, owner_uid")
-        .eq("owner_uid", user.id)
-        .order("due_date", { ascending: true });
-
-      if (error) {
-        console.error("[Dashboard] Error loading installments:", error);
-        setError(error.message);
-      } else {
-        console.log("[Dashboard] Installments loaded:", data?.length ?? 0);
-        setRows((data || []) as Installment[]);
-      }
+  const fetchInstallments = async () => {
+    setLoading(true);
+    
+    // Get current user for RLS compliance
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn("[Dashboard] User not authenticated, skipping data load");
       setLoading(false);
+      return;
+    }
+
+    console.log("[Dashboard] Loading installments for user:", user.id);
+    
+    const { data, error } = await supabase
+      .from("installments")
+      .select("id, amount, is_paid, due_date, created_at, owner_uid")
+      .eq("owner_uid", user.id)
+      .order("due_date", { ascending: true });
+
+    if (error) {
+      console.error("[Dashboard] Error loading installments:", error);
+      setError(error.message);
+    } else {
+      console.log("[Dashboard] Installments loaded:", data?.length ?? 0);
+      setRows((data || []) as Installment[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchInstallments();
+  }, []);
+
+  // Listen for KPI reload events from migration operations
+  useEffect(() => {
+    const handleKpiReload = () => {
+      console.log("[Dashboard] KPI reload event received, refreshing data");
+      fetchInstallments();
     };
 
-    run();
+    window.addEventListener('rateations:reload-kpis', handleKpiReload);
+    return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
   }, []);
 
   // Calcoli

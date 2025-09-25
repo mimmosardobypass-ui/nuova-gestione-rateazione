@@ -1,70 +1,53 @@
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client-resilient";
+import { calcQuaterSavingFromLinks } from "@/utils/quater-saving";
 
 export function useQuaterSaving() {
-  const [saving, setSaving] = useState(0);
+  const [saving, setSaving] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reloadTrigger, setReloadTrigger] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadSaving = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get current user first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
+      // Fetch RQ savings data from the aggregated view
+      const { data: savingData, error: savingError } = await supabase
+        .from("v_risparmio_riam_quater_aggregato")
+        .select("*");
 
-        const { data: { session }, error: sErr } = await supabase.auth.getSession();
-        if (sErr) throw sErr;
-        
-        if (!session?.user) { 
-          if (!cancelled) {
-            setSaving(0);
-            setLoading(false);
-          }
-          return; 
-        }
-
-        const { data, error: qErr } = await supabase
-          .from("v_quater_saving_per_user")
-          .select("saving_eur")
-          .eq("owner_uid", session.user.id)
-          .single();
-
-        if (qErr && qErr.code !== "PGRST116") throw qErr; // "no rows found" is OK
-        
-        if (!cancelled) setSaving(Number(data?.saving_eur ?? 0));
-      } catch (e: any) {
-        console.error('[useQuaterSaving] Error:', e);
-        if (!cancelled) { 
-          setError(e?.message ?? "Errore nel caricamento risparmio RQ"); 
-          setSaving(0); 
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (savingError) {
+        console.error("Error fetching RQ savings:", savingError);
+        throw savingError;
       }
-    })();
 
-    return () => { cancelled = true; };
-  }, [reloadTrigger]);
+      // Calculate total saving using the utility function
+      const { quaterSaving } = calcQuaterSavingFromLinks(
+        savingData?.map(row => ({
+          is_quater: true,
+          allocated_residual_cents: row.residuo_pagopa_tot * 100, // Convert to cents
+          quater_total_due_cents: row.totale_rq * 100 // Convert to cents
+        })) || []
+      );
 
-  // Listen for reload events
-  useEffect(() => {
-    const handleReload = () => {
-      setReloadTrigger(prev => prev + 1);
-    };
-
-    window.addEventListener('rateations:reload-kpis', handleReload);
-    return () => window.removeEventListener('rateations:reload-kpis', handleReload);
+      setSaving(quaterSaving);
+    } catch (e: any) {
+      console.error("[QuaterSaving]", e);
+      setError(e.message || "Errore nel caricamento risparmio");
+      setSaving(0);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return {
-    saving,
-    loading,
-    error,
-    reload: () => {
-      window.dispatchEvent(new Event('rateations:reload-kpis'));
-    },
-  };
+  useEffect(() => {
+    loadSaving();
+  }, [loadSaving]);
+
+  return { saving, loading, error, reload: loadSaving };
 }
