@@ -37,6 +37,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [selectedDebtIds, setSelectedDebtIds] = useState<string[]>([]);
   const [selectedPagopaIds, setSelectedPagopaIds] = useState<string[]>([]);
   const [targetRateationId, setTargetRateationId] = useState<string>('');
+  const [selectedRqIds, setSelectedRqIds] = useState<string[]>([]); // Multi-selection for PagoPA mode
   const [note, setNote] = useState('');
   const [processing, setProcessing] = useState(false);
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
@@ -137,6 +138,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     
     // Reset target RQ and options when PagoPA selection changes
     setTargetRateationId('');
+    setSelectedRqIds([]);
     setRqOptions([]);
     
     // Load existing links when PagoPA selection changes
@@ -160,8 +162,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   };
 
   const nothingSelected = migrationMode === 'pagopa'
-    ? selectedPagopaIds.length === 0
-    : selectedDebtIds.length === 0;
+    ? selectedPagopaIds.length === 0 || selectedRqIds.length === 0
+    : selectedDebtIds.length === 0 || !targetRateationId;
 
   // Calculate selected PagoPA ID as number
   const selectedPagopaIdNumber = useMemo(
@@ -196,7 +198,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   }, [selectedPagopaIdNumber, migrationMode]);
 
   // Disable migrate button logic
-  const disableMigrate = processing || nothingSelected || !targetRateationId;
+  const disableMigrate = processing || nothingSelected;
 
   // Debug logging for button state
   console.debug('[Migration] Button state', { 
@@ -265,6 +267,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       setSelectedPagopaIds([]);
       setSelectedDebtIds([]);
       setTargetRateationId('');
+      setSelectedRqIds([]);
       setNote('');
       setExistingPagopaLinks([]);
     }
@@ -280,34 +283,25 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       return;
     }
 
-    if (!targetRateationId) {
-      toast({
-        title: "Piano RQ non selezionato",
-        description: "Seleziona il piano Riam.Quater di destinazione",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (migrationMode === 'pagopa') {
-      // NUOVA: Migrazione atomica PagoPA → RQ (senza allocazione per quote)
-      // Seleziona UNA PagoPA e una o più RQ, poi collega atomicamente
+      // NUOVA: Migrazione atomica PagoPA → RQ con multi-selezione RQ
       setProcessing(true);
       try {
-        if (!selectedPagopaIds.length || !targetRateationId) {
+        if (!selectedPagopaIds.length || !selectedRqIds.length) {
           throw new Error('Seleziona una PagoPA e almeno una RQ');
         }
 
         // Usa la nuova RPC atomica: migratePagopaAttachRq
         await migratePagopaAttachRq(
           selectedPagopaIds[0], // Solo la prima PagoPA selezionata
-          [targetRateationId], // Array di RQ (per ora solo una)
+          selectedRqIds, // Array di RQ IDs
           note.trim() || undefined
         );
 
+        const rqLabels = selectedRqIds.map(id => rqLabel(id)).join(', ');
         toast({
           title: "Migrazione completata", 
-          description: `PagoPA collegata a RQ ${rqLabel(targetRateationId)}. Stato: INTERROTTA`,
+          description: `PagoPA collegata a ${selectedRqIds.length} RQ: ${rqLabels}. Stato: INTERROTTA`,
           duration: 5000
         });
 
@@ -320,7 +314,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         
         // Reset form
         setSelectedPagopaIds([]);
-        setTargetRateationId('');
+        setSelectedRqIds([]);
         setNote('');
       } catch (error) {
         console.error('PagoPA migration error:', error);
@@ -336,6 +330,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       }
     } else {
       // Normal debt migration
+      if (!targetRateationId) {
+        toast({
+          title: "Piano RQ non selezionato",
+          description: "Seleziona il piano Riam.Quater di destinazione",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       setProcessing(true);
       try {
         await migrateDebtsToRQ({
@@ -641,84 +644,87 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    {migrationMode === 'pagopa' ? 'Rateazione RQ di Destinazione' : 'Rateazione di Destinazione'}
+                    {migrationMode === 'pagopa' ? 'Rateazioni RQ di Destinazione' : 'Rateazione di Destinazione'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="target-rateation">
-                        {migrationMode === 'pagopa' ? 'Seleziona Piano RQ per la Migrazione' : 'Seleziona Piano RQ'}
+                        {migrationMode === 'pagopa' ? 'Seleziona Piani RQ per la Migrazione' : 'Seleziona Piano RQ'}
                       </Label>
-                      <Select value={targetRateationId} onValueChange={setTargetRateationId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Scegli una rateazione RQ..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {rqLoading && migrationMode === 'pagopa' ? (
-                            <div className="p-4 text-center">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                              <p className="text-xs text-muted-foreground mt-2">Caricamento RQ...</p>
-                            </div>
-                          ) : (migrationMode === 'pagopa' ? rqOptions : rqRateations).length === 0 && migrationMode === 'pagopa' && selectedPagopaIds.length > 0 ? (
-                            <div className="p-4 text-center space-y-3">
-                              <p className="text-sm text-muted-foreground">
-                                Nessuna RQ disponibile per questa PagoPA.
-                              </p>
-                              <div className="flex flex-col gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="text-xs"
-                                  onClick={() => {
-                                    // Navigate to create new RQ - placeholder for now
-                                    toast({
-                                      title: "Funzionalità in arrivo",
-                                      description: "Creazione nuova RQ sarà disponibile presto"
-                                    });
-                                  }}
-                                >
-                                  Crea nuova RQ
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="text-xs"
-                                  onClick={() => {
-                                    toast({
-                                      title: "Suggerimento",
-                                      description: "Sgancia una RQ esistente per liberare slot"
-                                    });
-                                  }}
-                                >
-                                  Sgancia una RQ esistente
-                                </Button>
-                              </div>
+                      
+                      {migrationMode === 'pagopa' ? (
+                        // Multi-select checkbox list for PagoPA mode
+                        <div className="space-y-2 max-h-64 overflow-auto border rounded-lg p-2">
+                          {rqLoading ? (
+                            <div className="text-sm text-muted-foreground px-2 py-1">Caricamento RQ…</div>
+                          ) : rqOptions.length === 0 ? (
+                            <div className="text-sm text-muted-foreground px-2 py-1">
+                              {selectedPagopaIds.length === 0 
+                                ? 'Seleziona prima una PagoPA' 
+                                : 'Nessuna RQ disponibile per questa PagoPA'}
                             </div>
                           ) : (
-                            (migrationMode === 'pagopa' ? rqOptions : rqRateations).map((rq) => (
+                            rqOptions.map(rq => {
+                              const id = String(rq.id);
+                              const checked = selectedRqIds.includes(id);
+                              return (
+                                <label 
+                                  key={id} 
+                                  className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(isChecked) => {
+                                      setSelectedRqIds(prev =>
+                                        isChecked 
+                                          ? Array.from(new Set([...prev, id])) 
+                                          : prev.filter(x => x !== id)
+                                      );
+                                    }}
+                                  />
+                                  <span className="text-sm">
+                                    {rq.number || id} {rq.taxpayer_name ? `— ${rq.taxpayer_name}` : ''}
+                                  </span>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                      ) : (
+                        // Single select for debt mode
+                        <Select value={targetRateationId} onValueChange={setTargetRateationId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Scegli una rateazione RQ..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {rqRateations.map((rq) => (
                               <SelectItem key={rq.id} value={String(rq.id)}>
                                 {rq.number ?? '—'} {rq.taxpayer_name ? `- ${rq.taxpayer_name}` : ''}
                               </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                       {!targetRateationId && (migrationMode === 'pagopa' ? selectedPagopaIds.length > 0 : selectedDebtIds.length > 0) && (
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      
+                      {migrationMode === 'pagopa' && selectedRqIds.length > 0 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Selezionate {selectedRqIds.length} RQ
+                        </div>
+                      )}
+                      
+                      {migrationMode !== 'pagopa' && !targetRateationId && selectedDebtIds.length > 0 && (
                         <p className="text-xs text-destructive">
                           Seleziona la Riam.Quater per confermare la migrazione
                         </p>
-                       )}
-                        {migrationMode !== 'pagopa' && rqRateations.length === 0 && (
-                         <p className="text-xs text-amber-600">
-                           Nessuna Riam.Quater trovata. Crea prima un piano RQ e riprova.
-                         </p>
-                        )}
-                        {migrationMode === 'pagopa' && selectedPagopaIds.length > 0 && rqOptions.length === 0 && !rqLoading && (
-                         <p className="text-xs text-amber-600">
-                           Nessuna RQ disponibile per questa PagoPA. Sgancia una RQ esistente o crea una nuova RQ.
-                         </p>
-                        )}
+                      )}
+                      
+                      {migrationMode !== 'pagopa' && rqRateations.length === 0 && (
+                        <p className="text-xs text-amber-600">
+                          Nessuna Riam.Quater trovata. Crea prima un piano RQ e riprova.
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -751,7 +757,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
             {processing 
               ? 'Migrazione...' 
               : migrationMode === 'pagopa' 
-                ? `Migra ${selectedPagopaIds.length > 0 ? selectedPagopaIds.length : ''} PagoPA`.trim()
+                ? `Migra a ${selectedRqIds.length} RQ`.trim()
                 : `Migra ${selectedDebtIds.length > 0 ? selectedDebtIds.length : ''} cartelle`.trim()
             }
           </Button>
