@@ -674,11 +674,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                   key={id} 
                                   className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
                                 >
-                                  <Checkbox
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-primary"
                                     checked={checked}
-                                    onCheckedChange={(isChecked) => {
+                                    onChange={(e) => {
+                                      const id = String(rq.id);
+                                      const checked = e.target.checked;
                                       setSelectedRqIds(prev =>
-                                        isChecked 
+                                        checked 
                                           ? Array.from(new Set([...prev, id])) 
                                           : prev.filter(x => x !== id)
                                       );
