@@ -122,11 +122,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
   const handlePagopaSelection = async (pagopaId: string | number, checked: boolean) => {
     const id = String(pagopaId);
-    setSelectedPagopaIds(prev => 
-      checked 
-        ? Array.from(new Set([...prev, id]))
-        : prev.filter(x => x !== id)
-    );
+    
+    if (migrationMode === 'pagopa') {
+      // ✅ Selezione singola: o l'id selezionato, oppure nessuno
+      setSelectedPagopaIds(checked ? [id] : []);
+    } else {
+      // ✅ Multi-selezione (solo per modalità "debts")
+      setSelectedPagopaIds(prev =>
+        checked
+          ? Array.from(new Set([...prev, id]))
+          : prev.filter(x => x !== id)
+      );
+    }
     
     // Reset target RQ and options when PagoPA selection changes
     setTargetRateationId('');
@@ -145,11 +152,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   };
 
   const handleSelectAll = (checked: boolean) => {
-    if (migrationMode === 'pagopa') {
-      setSelectedPagopaIds(checked ? migrablePagoPA.map(p => String(p.id)) : []);
-    } else {
-      setSelectedDebtIds(checked ? activeDebts.map(d => d.debt_id) : []);
-    }
+    // ✅ Disabilita "Seleziona tutti" in modalità pagopa (solo selezione singola)
+    if (migrationMode === 'pagopa') return;
+    
+    // Solo per modalità "debts"
+    setSelectedDebtIds(checked ? activeDebts.map(d => d.debt_id) : []);
   };
 
   const nothingSelected = migrationMode === 'pagopa'
@@ -511,34 +518,40 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         </div>
                         <div className="border rounded-lg">
                           <div className="space-y-2 max-h-72 overflow-y-auto px-3 py-2">
-                          {migrablePagoPA.map((pagopa) => (
-                            <div key={pagopa.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
-                              <Checkbox
-                                checked={selectedPagopaIds.includes(String(pagopa.id))}
-                                onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
-                              />
-                              <div className="flex-1 min-w-0">
-                                 <div className="font-medium text-sm truncate">
-                                   {pagopa.number} - {pagopa.taxpayer_name}
-                                   <Badge variant="secondary" className="ml-2 text-xs">
-                                     {pagopa.status}
-                                   </Badge>
-                                 </div>
-                                 {pagopa.allocatable_cents && (
-                                   <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                     <span className="text-green-600">
-                                       Disponibile: €{(pagopa.allocatable_cents / 100).toFixed(2)}
-                                     </span>
+                          {migrablePagoPA.map((pagopa) => {
+                            const isSelected = selectedPagopaIds.includes(String(pagopa.id));
+                            const isSingleModeAndOtherSelected = migrationMode === 'pagopa' && selectedPagopaIds.length > 0 && !isSelected;
+                            
+                            return (
+                              <div key={pagopa.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
+                                  disabled={isSingleModeAndOtherSelected}
+                                />
+                                <div className="flex-1 min-w-0">
+                                   <div className="font-medium text-sm truncate">
+                                     {pagopa.number} - {pagopa.taxpayer_name}
+                                     <Badge variant="secondary" className="ml-2 text-xs">
+                                       {pagopa.status}
+                                     </Badge>
                                    </div>
-                                 )}
-                              </div>
-                              {pagopa.total_amount && (
-                                <div className="text-sm text-right flex-shrink-0">
-                                  €{pagopa.total_amount.toFixed(2)}
+                                   {pagopa.allocatable_cents && (
+                                     <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                       <span className="text-green-600">
+                                         Disponibile: €{(pagopa.allocatable_cents / 100).toFixed(2)}
+                                       </span>
+                                     </div>
+                                   )}
                                 </div>
-                              )}
-                            </div>
-                          ))}
+                                {pagopa.total_amount && (
+                                  <div className="text-sm text-right flex-shrink-0">
+                                    €{pagopa.total_amount.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                          </div>
                           </div>
                           
