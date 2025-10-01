@@ -15,7 +15,7 @@ import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
-import { linkPagopaToRQ, unlinkPagopaFromRQ, getPagopaLinks } from '../api/linkPagopa';
+import { migratePagopaAttachRq, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
 import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
 import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
 import { useSelectableRq } from '@/features/rateations/hooks/useSelectableRq';
@@ -259,11 +259,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     
     setProcessing(true);
     try {
-      const result = await unlinkPagopaFromRQ(pagopaId, rqId);
+      const unlocked = await undoPagopaLinks(pagopaId, [rqId]);
       
       toast({
         title: "Collegamento rimosso",
-        description: result.unlocked
+        description: unlocked
           ? 'PagoPA sbloccata: stato ripristinato ad ATTIVA'
           : `Scollegata da RQ ${rqNumber}`,
       });
@@ -343,42 +343,41 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
 
     if (migrationMode === 'pagopa') {
-      // PagoPA → RQ migration with quota allocation
+      // NUOVA: Migrazione atomica PagoPA → RQ (senza allocazione per quote)
+      // Seleziona UNA PagoPA e una o più RQ, poi collega atomicamente
       setProcessing(true);
       try {
-        // Use linkPagopaToRQ with allocated quota for each selected PagoPA
-        await Promise.all(
-          selectedPagopaIds.map(pagopaId => 
-            linkPagopaToRQ(
-              Number(pagopaId), 
-              Number(targetRateationId), 
-              quotaCents,
-              note.trim() || undefined
-            )
-          )
+        if (!selectedPagopaIds.length || !targetRateationId) {
+          throw new Error('Seleziona una PagoPA e almeno una RQ');
+        }
+
+        // Usa la nuova RPC atomica: migratePagopaAttachRq
+        await migratePagopaAttachRq(
+          selectedPagopaIds[0], // Solo la prima PagoPA selezionata
+          [targetRateationId], // Array di RQ (per ora solo una)
+          note.trim() || undefined
         );
 
         toast({
-          title: "Successo", 
-          description: `Collegata ${selectedPagopaIds.length} PagoPA alla RQ ${rqLabel(targetRateationId)} con quota €${allocationQuotaEur}`,
+          title: "Migrazione completata", 
+          description: `PagoPA collegata a RQ ${rqLabel(targetRateationId)}. Stato: INTERROTTA`,
           duration: 5000
         });
 
-        // Reload existing links and refresh allocation data
-        await Promise.all([
-          loadExistingLinks(Number(selectedPagopaIds[0])),
-          loadData()
-        ]);
+        // Reload and refresh
+        await loadData();
         window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
 
         setOpen(false);
         onMigrationComplete?.();
         
-        // Reset form - mantieni la PagoPA selezionata per migrazioni successive
-        setAllocationQuotaEur(''); // svuota input per evitare false-positivi
+        // Reset form
+        setSelectedPagopaIds([]);
+        setTargetRateationId('');
+        setNote('');
       } catch (error) {
         console.error('PagoPA migration error:', error);
-        const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione delle cartelle PagoPA";
+        const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione PagoPA";
         toast({
           title: "Errore",
           description: errorMessage,

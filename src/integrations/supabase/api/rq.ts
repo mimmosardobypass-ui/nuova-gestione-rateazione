@@ -29,7 +29,7 @@ export async function fetchPagopaQuotaInfo(pagopaId: number): Promise<PagopaQuot
 
 /**
  * FASE 2.2: RQ disponibili dalla RPC robusta (SECURITY DEFINER, filtra per owner)
- * RQ disponibili lato DB - esclude quelle già collegate e filtra per owner della PagoPA.
+ * RQ disponibili lato DB - esclude quelle già collegate (link attivi con unlinked_at = null)
  * Fallback client-side se la RPC non è disponibile.
  */
 export async function fetchSelectableRqForPagopa(
@@ -49,7 +49,7 @@ export async function fetchSelectableRqForPagopa(
       quater_total_due_cents: Number(r.quater_total_due_cents ?? 0),
     }));
   } catch (_e) {
-    // Fallback: escludi client-side le RQ già collegate
+    // Fallback: escludi client-side le RQ già collegate (link attivi)
     const blocked = new Set(linkedRqIds);
     return fallbackAllRq.filter(r => !blocked.has(Number(r.id)));
   }

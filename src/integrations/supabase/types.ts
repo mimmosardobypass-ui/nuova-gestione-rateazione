@@ -883,6 +883,7 @@ export type Database = {
           risparmio_at_link_cents: number | null
           rq_taxpayer_at_link: string | null
           rq_total_at_link_cents: number | null
+          unlinked_at: string | null
         }
         Insert: {
           allocated_residual_cents?: number | null
@@ -896,6 +897,7 @@ export type Database = {
           risparmio_at_link_cents?: number | null
           rq_taxpayer_at_link?: string | null
           rq_total_at_link_cents?: number | null
+          unlinked_at?: string | null
         }
         Update: {
           allocated_residual_cents?: number | null
@@ -909,6 +911,7 @@ export type Database = {
           risparmio_at_link_cents?: number | null
           rq_taxpayer_at_link?: string | null
           rq_total_at_link_cents?: number | null
+          unlinked_at?: string | null
         }
         Relationships: [
           {
@@ -2751,6 +2754,13 @@ export type Database = {
         Args: { p_pagopa_id: number }
         Returns: undefined
       }
+      pagopa_migrate_attach_rq: {
+        Args: { p_note?: string; p_pagopa_id: number; p_rq_ids: number[] }
+        Returns: {
+          link_id: number
+          riam_quater_id: number
+        }[]
+      }
       pagopa_quota_info: {
         Args: { p_pagopa_id: number }
         Returns: {
@@ -2758,6 +2768,10 @@ export type Database = {
           allocated_cents: number
           residual_cents: number
         }[]
+      }
+      pagopa_unlink_rq: {
+        Args: { p_pagopa_id: number; p_rq_ids?: number[] }
+        Returns: boolean
       }
       pagopa_unlock_if_no_links: {
         Args: { p_pagopa_id: number }
