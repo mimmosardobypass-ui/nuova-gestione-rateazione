@@ -472,15 +472,13 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center justify-between">
                     {migrationMode === 'pagopa' ? 'Cartelle PagoPA Disponibili per Migrazione' : 'Cartelle Disponibili per Migrazione'}
-                    <Checkbox
-                      checked={
-                        migrationMode === 'pagopa' 
-                          ? selectedPagopaIds.length === migrablePagoPA.length && migrablePagoPA.length > 0
-                          : selectedDebtIds.length === activeDebts.length && activeDebts.length > 0
-                      }
-                      onCheckedChange={handleSelectAll}
-                      disabled={migrationMode === 'pagopa' ? migrablePagoPA.length === 0 : activeDebts.length === 0}
-                    />
+                    {migrationMode !== 'pagopa' && (
+                      <Checkbox
+                        checked={selectedDebtIds.length === activeDebts.length && activeDebts.length > 0}
+                        onCheckedChange={handleSelectAll}
+                        disabled={activeDebts.length === 0}
+                      />
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -524,12 +522,23 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             
                             return (
                               <div key={pagopa.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
-                                  disabled={isSingleModeAndOtherSelected}
-                                />
-                                <div className="flex-1 min-w-0">
+                                {migrationMode === 'pagopa' ? (
+                                  <input
+                                    type="radio"
+                                    name="pagopa-migrate"
+                                    id={`pagopa-${pagopa.id}`}
+                                    checked={isSelected}
+                                    onChange={(e) => handlePagopaSelection(pagopa.id, e.target.checked)}
+                                    className="h-4 w-4 shrink-0 rounded-full border border-primary text-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                                  />
+                                ) : (
+                                  <Checkbox
+                                    id={`pagopa-${pagopa.id}`}
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) => handlePagopaSelection(pagopa.id, checked as boolean)}
+                                  />
+                                )}
+                                <label htmlFor={`pagopa-${pagopa.id}`} className="flex-1 min-w-0 cursor-pointer">
                                    <div className="font-medium text-sm truncate">
                                      {pagopa.number} - {pagopa.taxpayer_name}
                                      <Badge variant="secondary" className="ml-2 text-xs">
@@ -543,7 +552,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                        </span>
                                      </div>
                                    )}
-                                </div>
+                                </label>
                                 {pagopa.total_amount && (
                                   <div className="text-sm text-right flex-shrink-0">
                                     €{pagopa.total_amount.toFixed(2)}
