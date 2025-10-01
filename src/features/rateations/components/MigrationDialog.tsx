@@ -72,6 +72,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     setSelectedRqIds(prev => prev.filter(id => valid.has(id)));
   }, [rqOptions, migrationMode]);
 
+  // Clear RQ selections when switching away from pagopa mode
+  useEffect(() => {
+    if (migrationMode !== 'pagopa') setSelectedRqIds([]);
+  }, [migrationMode]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -688,7 +693,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                     id={inputId}
                                     type="checkbox"
                                     className="h-4 w-4 rounded border-primary"
-                                    disabled={processing}
+                                    disabled={rqLoading || processing}
                                     checked={isChecked}
                                     onChange={(e) => {
                                       const checked = e.target.checked;
