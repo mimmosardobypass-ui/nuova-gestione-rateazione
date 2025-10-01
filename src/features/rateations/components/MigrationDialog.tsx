@@ -35,9 +35,9 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [migrablePagoPA, setMigrablePagoPA] = useState<MigrablePagopa[]>([]);
   const [rqRateations, setRqRateations] = useState<{ id: string; number: string | null; taxpayer_name: string | null }[]>([]);
   const [selectedDebtIds, setSelectedDebtIds] = useState<string[]>([]);
-  const [selectedPagopaIds, setSelectedPagopaIds] = useState<string[]>([]);
+  const [selectedPagopaIds, setSelectedPagopaIds] = useState<number[]>([]);
   const [targetRateationId, setTargetRateationId] = useState<string>('');
-  const [selectedRqIds, setSelectedRqIds] = useState<string[]>([]); // Multi-selection for PagoPA mode
+  const [selectedRqIds, setSelectedRqIds] = useState<number[]>([]); // Multi-selection for PagoPA mode
   const [note, setNote] = useState('');
   const [processing, setProcessing] = useState(false);
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
@@ -68,7 +68,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   // Cleanup invalid selections when RQ options change
   useEffect(() => {
     if (migrationMode !== 'pagopa') return;
-    const valid = new Set(rqOptions.map(r => String(r.id)));
+    const valid = new Set(rqOptions.map(r => r.id));
     setSelectedRqIds(prev => prev.filter(id => valid.has(id)));
   }, [rqOptions, migrationMode]);
 
@@ -89,7 +89,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         // Auto-select the current PagoPA if it's migratable
         if (pagopaData.length > 0) {
           // Auto-select the current rateation if it's in the list and nothing is selected
-          setSelectedPagopaIds(prev => prev.length ? prev : [String(pagopaData[0].id)]);
+          setSelectedPagopaIds(prev => prev.length ? prev : [Number(pagopaData[0].id)]);
         }
       } else {
         // Load debts for normal debt migration
@@ -134,7 +134,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   };
 
   const handlePagopaSelection = async (pagopaId: string | number, checked: boolean) => {
-    const id = String(pagopaId);
+    const id = Number(pagopaId);
     
     if (migrationMode === 'pagopa') {
       // ✅ Selezione singola: o l'id selezionato, oppure nessuno
@@ -179,7 +179,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
   // Calculate selected PagoPA ID as number
   const selectedPagopaIdNumber = useMemo(
-    () => (selectedPagopaIds[0] ? Number(selectedPagopaIds[0]) : undefined),
+    () => selectedPagopaIds[0],
     [selectedPagopaIds]
   );
 
@@ -303,20 +303,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           throw new Error('Seleziona una PagoPA e almeno una RQ');
         }
 
-        // Convert IDs to numbers with strong validation
-        const pagopaIdNum = Number(selectedPagopaIds[0]);
-        const rqIdsNum = selectedRqIds.map((v) => Number(v));
-
-        // Strong validation: ensure all IDs are safe integers
-        if (!Number.isSafeInteger(pagopaIdNum)) {
-          throw new Error(`ID PagoPA non numerico: ${selectedPagopaIds[0]}`);
-        }
-        const invalidRqIds = selectedRqIds.filter((v, i) => !Number.isSafeInteger(rqIdsNum[i]));
-        if (invalidRqIds.length > 0) {
-          throw new Error(`ID RQ non numerici: ${invalidRqIds.join(', ')}`);
-        }
+        const pagopaIdNum = selectedPagopaIds[0];
+        const rqIdsNum = selectedRqIds;
 
         // Debug logging to trace exact values being sent
+        console.debug('[DBG] selectedPagopaIds:', selectedPagopaIds, 'selectedRqIds:', selectedRqIds);
         console.debug('[MIGRATE] p_pagopa_id:', pagopaIdNum, 'p_rq_ids:', rqIdsNum);
 
         // Use the new atomic RPC: migratePagopaAttachRq
@@ -548,7 +539,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         <div className="border rounded-lg">
                           <div className="space-y-2 max-h-72 overflow-y-auto px-3 py-2">
                           {migrablePagoPA.map((pagopa) => {
-                            const isSelected = selectedPagopaIds.includes(String(pagopa.id));
+                            const isSelected = selectedPagopaIds.includes(Number(pagopa.id));
                             const isSingleModeAndOtherSelected = migrationMode === 'pagopa' && selectedPagopaIds.length > 0 && !isSelected;
                             
                             return (
@@ -695,15 +686,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             </div>
                           ) : (
                             rqOptions.map(rq => {
-                              const idStr = String(rq.id);
-                              const isChecked = selectedRqIds.includes(idStr);
-                              const inputId = `rq-${idStr}`;
+                              const isChecked = selectedRqIds.includes(rq.id);
+                              const inputId = `rq-${rq.id}`;
                               return (
                                 <label 
-                                  key={idStr}
+                                  key={rq.id}
                                   htmlFor={inputId}
                                   className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
-                                  aria-label={`Seleziona RQ ${rq.number || idStr}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
+                                  aria-label={`Seleziona RQ ${rq.number || rq.id}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
                                 >
                                   <input
                                     id={inputId}
@@ -715,13 +705,13 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                       const checked = e.target.checked;
                                       setSelectedRqIds(prev =>
                                         checked 
-                                          ? Array.from(new Set([...prev, idStr])) 
-                                          : prev.filter(x => x !== idStr)
+                                          ? Array.from(new Set([...prev, rq.id])) 
+                                          : prev.filter(x => x !== rq.id)
                                       );
                                     }}
                                   />
                                   <span className="text-sm">
-                                    {rq.number || idStr} {rq.taxpayer_name ? `— ${rq.taxpayer_name}` : ''}
+                                    {rq.number || rq.id} {rq.taxpayer_name ? `— ${rq.taxpayer_name}` : ''}
                                   </span>
                                 </label>
                               );
