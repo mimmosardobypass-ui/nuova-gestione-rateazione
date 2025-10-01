@@ -16,12 +16,8 @@ import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
 import { migratePagopaAttachRq, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
-import { eurToCentsForAllocation } from '@/lib/utils/rq-allocation';
-import { safeParseAllocation, isQuotaInRange } from '@/lib/utils/rq-allocation-ui';
 import { useSelectableRq } from '@/features/rateations/hooks/useSelectableRq';
-import { fetchPagopaQuotaInfo, fetchSelectableRqForPagopa, RqLight, unlockPagopaIfNoLinks } from '@/integrations/supabase/api/rq';
-import { supabase } from '@/integrations/supabase/client';
-import type { PagopaQuotaInfo } from '@/integrations/supabase/api/rq';
+import { fetchSelectableRqForPagopa, RqLight } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -45,8 +41,6 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [note, setNote] = useState('');
   const [processing, setProcessing] = useState(false);
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
-  const [allocationQuotaEur, setAllocationQuotaEur] = useState<string>('');
-  const [allocInfo, setAllocInfo] = useState<PagopaQuotaInfo>({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 });
   const [existingPagopaLinks, setExistingPagopaLinks] = useState<any[]>([]);
 
   const { toast } = useToast();
@@ -119,29 +113,6 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
   };
 
-  // Self-healing: sblocca automaticamente PagoPA se quota 0 ma nessun link
-  const attemptSelfHeal = async (pagopaId: number, currentAlloc: PagopaQuotaInfo) => {
-    if (currentAlloc.allocatableCents === 0 && 
-        currentAlloc.residualCents > 0 && 
-        existingPagopaLinks.length === 0) {
-      console.log(`🔧 Self-healing: Attempting to unlock PagoPA ${pagopaId}`);
-      try {
-        const unlocked = await unlockPagopaIfNoLinks(pagopaId);
-        if (unlocked) {
-          console.log(`✅ Self-healing: PagoPA ${pagopaId} unlocked successfully`);
-          // Re-fetch quota after unlock
-          const newAlloc = await fetchPagopaQuotaInfo(pagopaId);
-          setAllocInfo(newAlloc);
-          console.log(`🎯 Self-healing: Updated quota to ${newAlloc.allocatableCents} cents`);
-          return true;
-        }
-      } catch (error) {
-        console.error('Self-healing failed:', error);
-      }
-    }
-    return false;
-  };
-
   const handleDebtSelection = (debtId: string, checked: boolean) => {
     setSelectedDebtIds(prev => 
       checked 
@@ -158,26 +129,16 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         : prev.filter(x => x !== id)
     );
     
-    // FASE 3.2: Load existing links and quota info when PagoPA selection changes
+    // Load existing links when PagoPA selection changes
     if (checked) {
       try {
-        // Load existing links for this PagoPA
-        const links = await loadExistingLinks(Number(pagopaId));
-        
-        // Load quota info using the robust RPC
-        const quotaInfo = await fetchPagopaQuotaInfo(Number(pagopaId));
-        setAllocInfo(quotaInfo);
-        
-        // Attempt self-healing if needed
-        await attemptSelfHeal(Number(pagopaId), quotaInfo);
+        await loadExistingLinks(Number(pagopaId));
       } catch (error) {
         console.error('Error loading PagoPA data:', error);
       }
     } else {
-      // Reset quando PagoPA viene deselezionata per evitare inconsistenze
+      // Reset when PagoPA is deselected
       setTargetRateationId('');
-      setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 });
-      setAllocationQuotaEur('');
       setExistingPagopaLinks([]);
     }
   };
@@ -209,33 +170,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     linkedRqIds
   );
 
-  // FASE 3.2: Quota disponibile dalla RPC
-  useEffect(() => {
-    if (!selectedPagopaIdNumber) { 
-      setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 }); 
-      return; 
-    }
-    
-    fetchPagopaQuotaInfo(selectedPagopaIdNumber)
-      .then(info => setAllocInfo(info))
-      .catch(() => setAllocInfo({ residualCents: 0, allocatedCents: 0, allocatableCents: 0 }));
-  }, [selectedPagopaIdNumber]);
-
-  // Safe UI parsing - never throws during render
-  const { cents: quotaCents, valid: quotaInputValid } = useMemo(
-    () => safeParseAllocation(allocationQuotaEur),
-    [allocationQuotaEur]
-  );
-  
-  // FASE 3.2: Condizioni semplificate per abilitare il bottone "Migra"
-  const disableMigrate = !selectedPagopaIdNumber || 
-                        !targetRateationId || 
+  // Disable migrate button logic
+  const disableMigrate = !targetRateationId || 
                         processing ||
-                        (migrationMode === 'pagopa' && (
-                          quotaCents <= 0 || 
-                          quotaCents > allocInfo.allocatableCents
-                        )) ||
-                        (migrationMode === 'debts' && nothingSelected);
+                        nothingSelected;
 
   // Debug logging for button state
   console.debug('[Migration] Button state', { 
@@ -315,31 +253,6 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         variant: "destructive"
       });
       return;
-    }
-
-    if (migrationMode === 'pagopa') {
-      // Strict validation at submit
-      let quotaCents: number;
-      try {
-        quotaCents = eurToCentsForAllocation(allocationQuotaEur);
-      } catch {
-        toast({ 
-          title: 'Quota non valida', 
-          description: 'Inserire un importo valido', 
-          variant: 'destructive' 
-        });
-        return;
-      }
-
-      if (quotaCents <= 0 || quotaCents > allocInfo.allocatableCents) {
-        const maxEur = (allocInfo.allocatableCents / 100).toFixed(2);
-        toast({ 
-          title: 'Quota non valida', 
-          description: `La quota deve essere tra €0,01 e €${maxEur}`, 
-          variant: 'destructive' 
-        });
-        return;
-      }
     }
 
     if (migrationMode === 'pagopa') {
@@ -600,69 +513,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             </div>
                           ))}
                          </div>
-                         </div>
-                         
-                         {/* Quota allocation input for PagoPA mode */}
-                         {selectedPagopaIds.length > 0 && (
-                           <Card className="bg-blue-50 border-blue-200">
-                             <CardContent className="p-4">
-                                <Label htmlFor="quota-input" className="text-sm font-medium">
-                                  Quota da attribuire a questa RQ
-                                </Label>
-                                <div className="flex gap-2 mt-2">
-                                  <div className="relative flex-1">
-                                    <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                     <Input
-                                       id="quota-input"
-                                       data-testid="rq-quota-input"
-                                       type="text"
-                                       inputMode="decimal"
-                                       pattern="[0-9\.,]*"
-                                       value={allocationQuotaEur}
-                                       onChange={(e) => setAllocationQuotaEur(e.target.value)}
-                                       onKeyDown={(e) => {
-                                         if (e.key === 'Enter' && disableMigrate) e.preventDefault();
-                                       }}
-                                       className="pl-9"
-                                       placeholder="0,00"
-                                       disabled={allocInfo.allocatableCents === 0}
-                                       aria-invalid={!quotaInputValid}
-                                       aria-describedby="quota-help quota-error"
-                                     />
-                                   </div>
-                                   <Button
-                                     type="button"
-                                     variant="secondary"
-                                     size="sm"
-                                     data-testid="rq-use-all"
-                                      onClick={() => setAllocationQuotaEur((allocInfo.allocatableCents/100).toLocaleString('it-IT', {minimumFractionDigits:2}))}
-                                      disabled={allocInfo.allocatableCents === 0 || processing}
-                                   >
-                                     Usa tutto
-                                   </Button>
-                                </div>
-                                <small id="quota-help" className="text-xs text-muted-foreground mt-1 block">
-                                   {allocInfo.allocatableCents === 0
-                                     ? 'Nessuna quota disponibile: sgancia o riduci una quota esistente'
-                                     : <>Massimo disponibile: €{(allocInfo.allocatableCents / 100).toLocaleString('it-IT', {minimumFractionDigits:2})}</>}
-                                </small>
-                                 {allocationQuotaEur && allocInfo.allocatableCents > 0 && (
-                                   <>
-                                     {!quotaInputValid && (
-                                       <div id="quota-error" role="alert" aria-live="polite" className="text-xs text-destructive mt-1">
-                                         Inserire un importo valido
-                                       </div>
-                                     )}
-                                     {quotaInputValid && !isQuotaInRange(quotaCents, allocInfo.allocatableCents) && (
-                                       <div className="text-xs text-destructive mt-1" role="alert" aria-live="polite">
-                                         La quota deve essere tra €0,01 e €{(allocInfo.allocatableCents/100).toLocaleString('it-IT', {minimumFractionDigits:2})}
-                                       </div>
-                                     )}
-                                   </>
-                                 )}
-                             </CardContent>
-                            </Card>
-                          )}
+                          </div>
                           
                           {/* Existing PagoPA Links */}
                           {existingPagopaLinks.length > 0 && selectedPagopaIds.length > 0 && (
@@ -674,18 +525,13 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                 <ul className="space-y-2">
                                   {existingPagopaLinks.map((link: any) => (
                                     <li key={link.riam_quater_id} className="flex items-center justify-between p-2 bg-white rounded border border-amber-200">
-                                      <div className="text-sm">
+                                       <div className="text-sm">
                                         <span className="font-medium text-foreground">
                                           RQ {link.rq?.number || link.riam_quater_id}
                                         </span>
                                         {link.rq?.taxpayer_name && (
                                           <span className="text-muted-foreground"> — {link.rq.taxpayer_name}</span>
                                         )}
-                                        <span className="ml-2 text-muted-foreground">
-                                          (€ {(link.allocated_residual_cents / 100).toLocaleString('it-IT', { 
-                                            minimumFractionDigits: 2 
-                                          })})
-                                        </span>
                                       </div>
                                       <Button
                                         variant="outline"
