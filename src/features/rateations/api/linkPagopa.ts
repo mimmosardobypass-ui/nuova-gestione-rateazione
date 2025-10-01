@@ -10,9 +10,27 @@ export async function migratePagopaAttachRq(
   rqIds: (string | number)[],
   note?: string
 ) {
+  // Double-belt validation: ensure IDs are numeric before toIntId conversion
+  const pagopaNum = Number(pagopaId);
+  const rqIdsNum = rqIds.map((v) => Number(v));
+
+  if (!Number.isSafeInteger(pagopaNum)) {
+    throw new Error(`ID PagoPA non numerico passato alla migrazione: ${pagopaId}`);
+  }
+  const invalidRqIds = rqIds.filter((v, i) => !Number.isSafeInteger(rqIdsNum[i]));
+  if (invalidRqIds.length > 0) {
+    throw new Error(`ID RQ non numerici passati alla migrazione: ${invalidRqIds.join(', ')}`);
+  }
+
+  const p_pagopa_id = toIntId(pagopaId, 'pagopaId');
+  const p_rq_ids = rqIds.map(id => toIntId(id, 'rqId'));
+
+  // Debug logging to trace exact values being sent to RPC
+  console.debug('[migratePagopaAttachRq] p_pagopa_id:', p_pagopa_id, 'p_rq_ids:', p_rq_ids);
+
   const { data, error } = await supabase.rpc('pagopa_migrate_attach_rq', {
-    p_pagopa_id: toIntId(pagopaId, 'pagopaId'),
-    p_rq_ids: rqIds.map(id => toIntId(id, 'rqId')),
+    p_pagopa_id,
+    p_rq_ids,
     p_note: note ?? null
   });
   
