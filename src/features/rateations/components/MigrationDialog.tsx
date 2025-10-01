@@ -65,6 +65,13 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
   }, [rateation.is_pagopa]);
 
+  // Cleanup invalid selections when RQ options change
+  useEffect(() => {
+    if (migrationMode !== 'pagopa') return;
+    const valid = new Set(rqOptions.map(r => String(r.id)));
+    setSelectedRqIds(prev => prev.filter(id => valid.has(id)));
+  }, [rqOptions, migrationMode]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -675,6 +682,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                   key={idStr}
                                   htmlFor={inputId}
                                   className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
+                                  aria-label={`Seleziona RQ ${rq.number || idStr}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
                                 >
                                   <input
                                     id={inputId}
@@ -697,6 +705,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                 </label>
                               );
                             })
+                          )}
+                          {!rqLoading && rqOptions.length > 0 && (
+                            <div aria-live="polite" className="text-xs text-muted-foreground mt-1 px-2">
+                              {selectedRqIds.length > 0 ? `Selezionate ${selectedRqIds.length} RQ` : 'Nessuna RQ selezionata'}
+                            </div>
                           )}
                         </div>
                       ) : (
