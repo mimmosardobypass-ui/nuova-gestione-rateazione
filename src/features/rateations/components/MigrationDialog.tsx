@@ -667,29 +667,32 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                             </div>
                           ) : (
                             rqOptions.map(rq => {
-                              const id = String(rq.id);
-                              const checked = selectedRqIds.includes(id);
+                              const idStr = String(rq.id);
+                              const isChecked = selectedRqIds.includes(idStr);
+                              const inputId = `rq-${idStr}`;
                               return (
                                 <label 
-                                  key={id} 
+                                  key={idStr}
+                                  htmlFor={inputId}
                                   className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
                                 >
                                   <input
+                                    id={inputId}
                                     type="checkbox"
                                     className="h-4 w-4 rounded border-primary"
-                                    checked={checked}
+                                    disabled={processing}
+                                    checked={isChecked}
                                     onChange={(e) => {
-                                      const id = String(rq.id);
                                       const checked = e.target.checked;
                                       setSelectedRqIds(prev =>
                                         checked 
-                                          ? Array.from(new Set([...prev, id])) 
-                                          : prev.filter(x => x !== id)
+                                          ? Array.from(new Set([...prev, idStr])) 
+                                          : prev.filter(x => x !== idStr)
                                       );
                                     }}
                                   />
                                   <span className="text-sm">
-                                    {rq.number || id} {rq.taxpayer_name ? `— ${rq.taxpayer_name}` : ''}
+                                    {rq.number || idStr} {rq.taxpayer_name ? `— ${rq.taxpayer_name}` : ''}
                                   </span>
                                 </label>
                               );
