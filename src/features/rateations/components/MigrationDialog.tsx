@@ -128,6 +128,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         : prev.filter(x => x !== id)
     );
     
+    // Reset target RQ and options when PagoPA selection changes
+    setTargetRateationId('');
+    setRqOptions([]);
+    
     // Load existing links when PagoPA selection changes
     if (checked) {
       try {
@@ -136,8 +140,6 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         console.error('Error loading PagoPA data:', error);
       }
     } else {
-      // Reset when PagoPA is deselected
-      setTargetRateationId('');
       setExistingPagopaLinks([]);
     }
   };
@@ -228,11 +230,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           : `Scollegata da RQ ${rqNumber}`,
       });
       
-      // Ricarica i dati completi
+      // Ricarica i dati completi e aggiorna KPI
       await Promise.all([
         loadExistingLinks(pagopaId),
         loadData()
       ]);
+      
+      // Trigger KPI refresh
+      window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
       onMigrationComplete?.();
     } catch (error: any) {
       toast({
