@@ -303,17 +303,33 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           throw new Error('Seleziona una PagoPA e almeno una RQ');
         }
 
-        // Usa la nuova RPC atomica: migratePagopaAttachRq
+        // Convert IDs to numbers with strong validation
+        const pagopaIdNum = Number(selectedPagopaIds[0]);
+        const rqIdsNum = selectedRqIds.map((v) => Number(v));
+
+        // Strong validation: ensure all IDs are safe integers
+        if (!Number.isSafeInteger(pagopaIdNum)) {
+          throw new Error(`ID PagoPA non numerico: ${selectedPagopaIds[0]}`);
+        }
+        const invalidRqIds = selectedRqIds.filter((v, i) => !Number.isSafeInteger(rqIdsNum[i]));
+        if (invalidRqIds.length > 0) {
+          throw new Error(`ID RQ non numerici: ${invalidRqIds.join(', ')}`);
+        }
+
+        // Debug logging to trace exact values being sent
+        console.debug('[MIGRATE] p_pagopa_id:', pagopaIdNum, 'p_rq_ids:', rqIdsNum);
+
+        // Use the new atomic RPC: migratePagopaAttachRq
         await migratePagopaAttachRq(
-          selectedPagopaIds[0], // Solo la prima PagoPA selezionata
-          selectedRqIds, // Array di RQ IDs
+          pagopaIdNum,
+          rqIdsNum,
           note.trim() || undefined
         );
 
-        const rqLabels = selectedRqIds.map(id => rqLabel(id)).join(', ');
+        const rqLabels = rqIdsNum.map(id => rqLabel(id)).join(', ');
         toast({
           title: "Migrazione completata", 
-          description: `PagoPA collegata a ${selectedRqIds.length} RQ: ${rqLabels}. Stato: INTERROTTA`,
+          description: `PagoPA collegata a ${rqIdsNum.length} RQ: ${rqLabels}. Stato: INTERROTTA`,
           duration: 5000
         });
 
