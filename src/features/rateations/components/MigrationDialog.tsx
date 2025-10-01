@@ -16,7 +16,6 @@ import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
 import { migratePagopaAttachRq, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
-import { useSelectableRq } from '@/features/rateations/hooks/useSelectableRq';
 import { fetchSelectableRqForPagopa, RqLight } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
@@ -42,6 +41,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [processing, setProcessing] = useState(false);
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
   const [existingPagopaLinks, setExistingPagopaLinks] = useState<any[]>([]);
+  
+  // RQ options for PagoPA migration (loaded via RPC)
+  const [rqOptions, setRqOptions] = useState<RqLight[]>([]);
+  const [rqLoading, setRqLoading] = useState(false);
 
   const { toast } = useToast();
 
@@ -65,14 +68,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     setLoading(true);
     try {
       if (migrationMode === 'pagopa') {
-        // Load migratable PagoPA for PagoPA → RQ migration
-        const [pagopaData, rqData] = await Promise.all([
-          getMigrablePagopaForRateation(rateation.id),
-          getRiamQuaterOptions()
-        ]);
+        // Load migratable PagoPA for PagoPA → RQ migration (NO getRiamQuaterOptions)
+        const pagopaData = await getMigrablePagopaForRateation(rateation.id);
         
         setMigrablePagoPA(pagopaData);
-        setRqRateations((rqData ?? []).map(r => ({ ...r, id: String(r.id) })));
         
         // Auto-select the current PagoPA if it's migratable
         if (pagopaData.length > 0) {
@@ -155,25 +154,40 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     ? selectedPagopaIds.length === 0
     : selectedDebtIds.length === 0;
 
-  // FASE 3.2: Use RQ available hook (DB-side with client fallback)
-  const selectedPagopaIdNumber = selectedPagopaIds.length ? Number(selectedPagopaIds[0]) : null;
-  const linkedRqIds = existingPagopaLinks.map((l: any) => Number(l.riam_quater_id));
-  const rqLightData: RqLight[] = rqRateations.map(r => ({
-    id: Number(r.id),
-    number: String(r.number ?? ''),
-    taxpayer_name: r.taxpayer_name ?? null,
-    quater_total_due_cents: 0, // Will be fetched by the RPC if needed
-  }));
-  const { selectableRq, loading: selectableLoading } = useSelectableRq(
-    selectedPagopaIdNumber,
-    rqLightData,
-    linkedRqIds
+  // Calculate selected PagoPA ID as number
+  const selectedPagopaIdNumber = useMemo(
+    () => (selectedPagopaIds[0] ? Number(selectedPagopaIds[0]) : undefined),
+    [selectedPagopaIds]
   );
 
+  // Load RQ options when PagoPA is selected (PagoPA migration mode only)
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function loadRqOptions() {
+      if (migrationMode !== 'pagopa' || !selectedPagopaIdNumber) {
+        setRqOptions([]);
+        return;
+      }
+      
+      setRqLoading(true);
+      try {
+        const rows = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
+        if (!cancelled) setRqOptions(rows);
+      } catch (error) {
+        console.error('Error loading RQ options:', error);
+        if (!cancelled) setRqOptions([]);
+      } finally {
+        if (!cancelled) setRqLoading(false);
+      }
+    }
+    
+    loadRqOptions();
+    return () => { cancelled = true; };
+  }, [selectedPagopaIdNumber, migrationMode]);
+
   // Disable migrate button logic
-  const disableMigrate = !targetRateationId || 
-                        processing ||
-                        nothingSelected;
+  const disableMigrate = processing || nothingSelected || !targetRateationId;
 
   // Debug logging for button state
   console.debug('[Migration] Button state', { 
@@ -188,8 +202,16 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const rqLabel = (id: unknown) => {
     if (!id) return '';
     const strId = String(id);
+    
+    // For PagoPA mode, check rqOptions first
+    if (migrationMode === 'pagopa') {
+      const found = rqOptions.find(r => String(r.id) === strId);
+      if (found) return found.number;
+    }
+    
+    // Fallback to rqRateations (for debt mode)
     const found = rqRateations.find(r => r.id === strId);
-    return found?.number ?? strId.slice(-6); // prefer RQ number if available
+    return found?.number ?? strId.slice(-6);
   };
 
   const handleUnlinkPagopa = async (pagopaId: number, rqId: number, rqNumber: string) => {
@@ -606,10 +628,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                           <SelectValue placeholder="Scegli una rateazione RQ..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {selectableRq.length === 0 && migrationMode === 'pagopa' && selectedPagopaIds.length > 0 ? (
+                          {rqLoading && migrationMode === 'pagopa' ? (
+                            <div className="p-4 text-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                              <p className="text-xs text-muted-foreground mt-2">Caricamento RQ...</p>
+                            </div>
+                          ) : (migrationMode === 'pagopa' ? rqOptions : rqRateations).length === 0 && migrationMode === 'pagopa' && selectedPagopaIds.length > 0 ? (
                             <div className="p-4 text-center space-y-3">
                               <p className="text-sm text-muted-foreground">
-                                Tutte le RQ attive sono già collegate a questa PagoPA.
+                                Nessuna RQ disponibile per questa PagoPA.
                               </p>
                               <div className="flex flex-col gap-2">
                                 <Button 
@@ -642,7 +669,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                               </div>
                             </div>
                           ) : (
-                            selectableRq.map((rq) => (
+                            (migrationMode === 'pagopa' ? rqOptions : rqRateations).map((rq) => (
                               <SelectItem key={rq.id} value={String(rq.id)}>
                                 {rq.number ?? '—'} {rq.taxpayer_name ? `- ${rq.taxpayer_name}` : ''}
                               </SelectItem>
@@ -650,21 +677,21 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                           )}
                         </SelectContent>
                       </Select>
-                      {!targetRateationId && (migrationMode === 'pagopa' ? selectedPagopaIds.length > 0 : selectedDebtIds.length > 0) && (
+                       {!targetRateationId && (migrationMode === 'pagopa' ? selectedPagopaIds.length > 0 : selectedDebtIds.length > 0) && (
                         <p className="text-xs text-destructive">
                           Seleziona la Riam.Quater per confermare la migrazione
                         </p>
-                      )}
-                       {rqRateations.length === 0 && (
+                       )}
+                        {migrationMode !== 'pagopa' && rqRateations.length === 0 && (
                          <p className="text-xs text-amber-600">
                            Nessuna Riam.Quater trovata. Crea prima un piano RQ e riprova.
                          </p>
-                       )}
-                       {migrationMode === 'pagopa' && selectedPagopaIds.length > 0 && selectableRq.length === 0 && rqRateations.length > 0 && (
+                        )}
+                        {migrationMode === 'pagopa' && selectedPagopaIds.length > 0 && rqOptions.length === 0 && !rqLoading && (
                          <p className="text-xs text-amber-600">
-                           Tutte le RQ disponibili sono già collegate a questa PagoPA. Sgancia una RQ esistente o crea una nuova RQ.
+                           Nessuna RQ disponibile per questa PagoPA. Sgancia una RQ esistente o crea una nuova RQ.
                          </p>
-                       )}
+                        )}
                     </div>
 
                     <div className="space-y-2">
