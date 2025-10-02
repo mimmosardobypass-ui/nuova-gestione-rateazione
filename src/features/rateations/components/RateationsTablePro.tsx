@@ -14,6 +14,7 @@ import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, Package, RotateCcw } fr
 import { EditRateationModal } from "./EditRateationModal";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
 import { useNavigateToRateation } from '../hooks/useNavigateToRateation';
+import { RateationNumberCell } from "./RateationNumberCell";
 
 export type RateationRowPro = {
   id: string;
@@ -50,6 +51,10 @@ export type RateationRowPro = {
   interrupted_at?: string | null;
   interruption_reason?: string | null;
   interrupted_by_rateation_id?: string | null;
+  // RQ link fields for interruption display
+  linked_rq_count?: number;
+  latest_linked_rq_number?: string | null;
+  latest_rq_id?: number | null;
 };
 
 interface RateationsTableProProps {
@@ -139,17 +144,10 @@ export function RateationsTablePro({
                         {opened ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </Button>
                     </TableCell>
-                    <TableCell className="font-medium">{r.numero || "—"}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {r.tipo}
-                        <InterruptionBadge 
-                          rateation={r as any}
-                          onClick={() => r.interrupted_by_rateation_id && navigateToRateation(r.interrupted_by_rateation_id)}
-                          showRqCount={true}
-                        />
-                      </div>
+                      <RateationNumberCell row={r} />
                     </TableCell>
+                    <TableCell>{r.tipo}</TableCell>
                     <TableCell>{r.contribuente || "—"}</TableCell>
                     <TableCell className="text-right font-medium">{formatEuro(r.importoTotale)}</TableCell>
                     <TableCell className="text-right">{formatEuro(r.importoPagato)}</TableCell>

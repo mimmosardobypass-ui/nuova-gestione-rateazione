@@ -59,6 +59,11 @@ export interface RateationRow {
   is_quater?: boolean;              // True if this is a Rottamazione Quater rateation
   original_total_due_cents?: number; // Original debt amount before Quater reduction
   quater_total_due_cents?: number;   // Reduced amount with Quater
+  
+  // RQ link fields for PagoPA interruption display
+  linked_rq_count?: number;          // Number of active RQ links (from view)
+  latest_linked_rq_number?: string | null; // Number of latest linked RQ (for quick navigation)
+  latest_rq_id?: number | null;      // ID of latest linked RQ (for direct navigation)
 }
 
 export interface DecadenceDashboard {

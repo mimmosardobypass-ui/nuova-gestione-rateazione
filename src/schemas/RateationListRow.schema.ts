@@ -32,6 +32,11 @@ export const RateationListRowSchema = z.object({
   // RQ allocation fields for quota-based saving calculation
   allocated_residual_cents: z.number().nullable().optional(),
   rq_total_at_link_cents: z.number().nullable().optional(),
+  
+  // RQ link fields for PagoPA interruption display
+  linked_rq_count: z.number().nonnegative().optional(),
+  latest_linked_rq_number: z.string().nullable().optional(),
+  latest_rq_id: z.number().nullable().optional(),
 });
 
 export type RateationListRow = z.infer<typeof RateationListRowSchema>;

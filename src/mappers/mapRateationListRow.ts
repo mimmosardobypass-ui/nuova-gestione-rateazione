@@ -67,5 +67,10 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     rq_target_ids: [],
     rq_migration_status: "none",
     excluded_from_stats: false,
+    
+    // RQ link fields (from view) for PagoPA interruption display
+    linked_rq_count: Number(r.linked_rq_count || 0),
+    latest_linked_rq_number: r.latest_linked_rq_number ?? null,
+    latest_rq_id: r.latest_rq_id ?? null,
   } as RateationRow;
 }
