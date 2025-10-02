@@ -10,7 +10,7 @@ export async function migratePagopaAttachRq(
   rqIds: (string | number)[],
   note?: string
 ) {
-  // Double-belt validation: ensure IDs are numeric before toIntId conversion
+  // FASE 1: Validazione rigorosa - assicura che siano numeri sicuri
   const pagopaNum = Number(pagopaId);
   const rqIdsNum = rqIds.map((v) => Number(v));
 
@@ -22,13 +22,13 @@ export async function migratePagopaAttachRq(
     throw new Error(`ID RQ non numerici passati alla migrazione: ${invalidRqIds.join(', ')}`);
   }
 
-  // IDs already validated as safe integers above - use them directly
-  const p_pagopa_id = pagopaNum;
-  const p_rq_ids = rqIdsNum;
+  // FASE 2: Converti numeri validati in stringhe per la RPC (text, text[])
+  const p_pagopa_id = String(pagopaNum);
+  const p_rq_ids = rqIdsNum.map(String);
 
   // Debug logging to trace exact values being sent to RPC
   if (process.env.NODE_ENV !== 'production') {
-    console.debug('[DBG/RPC] p_pagopa_id:', p_pagopa_id, 'p_rq_ids:', p_rq_ids);
+    console.debug('[DBG/RPC] p_pagopa_id:', p_pagopa_id, '(from', pagopaNum, ') p_rq_ids:', p_rq_ids, '(from', rqIdsNum, ')');
   }
 
   const { data, error } = await supabase.rpc('pagopa_migrate_attach_rq', {
