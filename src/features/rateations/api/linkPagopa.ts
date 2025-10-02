@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { toIntId } from '@/lib/utils/ids'; // Used by legacy functions only
+import { toIntId } from '@/lib/utils/ids'; // Only used by legacy linkPagopaToRQ/unlinkPagopaFromRQ
 
 /**
  * FASE 3: Migrazione atomica PagoPA → RQ

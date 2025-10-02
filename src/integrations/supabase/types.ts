@@ -2755,7 +2755,9 @@ export type Database = {
         Returns: undefined
       }
       pagopa_migrate_attach_rq: {
-        Args: { p_note?: string; p_pagopa_id: number; p_rq_ids: number[] }
+        Args:
+          | { p_note?: string; p_pagopa_id: number; p_rq_ids: number[] }
+          | { p_note?: string; p_pagopa_id: string; p_rq_ids: string[] }
         Returns: {
           link_id: number
           riam_quater_id: number
