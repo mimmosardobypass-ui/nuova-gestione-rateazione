@@ -33,10 +33,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [activeDebts, setActiveDebts] = useState<(RateationDebt & { debt: Debt })[]>([]);
   const [migrablePagoPA, setMigrablePagoPA] = useState<MigrablePagopa[]>([]);
-  const [rqRateations, setRqRateations] = useState<{ id: string; number: string | null; taxpayer_name: string | null }[]>([]);
-  const [selectedDebtIds, setSelectedDebtIds] = useState<string[]>([]);
+  const [rqRateations, setRqRateations] = useState<{ id: number; number: string | null; taxpayer_name: string | null }[]>([]);
+  const [selectedDebtIds, setSelectedDebtIds] = useState<number[]>([]);
   const [selectedPagopaIds, setSelectedPagopaIds] = useState<number[]>([]);
-  const [targetRateationId, setTargetRateationId] = useState<string>('');
+  const [targetRateationId, setTargetRateationId] = useState<number | null>(null);
   const [selectedRqIds, setSelectedRqIds] = useState<number[]>([]); // Multi-selection for PagoPA mode
   const [note, setNote] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -89,7 +89,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         // Auto-select the current PagoPA if it's migratable
         if (pagopaData.length > 0) {
           // Auto-select the current rateation if it's in the list and nothing is selected
-          setSelectedPagopaIds(prev => prev.length ? prev : [Number(pagopaData[0].id)]);
+          const firstId = Number(pagopaData[0].id);
+          if (Number.isSafeInteger(firstId)) {
+            setSelectedPagopaIds(prev => prev.length ? prev : [firstId]);
+          } else {
+            console.warn('[WARN] pagopaData[0].id non numerico:', pagopaData[0].id);
+          }
         }
       } else {
         // Load debts for normal debt migration
@@ -99,7 +104,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         ]);
         
         setActiveDebts(debtsData);
-        setRqRateations((rqData ?? []).map(r => ({ ...r, id: String(r.id) })));
+        setRqRateations((rqData ?? []).map(r => ({ ...r, id: Number(r.id) })));
       }
     } catch (error) {
       console.error('Error loading migration data:', error);
@@ -125,11 +130,16 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
   };
 
-  const handleDebtSelection = (debtId: string, checked: boolean) => {
+  const handleDebtSelection = (debtId: string | number, checked: boolean) => {
+    const idNum = Number(debtId);
+    if (!Number.isSafeInteger(idNum)) {
+      console.warn('[WARN] debtId non numerico:', debtId);
+      return;
+    }
     setSelectedDebtIds(prev => 
       checked 
-        ? [...prev, debtId]
-        : prev.filter(id => id !== debtId)
+        ? [...prev, idNum]
+        : prev.filter(id => id !== idNum)
     );
   };
 
@@ -149,7 +159,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     }
     
     // Reset target RQ and options when PagoPA selection changes
-    setTargetRateationId('');
+    setTargetRateationId(null);
     setSelectedRqIds([]);
     setRqOptions([]);
     
@@ -170,7 +180,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     if (migrationMode === 'pagopa') return;
     
     // Solo per modalità "debts"
-    setSelectedDebtIds(checked ? activeDebts.map(d => d.debt_id) : []);
+    setSelectedDebtIds(checked ? activeDebts.map(d => Number(d.debt_id)) : []);
   };
 
   const nothingSelected = migrationMode === 'pagopa'
@@ -224,17 +234,17 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   // Helper to generate safe RQ labels for toast messages
   const rqLabel = (id: unknown) => {
     if (!id) return '';
-    const strId = String(id);
+    const numId = Number(id);
     
     // For PagoPA mode, check rqOptions first
     if (migrationMode === 'pagopa') {
-      const found = rqOptions.find(r => String(r.id) === strId);
+      const found = rqOptions.find(r => r.id === numId);
       if (found) return found.number;
     }
     
     // Fallback to rqRateations (for debt mode)
-    const found = rqRateations.find(r => r.id === strId);
-    return found?.number ?? strId.slice(-6);
+    const found = rqRateations.find(r => r.id === numId);
+    return found?.number ?? String(id).slice(-6);
   };
 
   const handleUnlinkPagopa = async (pagopaId: number, rqId: number, rqNumber: string) => {
@@ -278,7 +288,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       // Reset selections when dialog closes
       setSelectedPagopaIds([]);
       setSelectedDebtIds([]);
-      setTargetRateationId('');
+      setTargetRateationId(null);
       setSelectedRqIds([]);
       setNote('');
       setExistingPagopaLinks([]);
@@ -349,7 +359,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       }
     } else {
       // Normal debt migration
-      if (!targetRateationId) {
+      if (!targetRateationId || !Number.isSafeInteger(targetRateationId)) {
         toast({
           title: "Piano RQ non selezionato",
           description: "Seleziona il piano Riam.Quater di destinazione",
@@ -362,8 +372,8 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       try {
         await migrateDebtsToRQ({
           sourceRateationId: rateation.id,
-          debtIds: selectedDebtIds,
-          targetRateationId: targetRateationId,
+          debtIds: selectedDebtIds.map(String),
+          targetRateationId: String(targetRateationId),
           note: note.trim() || undefined
         });
 
@@ -378,7 +388,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         
         // Reset form
         setSelectedDebtIds([]);
-        setTargetRateationId('');
+        setTargetRateationId(null);
         setNote('');
       } catch (error) {
         console.error('Migration error:', error);
@@ -635,7 +645,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         {activeDebts.map((item) => (
                           <div key={item.debt_id} className="flex items-center space-x-2 p-2 border rounded hover:bg-muted/50 transition-colors">
                             <Checkbox
-                              checked={selectedDebtIds.includes(item.debt_id)}
+                              checked={selectedDebtIds.includes(Number(item.debt_id))}
                               onCheckedChange={(checked) => handleDebtSelection(item.debt_id, checked as boolean)}
                             />
                             <div className="flex-1 min-w-0">
@@ -725,7 +735,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         </div>
                       ) : (
                         // Single select for debt mode
-                        <Select value={targetRateationId} onValueChange={setTargetRateationId}>
+                        <Select 
+                          value={targetRateationId ? String(targetRateationId) : ''} 
+                          onValueChange={(val) => setTargetRateationId(val ? Number(val) : null)}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Scegli una rateazione RQ..." />
                           </SelectTrigger>
