@@ -1,10 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PagopaLinkRow {
-  pagopa_id: string;
+  pagopa_id: number;
   pagopa_number: string | null;
   pagopa_taxpayer: string | null;
-  riam_quater_id: string;
+  riam_quater_id: number;
   rq_number: string | null;
   rq_taxpayer: string | null;
   linked_at: string;
@@ -18,7 +18,7 @@ export interface PagopaLinkRow {
  * Recupera tutti i collegamenti RQ per una PagoPA specifica
  * Utilizza la vista v_pagopa_linked_rq che contiene snapshot immutabili
  */
-export async function getLinksForPagopa(pagopaId: string): Promise<PagopaLinkRow[]> {
+export async function getLinksForPagopa(pagopaId: number): Promise<PagopaLinkRow[]> {
   const { data, error } = await supabase
     .from("v_pagopa_linked_rq")
     .select("*")

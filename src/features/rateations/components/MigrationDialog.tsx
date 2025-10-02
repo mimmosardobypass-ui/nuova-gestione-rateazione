@@ -343,6 +343,13 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         // Patch 2: Reload separato con proprio try-catch
         try {
           await loadData();
+          
+          // NUOVO: Ricarica RQ disponibili per far sparire le RQ appena collegate
+          if (selectedPagopaIdNumber) {
+            const rqAfter = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
+            setRqOptions(rqAfter);
+          }
+          
           window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
         } catch (e) {
           console.error('[POST-MIGRATE] loadData error:', e);
@@ -363,12 +370,23 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       } catch (error) {
         console.error('PagoPA migration error:', error);
         const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione PagoPA";
-        toast({
-          title: "Migrazione fallita",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 8000
-        });
+        
+        // Messaggio più chiaro per violazione unicità
+        if (errorMessage.includes('uq_rq_active_link') || errorMessage.includes('duplicate key')) {
+          toast({
+            title: "RQ già collegata",
+            description: "Questa RQ è già collegata. Aggiorna la pagina per vedere lo stato corretto.",
+            variant: "destructive",
+            duration: 8000
+          });
+        } else {
+          toast({
+            title: "Migrazione fallita",
+            description: errorMessage,
+            variant: "destructive",
+            duration: 8000
+          });
+        }
       } finally {
         setProcessing(false);
       }

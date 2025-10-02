@@ -480,7 +480,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       {/* Collegamenti RQ per piani PagoPA */}
       {rateationInfo && isPagoPAPlan({ is_pagopa: rateationInfo.is_pagopa, tipo: rateationInfo.type_name }) && (
         <PagopaLinks 
-          pagopaId={rateationId}
+          pagopaId={Number(rateationId)}
           onGoToRQ={(rqId) => {
             // Navigate to RQ details - can be implemented later
             console.log('Navigate to RQ:', rqId);

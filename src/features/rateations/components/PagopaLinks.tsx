@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PagopaLinksProps {
-  pagopaId: string;
-  onGoToRQ?: (rqId: string) => void;
+  pagopaId: number;
+  onGoToRQ?: (rqId: number) => void;
 }
 
 export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
@@ -107,9 +107,9 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
     }
   };
 
-  const rqLabel = (number: string | null, id: string) => {
+  const rqLabel = (number: string | null, id: number) => {
     if (number) return number;
-    const idStr = (id ?? '').toString();
+    const idStr = id.toString();
     return idStr.length >= 6 ? `RQ ${idStr.slice(-6)}` : `RQ ${idStr || '—'}`;
   };
 

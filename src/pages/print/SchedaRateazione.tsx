@@ -162,7 +162,7 @@ export default function SchedaRateazione() {
         if (isPagoPAPlan({ is_pagopa: false, tipo: headerData.type_name })) {
           try {
             setLinksLoading(true);
-            const links = await getLinksForPagopa(id!);
+            const links = await getLinksForPagopa(Number(id));
             setRqLinks(links);
           } catch (error) {
             console.error("Error loading RQ links:", error);
