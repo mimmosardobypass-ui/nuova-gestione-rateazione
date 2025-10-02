@@ -316,9 +316,14 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         const pagopaIdNum = selectedPagopaIds[0];
         const rqIdsNum = selectedRqIds;
 
-        // Debug logging to trace exact values being sent
+        // Patch 1: Logging diagnostico esteso con tipi runtime
         if (process.env.NODE_ENV !== 'production') {
-          console.debug('[DBG/UI] p_pagopa_id=', pagopaIdNum, 'p_rq_ids=', rqIdsNum);
+          console.debug('[DBG/UI/TYPES]', {
+            pagopaIdNum_type: typeof pagopaIdNum,
+            pagopaIdNum_value: pagopaIdNum,
+            rqIdsNum_types: rqIdsNum.map(v => typeof v),
+            rqIdsNum_values: rqIdsNum
+          });
         }
 
         // Use the new atomic RPC: migratePagopaAttachRq
@@ -335,9 +340,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           duration: 5000
         });
 
-        // Reload and refresh
-        await loadData();
-        window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
+        // Patch 2: Reload separato con proprio try-catch
+        try {
+          await loadData();
+          window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
+        } catch (e) {
+          console.error('[POST-MIGRATE] loadData error:', e);
+          toast({
+            title: 'Dati aggiornati parzialmente',
+            description: 'Migrazione riuscita, ma aggiornamento liste/KPI fallito.',
+            variant: 'destructive'
+          });
+        }
 
         setOpen(false);
         onMigrationComplete?.();
@@ -350,7 +364,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         console.error('PagoPA migration error:', error);
         const errorMessage = error instanceof Error ? error.message : "Errore durante la migrazione PagoPA";
         toast({
-          title: "Errore",
+          title: "Migrazione fallita",
           description: errorMessage,
           variant: "destructive",
           duration: 8000
