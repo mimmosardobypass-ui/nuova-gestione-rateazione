@@ -2936,7 +2936,7 @@ export type Database = {
       pagopa_link_rq_v2: {
         Args: { payload: Json }
         Returns: {
-          link_id: number
+          link_id: string
           riam_quater_id: number
         }[]
       }
