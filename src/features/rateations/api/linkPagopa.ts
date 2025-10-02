@@ -23,10 +23,10 @@ export async function migratePagopaAttachRq(
     throw new Error(`ID RQ non numerici passati alla migrazione: ${invalidRqIds.join(', ')}`);
   }
 
-  // Costruisci payload JSON con stringhe (zero cast impliciti)
+  // Costruisci payload JSON con numeri nativi (parsing robusto server-side)
   const payload = {
-    pagopa_id: String(pagopaNum),
-    rq_ids: rqIdsNum.map(String),
+    pagopa_id: pagopaNum,
+    rq_ids: rqIdsNum,
     note: note ?? null
   };
 
