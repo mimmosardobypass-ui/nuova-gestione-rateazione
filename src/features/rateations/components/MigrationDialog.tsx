@@ -317,8 +317,9 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         const rqIdsNum = selectedRqIds;
 
         // Debug logging to trace exact values being sent
-        console.debug('[DBG] selectedPagopaIds:', selectedPagopaIds, 'selectedRqIds:', selectedRqIds);
-        console.debug('[MIGRATE] p_pagopa_id:', pagopaIdNum, 'p_rq_ids:', rqIdsNum);
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('[DBG/UI] p_pagopa_id=', pagopaIdNum, 'p_rq_ids=', rqIdsNum);
+        }
 
         // Use the new atomic RPC: migratePagopaAttachRq
         await migratePagopaAttachRq(

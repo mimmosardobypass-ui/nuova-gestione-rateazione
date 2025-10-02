@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { toIntId } from '@/lib/utils/ids';
+import { toIntId } from '@/lib/utils/ids'; // Used by legacy functions only
 
 /**
  * FASE 3: Migrazione atomica PagoPA → RQ
@@ -22,11 +22,14 @@ export async function migratePagopaAttachRq(
     throw new Error(`ID RQ non numerici passati alla migrazione: ${invalidRqIds.join(', ')}`);
   }
 
-  const p_pagopa_id = toIntId(pagopaId, 'pagopaId');
-  const p_rq_ids = rqIds.map(id => toIntId(id, 'rqId'));
+  // IDs already validated as safe integers above - use them directly
+  const p_pagopa_id = pagopaNum;
+  const p_rq_ids = rqIdsNum;
 
   // Debug logging to trace exact values being sent to RPC
-  console.debug('[migratePagopaAttachRq] p_pagopa_id:', p_pagopa_id, 'p_rq_ids:', p_rq_ids);
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug('[DBG/RPC] p_pagopa_id:', p_pagopa_id, 'p_rq_ids:', p_rq_ids);
+  }
 
   const { data, error } = await supabase.rpc('pagopa_migrate_attach_rq', {
     p_pagopa_id,
