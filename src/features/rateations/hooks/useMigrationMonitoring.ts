@@ -63,7 +63,7 @@ export const useMigrationMonitoring = () => {
           const actualMigrated = migratedDebts?.length || 0;
           if (actualMigrated !== rateation.debts_migrated) {
             inconsistencies.push({
-              rateation_id: rateation.id.toString(),
+              rateation_id: String(Number(rateation.id)),
               issue_type: 'status_mismatch',
               details: {
                 expected_count: rateation.debts_migrated,

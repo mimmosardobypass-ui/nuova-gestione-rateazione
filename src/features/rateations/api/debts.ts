@@ -140,7 +140,7 @@ export async function fetchActiveDebtsForRateation(rateationId: string): Promise
 }
 
 // Fetch RQ rateations for target selection with improved query robustness
-export async function fetchRQRateations(): Promise<Array<{ id: string; number: string; taxpayer_name: string | null }>> {
+export async function fetchRQRateations(): Promise<Array<{ id: number; number: string; taxpayer_name: string | null }>> {
   // First, try to get RQ type ID to avoid potential join issues
   const { data: typeData, error: typeError } = await supabase
     .from('rateation_types')
@@ -164,7 +164,7 @@ export async function fetchRQRateations(): Promise<Array<{ id: string; number: s
 
     return (data || []).map(item => ({
       ...item,
-      id: item.id.toString() // Convert number to string for consistency
+      id: Number(item.id)
     }));
   }
 
@@ -182,6 +182,6 @@ export async function fetchRQRateations(): Promise<Array<{ id: string; number: s
 
   return (data || []).map(item => ({
     ...item,
-    id: item.id.toString() // Convert number to string for consistency
+    id: Number(item.id)
   }));
 }

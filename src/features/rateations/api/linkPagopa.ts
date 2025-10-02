@@ -7,30 +7,26 @@ import { toIntId } from '@/lib/utils/ids'; // Only used by legacy linkPagopaToRQ
  * Usa pagopa_link_rq_v2 per eliminare ogni ambiguità di casting
  */
 export async function migratePagopaAttachRq(
-  pagopaId: string | number,
-  rqIds: (string | number)[],
+  pagopaId: number,
+  rqIds: number[],
   note?: string
 ) {
-  // Validazione rigorosa - assicura che siano numeri sicuri
-  const pagopaNum = Number(pagopaId);
-  const rqIdsNum = rqIds.map((v) => Number(v));
-
-  if (!Number.isSafeInteger(pagopaNum)) {
-    throw new Error(`ID PagoPA non numerico passato alla migrazione: ${pagopaId}`);
+  // ✅ Guardrail fail-fast: verifica che siano numeri sicuri
+  if (!Number.isSafeInteger(pagopaId)) {
+    throw new Error(`pagopaId non numerico: ${pagopaId}`);
   }
-  const invalidRqIds = rqIds.filter((v, i) => !Number.isSafeInteger(rqIdsNum[i]));
-  if (invalidRqIds.length > 0) {
-    throw new Error(`ID RQ non numerici passati alla migrazione: ${invalidRqIds.join(', ')}`);
+  const badIds = rqIds.filter(v => !Number.isSafeInteger(v));
+  if (badIds.length > 0) {
+    throw new Error(`rqIds non numerici: ${badIds.join(', ')}`);
   }
 
-  // Costruisci payload JSON con numeri nativi (parsing robusto server-side)
+  // Payload JSON con numeri nativi (già corretto)
   const payload = {
-    pagopa_id: pagopaNum,
-    rq_ids: rqIdsNum,
+    pagopa_id: pagopaId,
+    rq_ids: rqIds,
     note: note ?? null
   };
 
-  // Debug logging per tracciare il payload JSON
   if (process.env.NODE_ENV !== 'production') {
     console.debug('[DBG/RPC] pagopa_link_rq_v2 payload:', payload);
   }

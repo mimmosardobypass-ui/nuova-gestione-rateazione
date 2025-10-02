@@ -1,11 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type MigrablePagopa = {
-  id: string;
+  id: number;
   number: string | null;
   taxpayer_name: string | null;
   status: 'ATTIVA' | 'INTERROTTA' | 'ESTINTA';
-  interrupted_by_rateation_id: string | null;
+  interrupted_by_rateation_id: number | null;
   total_amount: number | null;
   allocatable_cents?: number; // Available quota for allocation
 };
@@ -50,11 +50,11 @@ export async function getMigrablePagopaForRateation(
     if (migrableError) throw migrableError;
 
     return (migrableData || []).map(pagopa => ({
-      id: pagopa.id.toString(),
+      id: Number(pagopa.id),
       number: pagopa.number,
       taxpayer_name: pagopa.taxpayer_name,
       status: pagopa.status as 'ATTIVA' | 'INTERROTTA' | 'ESTINTA',
-      interrupted_by_rateation_id: pagopa.interrupted_by_rateation_id?.toString() ?? null,
+      interrupted_by_rateation_id: pagopa.interrupted_by_rateation_id != null ? Number(pagopa.interrupted_by_rateation_id) : null,
       total_amount: pagopa.total_amount ?? null,
       allocatable_cents: pagopa.allocatable_cents ?? 0,
     }));
@@ -115,11 +115,11 @@ export async function getMigrablePagopaByTaxpayerOf(
         !alreadyLinkedSet.has(candidate.id)
       )
       .map(candidate => ({
-        id: candidate.id.toString(),
+        id: Number(candidate.id),
         number: candidate.number,
         taxpayer_name: candidate.taxpayer_name,
         status: candidate.status as 'ATTIVA' | 'INTERROTTA' | 'ESTINTA',
-        interrupted_by_rateation_id: candidate.interrupted_by_rateation_id?.toString() ?? null,
+        interrupted_by_rateation_id: candidate.interrupted_by_rateation_id != null ? Number(candidate.interrupted_by_rateation_id) : null,
         total_amount: candidate.total_amount ?? null,
       }));
 

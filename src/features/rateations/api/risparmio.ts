@@ -24,7 +24,7 @@ export async function getRQLinkedTaxpayers(rqId?: string): Promise<RQLinkedTaxpa
 
   return (data || []).map(item => ({
     ...item,
-    riam_quater_id: item.riam_quater_id.toString()
+    riam_quater_id: Number(item.riam_quater_id)
   }));
 }
 
@@ -47,8 +47,8 @@ export async function getRQRisparmioDettaglio(rqId?: string): Promise<RQSavingDe
 
   return (data || []).map(item => ({
     ...item,
-    riam_quater_id: item.riam_quater_id.toString(),
-    pagopa_id: item.pagopa_id.toString()
+    riam_quater_id: Number(item.riam_quater_id),
+    pagopa_id: Number(item.pagopa_id)
   }));
 }
 
@@ -71,6 +71,6 @@ export async function getRQRisparmioAggregato(rqId?: string): Promise<RQSavingAg
 
   return (data || []).map(item => ({
     ...item,
-    riam_quater_id: item.riam_quater_id.toString()
+    riam_quater_id: Number(item.riam_quater_id)
   }));
 }
