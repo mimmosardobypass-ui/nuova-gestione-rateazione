@@ -2,15 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toIntId } from '@/lib/utils/ids'; // Only used by legacy linkPagopaToRQ/unlinkPagopaFromRQ
 
 /**
- * FASE 3: Migrazione atomica PagoPA → RQ
+ * FASE 3: Migrazione atomica PagoPA → RQ (FIX DEFINITIVO con JSON payload)
  * La PagoPA passa a INTERROTTA e i link vengono creati in unica transazione
+ * Usa pagopa_link_rq_v2 per eliminare ogni ambiguità di casting
  */
 export async function migratePagopaAttachRq(
   pagopaId: string | number,
   rqIds: (string | number)[],
   note?: string
 ) {
-  // FASE 1: Validazione rigorosa - assicura che siano numeri sicuri
+  // Validazione rigorosa - assicura che siano numeri sicuri
   const pagopaNum = Number(pagopaId);
   const rqIdsNum = rqIds.map((v) => Number(v));
 
@@ -22,23 +23,22 @@ export async function migratePagopaAttachRq(
     throw new Error(`ID RQ non numerici passati alla migrazione: ${invalidRqIds.join(', ')}`);
   }
 
-  // FASE 2: Converti numeri validati in stringhe per la RPC (text, text[])
-  const p_pagopa_id = String(pagopaNum);
-  const p_rq_ids = rqIdsNum.map(String);
+  // Costruisci payload JSON con stringhe (zero cast impliciti)
+  const payload = {
+    pagopa_id: String(pagopaNum),
+    rq_ids: rqIdsNum.map(String),
+    note: note ?? null
+  };
 
-  // Debug logging to trace exact values being sent to RPC
+  // Debug logging per tracciare il payload JSON
   if (process.env.NODE_ENV !== 'production') {
-    console.debug('[DBG/RPC] p_pagopa_id:', p_pagopa_id, '(from', pagopaNum, ') p_rq_ids:', p_rq_ids, '(from', rqIdsNum, ')');
+    console.debug('[DBG/RPC] pagopa_link_rq_v2 payload:', payload);
   }
 
-  const { data, error } = await supabase.rpc('pagopa_migrate_attach_rq', {
-    p_pagopa_id,
-    p_rq_ids,
-    p_note: note ?? null
-  });
+  const { data, error } = await supabase.rpc('pagopa_link_rq_v2', { payload });
   
   if (error) {
-    console.error('Error in pagopa_migrate_attach_rq:', error);
+    console.error('Error in pagopa_link_rq_v2:', error);
     throw new Error(`Migrazione fallita: ${error.message}`);
   }
   

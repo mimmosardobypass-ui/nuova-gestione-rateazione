@@ -2750,16 +2750,16 @@ export type Database = {
         }
         Returns: undefined
       }
-      pagopa_lock_for_rq: {
-        Args: { p_pagopa_id: number }
-        Returns: undefined
-      }
-      pagopa_migrate_attach_rq: {
-        Args: { p_note?: string; p_pagopa_id: string; p_rq_ids: string[] }
+      pagopa_link_rq_v2: {
+        Args: { payload: Json }
         Returns: {
           link_id: number
           riam_quater_id: number
         }[]
+      }
+      pagopa_lock_for_rq: {
+        Args: { p_pagopa_id: number }
+        Returns: undefined
       }
       pagopa_quota_info: {
         Args: { p_pagopa_id: number }
