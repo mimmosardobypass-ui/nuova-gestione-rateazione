@@ -68,6 +68,10 @@ export const RollbackMigrationDialog: React.FC<RollbackMigrationDialogProps> = (
       setOpen(false);
       onRollbackComplete?.();
       
+      // Invalida cache per aggiornare contatori RQ
+      const { invalidatePagopaRqCache } = await import('../hooks/usePagopaLinkedRqCount');
+      invalidatePagopaRqCache(Number(rateation.id));
+      
     } catch (error) {
       console.error('Rollback error:', error);
       const errorMessage = error instanceof Error ? error.message : "Errore durante il ripristino delle cartelle";

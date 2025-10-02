@@ -146,6 +146,7 @@ export function RateationsTablePro({
                         <InterruptionBadge 
                           rateation={r as any}
                           onClick={() => r.interrupted_by_rateation_id && navigateToRateation(r.interrupted_by_rateation_id)}
+                          showRqCount={true}
                         />
                       </div>
                     </TableCell>
@@ -156,16 +157,7 @@ export function RateationsTablePro({
                       {formatEuro(r.importoRitardo)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        {formatEuro(r.residuo)}
-                        {r.interrupted_by_rateation_id && (
-                          <InterruptionBadge 
-                            rateation={r as any}
-                            onClick={() => r.interrupted_by_rateation_id && navigateToRateation(r.interrupted_by_rateation_id)}
-                            className="ml-1"
-                          />
-                        )}
-                      </div>
+                      {formatEuro(r.residuo)}
                     </TableCell>
                     <TableCell className="text-center">{r.rateTotali}</TableCell>
                     <TableCell className="text-center text-green-600">{r.ratePagate}</TableCell>

@@ -348,6 +348,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           if (selectedPagopaIdNumber) {
             const rqAfter = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
             setRqOptions(rqAfter);
+            
+            // Invalida cache contatori per aggiornare il badge "N RQ"
+            const { invalidatePagopaRqCache } = await import('../hooks/usePagopaLinkedRqCount');
+            invalidatePagopaRqCache(selectedPagopaIdNumber);
           }
           
           window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
