@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client-resilient";
-import { calcQuaterSavingFromLinks } from "@/utils/quater-saving";
 
 export function useQuaterSaving() {
   const [saving, setSaving] = useState<number>(0);
