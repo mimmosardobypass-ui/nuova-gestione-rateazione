@@ -2088,11 +2088,14 @@ export type Database = {
           installments_paid: number | null
           installments_total: number | null
           is_f24: boolean | null
+          is_interrupted: boolean | null
           is_pagopa: boolean | null
           is_quater: boolean | null
           latest_linked_rq_number: string | null
           latest_rq_id: number | null
           linked_rq_count: number | null
+          linked_rq_ids: number[] | null
+          linked_rq_numbers: string[] | null
           number: string | null
           original_total_due_cents: number | null
           overdue_effective_cents: number | null
