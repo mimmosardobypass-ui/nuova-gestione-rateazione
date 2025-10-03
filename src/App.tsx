@@ -13,6 +13,7 @@ import RateationsGross from "./pages/RateationsGross";
 import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
+import Stats from "./pages/Stats";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
@@ -58,6 +59,11 @@ const App = () => {
             <Route path="/rateazioni" element={
               <ProtectedRoute>
                 <Rateations />
+              </ProtectedRoute>
+            } />
+            <Route path="/statistiche" element={
+              <ProtectedRoute>
+                <Stats />
               </ProtectedRoute>
             } />
             <Route path="/print/riepilogo" element={
