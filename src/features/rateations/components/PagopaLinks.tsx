@@ -113,6 +113,16 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
     return idStr.length >= 6 ? `RQ ${idStr.slice(-6)}` : `RQ ${idStr || '—'}`;
   };
 
+  // Calcoli aggregati per evitare doppio conteggio
+  const residuoPagopa = rows.length > 0 
+    ? (rows[0].residuo_pagopa_at_link_cents || 0) 
+    : 0;
+  
+  const totaleRQcollegati = rows.reduce((sum, row) => 
+    sum + (row.totale_rq_at_link_cents || 0), 0);
+  
+  const risparmioComplessivo = Math.max(0, residuoPagopa - totaleRQcollegati);
+
   return (
     <Card>
       <CardHeader>
@@ -125,6 +135,34 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
             <Badge variant="outline" className="font-medium">
               {rows.length} {rows.length === 1 ? 'collegamento' : 'collegamenti'}
             </Badge>
+          </div>
+        </div>
+
+        {/* Testata aggregata con totali complessivi */}
+        <div className="grid grid-cols-3 gap-4 mt-4 p-4 bg-muted/50 rounded-lg">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+              Residuo PagoPA
+            </div>
+            <div className="font-bold text-lg">
+              {formatEuroFromCents(residuoPagopa)}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+              Totale RQ Collegati
+            </div>
+            <div className="font-bold text-lg">
+              {formatEuroFromCents(totaleRQcollegati)}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+              Risparmio Stimato
+            </div>
+            <div className="font-bold text-lg text-green-600">
+              {formatEuroFromCents(risparmioComplessivo)}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -182,39 +220,15 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
                 </div>
               </div>
 
-              {/* Importi */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  <Euro className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
-                      Totale RQ
-                    </div>
-                    <div className="font-medium">
-                      {formatEuroFromCents(row.totale_rq_at_link_cents || 0)}
-                    </div>
+              {/* Totale RQ */}
+              <div className="flex items-center gap-2 text-sm pt-2 border-t">
+                <Euro className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
+                    Totale RQ
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Euro className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
-                      Residuo PagoPA
-                    </div>
-                    <div className="font-medium">
-                      {formatEuroFromCents(row.residuo_pagopa_at_link_cents || 0)}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Euro className="h-4 w-4 text-green-600" />
-                  <div>
-                    <div className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
-                      Risparmio Stimato
-                    </div>
-                    <div className="font-semibold text-green-600">
-                      {formatEuroFromCents(row.risparmio_at_link_cents || 0)}
-                    </div>
+                  <div className="font-bold">
+                    {formatEuroFromCents(row.totale_rq_at_link_cents || 0)}
                   </div>
                 </div>
               </div>
