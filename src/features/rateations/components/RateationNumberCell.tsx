@@ -32,21 +32,23 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
       {/* Numero rateazione */}
       <span className="font-medium">{row.numero || "—"}</span>
 
-      {/* Sub-row: Badge Status + RQ Links (solo per rateazioni interrotte) */}
-      {isInterrotta && (
+      {/* Sub-row: Badge Status + RQ Links */}
+      {(isInterrotta || hasLinks) && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {/* Badge "Interrotta" */}
-          <Badge 
-            variant="outline" 
-            className="bg-amber-50 text-amber-800 border-amber-200 text-xs px-1.5 py-0"
-          >
-            Interrotta
-          </Badge>
+          {isInterrotta && (
+            <Badge 
+              variant="outline" 
+              className="bg-amber-50 text-amber-800 border-amber-200 text-xs px-1.5 py-0"
+            >
+              Interrotta
+            </Badge>
+          )}
 
           {/* RQ collegate (solo per PagoPA con link attivi) */}
           {hasLinks && (
             <>
-              <span>•</span>
+              {isInterrotta && <span>•</span>}
               {row.latest_linked_rq_number && row.latest_rq_id ? (
                 <button
                   type="button"
