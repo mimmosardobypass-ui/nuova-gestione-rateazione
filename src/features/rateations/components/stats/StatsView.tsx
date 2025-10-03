@@ -97,13 +97,19 @@ export function StatsView() {
           </Button>
         </CardHeader>
         {!collapsed.charts && stats && (
-          <CardContent className="space-y-6">
-            <StatsByTypeChart data={stats.by_type} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StatsByStatusPie data={stats.by_status} />
-              <StatsCashflowLine data={stats.cashflow} />
-            </div>
-          </CardContent>
+          stats.by_type.length > 0 || stats.by_status.length > 0 || stats.cashflow.length > 0 ? (
+            <CardContent className="space-y-6">
+              {stats.by_type.length > 0 && <StatsByTypeChart data={stats.by_type} />}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {stats.by_status.length > 0 && <StatsByStatusPie data={stats.by_status} />}
+                {stats.cashflow.length > 0 && <StatsCashflowLine data={stats.cashflow} />}
+              </div>
+            </CardContent>
+          ) : (
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Nessun dato disponibile con i filtri selezionati
+            </CardContent>
+          )
         )}
       </Card>
 
@@ -116,14 +122,20 @@ export function StatsView() {
           </Button>
         </CardHeader>
         {!collapsed.tables && stats && (
-          <CardContent>
-            <StatsTables
-              byType={stats.by_type}
-              byStatus={stats.by_status}
-              byTaxpayer={stats.by_taxpayer}
-              cashflow={stats.cashflow}
-            />
-          </CardContent>
+          stats.by_type.length > 0 || stats.by_status.length > 0 || stats.by_taxpayer.length > 0 || stats.cashflow.length > 0 ? (
+            <CardContent>
+              <StatsTables
+                byType={stats.by_type}
+                byStatus={stats.by_status}
+                byTaxpayer={stats.by_taxpayer}
+                cashflow={stats.cashflow}
+              />
+            </CardContent>
+          ) : (
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Nessun dato disponibile con i filtri selezionati
+            </CardContent>
+          )
         )}
       </Card>
     </div>

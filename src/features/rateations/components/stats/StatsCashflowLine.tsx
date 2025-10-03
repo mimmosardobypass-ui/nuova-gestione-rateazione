@@ -10,7 +10,8 @@ interface StatsCashflowLineProps {
 }
 
 export function StatsCashflowLine({ data }: StatsCashflowLineProps) {
-  const chartData = data.map(item => ({
+  const sortedData = [...data].sort((a, b) => a.month.localeCompare(b.month));
+  const chartData = sortedData.map(item => ({
     month: formatMonth(item.month),
     pagato: formatCentsToEur(item.paid_amount_cents),
     dovuto: formatCentsToEur(item.due_amount_cents),

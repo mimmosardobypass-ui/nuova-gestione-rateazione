@@ -82,10 +82,10 @@ export function exportToExcel(
 
   // Sheet 5: Risparmi_RQ
   const savingsData = [
-    { KPI: 'Residuo Totale', Valore: formatEuroFromCents(kpis.residual_total * 100) },
-    { KPI: 'Pagato Totale', Valore: formatEuroFromCents(kpis.paid_total * 100) },
-    { KPI: 'In Ritardo', Valore: formatEuroFromCents(kpis.overdue_total * 100) },
-    { KPI: 'Risparmio RQ', Valore: formatEuroFromCents(kpis.quater_saving * 100) },
+    { KPI: 'Residuo Totale', Valore: kpis.residual_total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' },
+    { KPI: 'Pagato Totale', Valore: kpis.paid_total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' },
+    { KPI: 'In Ritardo', Valore: kpis.overdue_total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' },
+    { KPI: 'Risparmio RQ', Valore: kpis.quater_saving.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' },
   ];
   const wsSavings = XLSX.utils.aoa_to_sheet(filterHeader);
   XLSX.utils.sheet_add_json(wsSavings, savingsData, { origin: -1 });
@@ -123,10 +123,10 @@ export function exportToPDF(
   yPos += 6;
 
   const kpiData = [
-    ['Residuo Totale', formatEuroFromCents(kpis.residual_total * 100)],
-    ['Pagato Totale', formatEuroFromCents(kpis.paid_total * 100)],
-    ['In Ritardo', formatEuroFromCents(kpis.overdue_total * 100)],
-    ['Risparmio RQ', formatEuroFromCents(kpis.quater_saving * 100)],
+    ['Residuo Totale', kpis.residual_total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'],
+    ['Pagato Totale', kpis.paid_total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'],
+    ['In Ritardo', kpis.overdue_total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'],
+    ['Risparmio RQ', kpis.quater_saving.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'],
   ];
 
   autoTable(doc, {
