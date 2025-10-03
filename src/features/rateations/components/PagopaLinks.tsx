@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, Calendar, Euro, Users } from "lucide-react";
 import { getLinksForPagopa, PagopaLinkRow } from "../api/links";
-import { formatEuro } from "@/lib/formatters";
+import { formatEuroFromCents } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,9 +113,6 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
     return idStr.length >= 6 ? `RQ ${idStr.slice(-6)}` : `RQ ${idStr || '—'}`;
   };
 
-  // Calculate total estimated savings
-  const totalSavings = rows.reduce((sum, row) => sum + (row.risparmio_at_link_cents || 0), 0);
-
   return (
     <Card>
       <CardHeader>
@@ -125,17 +122,9 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
               <ExternalLink className="h-5 w-5" />
               Collegamenti Riam.Quater
             </CardTitle>
-            {totalSavings > 0 && (
-              <div className="flex items-center gap-4 text-sm">
-                <Badge variant="outline" className="font-medium">
-                  {rows.length} {rows.length === 1 ? 'collegamento' : 'collegamenti'}
-                </Badge>
-                <div className="flex items-center gap-1 text-green-600 font-semibold">
-                  <Euro className="h-4 w-4" />
-                  <span>Risparmio totale: {formatEuro(totalSavings / 100)}</span>
-                </div>
-              </div>
-            )}
+            <Badge variant="outline" className="font-medium">
+              {rows.length} {rows.length === 1 ? 'collegamento' : 'collegamenti'}
+            </Badge>
           </div>
         </div>
       </CardHeader>
@@ -202,7 +191,7 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
                       Totale RQ
                     </div>
                     <div className="font-medium">
-                      {formatEuro((row.totale_rq_at_link_cents || 0) / 100)}
+                      {formatEuroFromCents(row.totale_rq_at_link_cents || 0)}
                     </div>
                   </div>
                 </div>
@@ -213,7 +202,7 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
                       Residuo PagoPA
                     </div>
                     <div className="font-medium">
-                      {formatEuro((row.residuo_pagopa_at_link_cents || 0) / 100)}
+                      {formatEuroFromCents(row.residuo_pagopa_at_link_cents || 0)}
                     </div>
                   </div>
                 </div>
@@ -224,7 +213,7 @@ export function PagopaLinks({ pagopaId, onGoToRQ }: PagopaLinksProps) {
                       Risparmio Stimato
                     </div>
                     <div className="font-semibold text-green-600">
-                      {formatEuro((row.risparmio_at_link_cents || 0) / 100)}
+                      {formatEuroFromCents(row.risparmio_at_link_cents || 0)}
                     </div>
                   </div>
                 </div>
