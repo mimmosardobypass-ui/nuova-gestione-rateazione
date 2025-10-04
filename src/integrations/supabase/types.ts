@@ -3163,6 +3163,25 @@ export type Database = {
         }
         Returns: Json
       }
+      get_residual_detail: {
+        Args: {
+          p_end_date?: string
+          p_owner_only?: boolean
+          p_start_date?: string
+          p_statuses?: string[]
+          p_taxpayer_search?: string
+          p_type_labels?: string[]
+        }
+        Returns: {
+          created_at: string
+          id: number
+          number: string
+          residual_amount_cents: number
+          status: string
+          taxpayer_name: string
+          type_label: string
+        }[]
+      }
       get_rq_available_for_pagopa: {
         Args: { p_pagopa_id: number }
         Returns: {

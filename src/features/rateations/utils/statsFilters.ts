@@ -65,6 +65,7 @@ export function getDefaultLayout(): CollapsedSections {
     kpis: false,
     charts: false,
     tables: false,
+    residualDetail: false,
   };
 }
 
@@ -91,4 +92,36 @@ export function loadLayout(): CollapsedSections {
   } catch {
     return getDefaultLayout();
   }
+}
+
+// Residual Detail Preferences (30 day TTL)
+const RESIDUAL_KEY = 'stats:residualDetail:v1';
+
+export function getDefaultResidualPrefs(): { groupByType: boolean } {
+  return { groupByType: false };
+}
+
+export function loadResidualPrefs(): { groupByType: boolean } {
+  try {
+    const item = localStorage.getItem(RESIDUAL_KEY);
+    if (!item) return getDefaultResidualPrefs();
+
+    const stored: StoredData<{ groupByType: boolean }> = JSON.parse(item);
+    if (isExpired(stored.timestamp)) {
+      localStorage.removeItem(RESIDUAL_KEY);
+      return getDefaultResidualPrefs();
+    }
+
+    return stored.data;
+  } catch {
+    return getDefaultResidualPrefs();
+  }
+}
+
+export function saveResidualPrefs(prefs: { groupByType: boolean }): void {
+  const stored: StoredData<{ groupByType: boolean }> = {
+    data: prefs,
+    timestamp: Date.now(),
+  };
+  localStorage.setItem(RESIDUAL_KEY, JSON.stringify(stored));
 }

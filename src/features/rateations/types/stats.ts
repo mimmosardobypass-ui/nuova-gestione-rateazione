@@ -65,4 +65,19 @@ export interface CollapsedSections {
   kpis: boolean;
   charts: boolean;
   tables: boolean;
+  residualDetail: boolean;
+}
+
+export interface ResidualDetailRow {
+  id: number;
+  number: string;
+  taxpayer_name: string | null;
+  type_label: string;
+  status: string;
+  created_at: string;
+  residual_amount_cents: number;
+}
+
+export interface ResidualDetailPrefs {
+  groupByType: boolean;
 }

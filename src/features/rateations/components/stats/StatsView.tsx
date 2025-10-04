@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, FileSpreadsheet, FileText } from "lucide-react";
 import { StatsFiltersComponent } from "./StatsFilters";
 import { StatsKPI } from "./StatsKPI";
 import { StatsByTypeChart } from "./StatsByTypeChart";
 import { StatsByStatusPie } from "./StatsByStatusPie";
 import { StatsCashflowLine } from "./StatsCashflowLine";
 import { StatsTables } from "./StatsTables";
+import { ResidualDetailTable } from "./ResidualDetailTable";
 import { ExportButtons } from "./ExportButtons";
 import { useStats } from "../../hooks/useStats";
+import { useResidualDetail } from "../../hooks/useResidualDetail";
 import type { StatsFilters, CollapsedSections } from "../../types/stats";
-import { loadFilters, saveFilters, getDefaultFilters, loadLayout, saveLayout } from "../../utils/statsFilters";
+import { loadFilters, saveFilters, getDefaultFilters, loadLayout, saveLayout, loadResidualPrefs } from "../../utils/statsFilters";
+import { exportResidualToExcel, exportResidualToPDF } from "../../utils/statsExport";
 
 export function StatsView() {
   const [filters, setFilters] = useState<StatsFilters>(loadFilters);
@@ -19,6 +22,7 @@ export function StatsView() {
   const [collapsed, setCollapsed] = useState<CollapsedSections>(loadLayout);
 
   const { stats, kpis, loading, error } = useStats(activeFilters);
+  const { rows: residualRows, loading: residualLoading, error: residualError } = useResidualDetail(activeFilters);
 
   useEffect(() => {
     saveFilters(filters);
@@ -136,6 +140,53 @@ export function StatsView() {
               Nessun dato disponibile con i filtri selezionati
             </CardContent>
           )
+        )}
+      </Card>
+
+      {/* Residual Detail Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between cursor-pointer" onClick={() => toggleSection('residualDetail')}>
+          <CardTitle>Dettaglio Residui</CardTitle>
+          <div className="flex items-center gap-2">
+            {!collapsed.residualDetail && !residualLoading && residualRows.length > 0 && (
+              <div className="flex gap-2 mr-2" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => exportResidualToExcel(residualRows, activeFilters, loadResidualPrefs().groupByType)}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => exportResidualToPDF(residualRows, activeFilters, loadResidualPrefs().groupByType)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+              </div>
+            )}
+            <Button variant="ghost" size="sm">
+              {collapsed.residualDetail ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardHeader>
+        {!collapsed.residualDetail && (
+          <CardContent>
+            {residualError ? (
+              <div className="p-6 text-center text-destructive">
+                Errore: {residualError}
+              </div>
+            ) : residualLoading ? (
+              <div className="p-6 text-center text-muted-foreground">
+                Caricamento...
+              </div>
+            ) : (
+              <ResidualDetailTable rows={residualRows} />
+            )}
+          </CardContent>
         )}
       </Card>
     </div>
