@@ -32,6 +32,7 @@ export function getDefaultFilters(): StatsFilters {
     statuses: null,
     taxpayerSearch: null,
     ownerOnly: true,
+    includeClosed: false,
   };
 }
 

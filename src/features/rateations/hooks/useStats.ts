@@ -29,11 +29,17 @@ export function useStats(filters: StatsFilters): UseStatsResult {
     setError(null);
 
     try {
+      // Se includeClosed è false e statuses è null, forza ['attiva', 'completata', 'decaduta']
+      let effectiveStatuses = filters.statuses;
+      if (!filters.includeClosed && !filters.statuses) {
+        effectiveStatuses = ['attiva', 'completata', 'decaduta'];
+      }
+
       const { data, error: rpcError } = await supabase.rpc('get_filtered_stats', {
         p_start_date: filters.startDate,
         p_end_date: filters.endDate,
         p_type_labels: filters.typeLabels,
-        p_statuses: filters.statuses,
+        p_statuses: effectiveStatuses,
         p_taxpayer_search: filters.taxpayerSearch,
         p_owner_only: filters.ownerOnly,
       });

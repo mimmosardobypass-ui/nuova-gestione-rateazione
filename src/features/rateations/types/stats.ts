@@ -9,6 +9,7 @@ export interface StatsFilters {
   statuses: string[] | null; // ['attiva', 'INTERROTTA', ...] or null for all
   taxpayerSearch: string | null;
   ownerOnly: boolean;
+  includeClosed: boolean; // Se true, include anche 'INTERROTTA' e 'ESTINTA'
 }
 
 export interface StatsByType {

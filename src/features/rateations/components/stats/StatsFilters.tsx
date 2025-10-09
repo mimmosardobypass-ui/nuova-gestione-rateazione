@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import type { StatsFilters } from "../../types/stats";
 
@@ -109,6 +110,17 @@ export function StatsFiltersComponent({ filters, onApply, onReset }: StatsFilter
         />
         <label htmlFor="owner-only" className="text-sm cursor-pointer">
           Solo mie pratiche
+        </label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="include-closed"
+          checked={local.includeClosed}
+          onCheckedChange={(checked) => setLocal({ ...local, includeClosed: !!checked })}
+        />
+        <label htmlFor="include-closed" className="text-sm cursor-pointer">
+          Includi interrotte/estinte
         </label>
       </div>
 

@@ -19,11 +19,17 @@ export function useResidualDetail(filters: StatsFilters): UseResidualDetailRetur
       setLoading(true);
       setError(null);
 
+      // Se includeClosed è false e statuses è null, forza ['attiva', 'completata', 'decaduta']
+      let effectiveStatuses = filters.statuses;
+      if (!filters.includeClosed && !filters.statuses) {
+        effectiveStatuses = ['attiva', 'completata', 'decaduta'];
+      }
+
       const { data, error: rpcError } = await supabase.rpc('get_residual_detail', {
         p_start_date: filters.startDate,
         p_end_date: filters.endDate,
         p_type_labels: filters.typeLabels,
-        p_statuses: filters.statuses,
+        p_statuses: effectiveStatuses,
         p_taxpayer_search: filters.taxpayerSearch,
         p_owner_only: filters.ownerOnly,
       });
@@ -49,6 +55,7 @@ export function useResidualDetail(filters: StatsFilters): UseResidualDetailRetur
     JSON.stringify(filters.statuses),
     filters.taxpayerSearch,
     filters.ownerOnly,
+    filters.includeClosed,
   ]);
 
   return { rows, loading, error, reload: load };
