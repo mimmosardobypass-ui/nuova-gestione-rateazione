@@ -28,7 +28,6 @@ import type { DecadenceDashboard, DecadenceDetail } from "@/features/rateations/
 import { RateList } from "@/features/rateations/components/views/RateList";
 import AnnualMatrixCard from "@/features/rateations/components/AnnualMatrixCard";
 import { Deadlines } from "@/features/rateations/components/views/Deadlines";
-import { AdvancedStats } from "@/features/rateations/components/views/AdvancedStats";
 import { RateationsHealthBanner } from "@/components/RateationsHealthBanner";
 
 
@@ -129,7 +128,7 @@ export default function Rateations() {
     // setShowHomeBack(true);
   };
 
-  type View = 'list' | 'annual' | 'deadlines' | 'advanced' | 'decadenze';
+  type View = 'list' | 'annual' | 'deadlines' | 'decadenze';
   const [currentView, setCurrentView] = React.useState<View>('list');
 
   const handleViewChange = (view: View) => {
@@ -145,7 +144,7 @@ export default function Rateations() {
   };
 
   const openStats = () => {
-    setCurrentView('advanced');
+    navigate('/statistiche');
   };
 
   const openDecadenze = () => {
@@ -266,6 +265,7 @@ export default function Rateations() {
           onDataChanged={debouncedReloadStats}
           refreshKey={refreshKey}
           onViewChange={handleViewChange}
+          onStats={openStats}
         />
       )}
 
@@ -277,14 +277,6 @@ export default function Rateations() {
 
       {currentView === 'deadlines' && (
         <Deadlines 
-          rows={rows}
-          loading={loading}
-          onBack={() => setCurrentView('list')}
-        />
-      )}
-
-      {currentView === 'advanced' && (
-        <AdvancedStats 
           rows={rows}
           loading={loading}
           onBack={() => setCurrentView('list')}

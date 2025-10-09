@@ -63,13 +63,13 @@ export default function HomePage() {
                 Nuova Rateazione
               </Button>
               <Button 
-                onClick={() => navigate("/advanced-stats")}
+                onClick={() => navigate("/statistiche")}
                 variant="outline"
                 size="lg"
                 className="gap-2"
               >
                 <BarChart3 className="h-4 w-4" />
-                Statistiche Avanzate
+                Statistiche
               </Button>
             </div>
           </div>

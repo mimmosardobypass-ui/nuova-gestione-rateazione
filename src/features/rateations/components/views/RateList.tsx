@@ -16,7 +16,8 @@ interface RateListProps {
   onRefresh: () => void;
   onDataChanged: () => void;
   refreshKey: number;
-  onViewChange: (view: 'annual' | 'deadlines' | 'advanced') => void;
+  onViewChange: (view: 'annual' | 'deadlines') => void;
+  onStats: () => void;
 }
 
 export function RateList({ 
@@ -29,7 +30,8 @@ export function RateList({
   onRefresh, 
   onDataChanged, 
   refreshKey,
-  onViewChange 
+  onViewChange,
+  onStats
 }: RateListProps) {
   const processRows = (sourceRows: RateationRow[]) => 
     sourceRows.map(row => ({
@@ -62,7 +64,7 @@ export function RateList({
           <TabsContent value="all" className="space-y-4">
             <RateationFilters 
               onComparazione={() => onViewChange('annual')}
-              onStats={() => onViewChange('advanced')}
+              onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}
             />
 
@@ -82,7 +84,7 @@ export function RateList({
           <TabsContent value="attive" className="space-y-4">
             <RateationFilters 
               onComparazione={() => onViewChange('annual')}
-              onStats={() => onViewChange('advanced')}
+              onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}
             />
 
@@ -102,7 +104,7 @@ export function RateList({
           <TabsContent value="completate" className="space-y-4">
             <RateationFilters 
               onComparazione={() => onViewChange('annual')}
-              onStats={() => onViewChange('advanced')}
+              onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}
             />
 

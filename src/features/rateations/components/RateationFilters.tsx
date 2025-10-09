@@ -58,7 +58,7 @@ export function RateationFilters({ onComparazione, onStats, onDeadlines }: Ratea
             Scadenze
           </Button>
           <Button variant="outline" onClick={onStats}>
-            Statistiche avanzate
+            Statistiche
           </Button>
         </div>
         {/* LOVABLE:END actionButtons */}
