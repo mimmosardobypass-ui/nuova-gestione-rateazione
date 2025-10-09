@@ -19,10 +19,26 @@ export function useResidualDetail(filters: StatsFilters): UseResidualDetailRetur
       setLoading(true);
       setError(null);
 
-      // Se includeClosed è false e statuses è null, forza ['attiva', 'completata', 'decaduta']
+      // ===== CALCOLO effectiveStatuses (case-insensitive) =====
       let effectiveStatuses = filters.statuses;
-      if (!filters.includeClosed && !filters.statuses) {
-        effectiveStatuses = ['attiva', 'completata', 'decaduta'];
+
+      const CLOSED = ['INTERROTTA', 'interrotta', 'ESTINTA', 'estinta'];
+      const OPERATIVE = [
+        'ATTIVA', 'attiva',
+        'IN_RITARDO', 'in_ritardo',
+        'COMPLETATA', 'completata',
+        'DECADUTA', 'decaduta',
+      ];
+
+      if (!filters.includeClosed) {
+        if (!filters.statuses || filters.statuses.length === 0) {
+          effectiveStatuses = OPERATIVE;
+        } else {
+          effectiveStatuses = filters.statuses.filter(s => !CLOSED.includes(s));
+          if (effectiveStatuses.length === 0) {
+            effectiveStatuses = ['__NO_MATCH__'];
+          }
+        }
       }
 
       const { data, error: rpcError } = await supabase.rpc('get_residual_detail', {
@@ -35,7 +51,6 @@ export function useResidualDetail(filters: StatsFilters): UseResidualDetailRetur
       });
 
       if (rpcError) throw rpcError;
-
       setRows(data || []);
     } catch (err) {
       console.error('Error loading residual detail:', err);

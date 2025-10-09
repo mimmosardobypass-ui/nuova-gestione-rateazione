@@ -29,10 +29,29 @@ export function useStats(filters: StatsFilters): UseStatsResult {
     setError(null);
 
     try {
-      // Se includeClosed è false e statuses è null, forza ['attiva', 'completata', 'decaduta']
+      // ===== CALCOLO effectiveStatuses (case-insensitive) =====
       let effectiveStatuses = filters.statuses;
-      if (!filters.includeClosed && !filters.statuses) {
-        effectiveStatuses = ['attiva', 'completata', 'decaduta'];
+
+      const CLOSED = ['INTERROTTA', 'interrotta', 'ESTINTA', 'estinta'];
+      const OPERATIVE = [
+        'ATTIVA', 'attiva',
+        'IN_RITARDO', 'in_ritardo',
+        'COMPLETATA', 'completata',
+        'DECADUTA', 'decaduta',
+      ];
+
+      if (!filters.includeClosed) {
+        if (!filters.statuses || filters.statuses.length === 0) {
+          // OFF + nessun filtro → 8 stati operativi (maiusc/minusc)
+          effectiveStatuses = OPERATIVE;
+        } else {
+          // OFF + filtri → escludi chiusi
+          effectiveStatuses = filters.statuses.filter(s => !CLOSED.includes(s));
+          // OFF + solo chiusi selezionati → nessun risultato
+          if (effectiveStatuses.length === 0) {
+            effectiveStatuses = ['__NO_MATCH__'];
+          }
+        }
       }
 
       const { data, error: rpcError } = await supabase.rpc('get_filtered_stats', {
@@ -45,7 +64,6 @@ export function useStats(filters: StatsFilters): UseStatsResult {
       });
 
       if (rpcError) throw rpcError;
-
       setStats(data as FilteredStats);
     } catch (e: any) {
       console.error('[useStats]', e);
