@@ -3,7 +3,7 @@
  * Fetches data via get_filtered_stats() RPC + v_quater_saving_per_user
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
 import { useQuaterSaving } from '@/hooks/useQuaterSaving';
 import type { StatsFilters, FilteredStats, StatsKPIs } from '../types/stats';
@@ -24,55 +24,59 @@ export function useStats(filters: StatsFilters): UseStatsResult {
 
   const { saving: quaterSaving, loading: savingLoading } = useQuaterSaving();
 
+  // Normalizza payload per la RPC
+  const rpcArgs = useMemo(() => {
+    const toYMD = (d?: string | Date | null) =>
+      d ? new Date(d).toISOString().slice(0, 10) : null;
+
+    const U = (s: string) => (s ?? '').toUpperCase();
+
+    const CLOSED = ['INTERROTTA', 'ESTINTA'];
+    const OPERATIVE = ['ATTIVA', 'IN_RITARDO', 'COMPLETATA', 'DECADUTA'];
+
+    const inputStatuses = (filters.statuses ?? []).map(U);
+
+    let effectiveStatuses: string[] | null;
+    if (!filters.includeClosed) {
+      if (inputStatuses.length === 0) {
+        effectiveStatuses = OPERATIVE;
+      } else {
+        const tmp = inputStatuses.filter(s => !CLOSED.includes(s));
+        effectiveStatuses = tmp.length ? tmp : ['__NO_MATCH__'];
+      }
+    } else {
+      effectiveStatuses = inputStatuses.length ? inputStatuses : null;
+    }
+
+    const typeLabels = filters.typeLabels && filters.typeLabels.length ? filters.typeLabels : null;
+
+    return {
+      p_start_date: toYMD(filters.startDate),
+      p_end_date: toYMD(filters.endDate),
+      p_type_labels: typeLabels,
+      p_statuses: effectiveStatuses,
+      p_taxpayer_search: filters.taxpayerSearch || null,
+      p_owner_only: !!filters.ownerOnly,
+    };
+  }, [filters]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // ===== CALCOLO effectiveStatuses (case-insensitive) =====
-      let effectiveStatuses = filters.statuses;
-
-      const CLOSED = ['INTERROTTA', 'interrotta', 'ESTINTA', 'estinta'];
-      const OPERATIVE = [
-        'ATTIVA', 'attiva',
-        'IN_RITARDO', 'in_ritardo',
-        'COMPLETATA', 'completata',
-        'DECADUTA', 'decaduta',
-      ];
-
-      if (!filters.includeClosed) {
-        if (!filters.statuses || filters.statuses.length === 0) {
-          // OFF + nessun filtro → 8 stati operativi (maiusc/minusc)
-          effectiveStatuses = OPERATIVE;
-        } else {
-          // OFF + filtri → escludi chiusi
-          effectiveStatuses = filters.statuses.filter(s => !CLOSED.includes(s));
-          // OFF + solo chiusi selezionati → nessun risultato
-          if (effectiveStatuses.length === 0) {
-            effectiveStatuses = ['__NO_MATCH__'];
-          }
-        }
-      }
-
-      const { data, error: rpcError } = await supabase.rpc('get_filtered_stats', {
-        p_start_date: filters.startDate,
-        p_end_date: filters.endDate,
-        p_type_labels: filters.typeLabels,
-        p_statuses: effectiveStatuses,
-        p_taxpayer_search: filters.taxpayerSearch,
-        p_owner_only: filters.ownerOnly,
-      });
+      const { data, error: rpcError } = await supabase.rpc('get_filtered_stats', rpcArgs);
 
       if (rpcError) throw rpcError;
       setStats(data as FilteredStats);
     } catch (e: any) {
       console.error('[useStats]', e);
-      setError(e.message || 'Errore caricamento statistiche');
+      setError(e?.message ?? 'Errore caricamento statistiche');
       setStats(null);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [rpcArgs]);
 
   useEffect(() => {
     load();

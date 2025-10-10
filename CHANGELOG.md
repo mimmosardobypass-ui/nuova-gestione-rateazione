@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Fixed - 2025-01-10 (Patch)
+
+### Statistiche - Fix Normalizzazione Filtri & Ottimizzazioni
+
+Corretti bug critici nei filtri statistiche: normalizzazione case-sensitive, gestione array vuoti, date e ottimizzazione re-render.
+
+**Fixed**:
+- **fix(stats)**: Normalizzazione UPPERCASE per status (`ATTIVA`, `INTERROTTA`, etc.) - eliminato confronto case-sensitive
+- **fix(stats)**: Array vuoti (`[]`) convertiti a `null` per RPC Postgres (evita "no match")
+- **fix(stats)**: Date normalizzate a formato `YYYY-MM-DD` per coerenza RPC
+- **fix(stats)**: Ottimizzazione re-render con `useMemo` per `rpcArgs` (dipende da `filters` ma evita loop infiniti)
+- **fix(stats)**: Cast espliciti `Number()` per valori numerici Postgres (evita stringhe)
+- **fix(stats)**: Ordinamento stabile tabella "Per Tipologia": F24 → PagoPA → Rottamazione Quater → Riam. Quater → Altro
+
+**Updated (Frontend)**:
+- **update(frontend)**: Hook `useStatsByTypeEffective` con normalizzazione corretta
+- **update(frontend)**: Hook `useStats` con stessa logica normalizzazione per coerenza
+
+**Acceptance Criteria**:
+1. ✅ Filtro "ATTIVA" funziona con qualsiasi case (attiva, ATTIVA, Attiva)
+2. ✅ Array vuoti non causano "nessun risultato" inatteso
+3. ✅ Date valide anche con oggetti Date JavaScript
+4. ✅ Nessun re-render infinito sui filtri
+5. ✅ Ordinamento tipologie stabile e prevedibile
+
+**Backward Compatible**: Yes  
+**Breaking Changes**: Nessuna (solo bugfix)
+
+---
+
 ## Added - 2025-01-10
 
 ### Statistiche - Tabella "Per Tipologia" & KPI Alignment
