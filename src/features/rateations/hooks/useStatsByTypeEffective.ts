@@ -15,6 +15,39 @@ interface UseStatsByTypeEffectiveResult {
   reload: () => void;
 }
 
+// Mapping UI label -> DB canonical value
+const TYPE_LABEL_TO_DB: Record<string, string> = {
+  'F24': 'F24',
+  'PagoPA': 'PAGOPA',
+  'Rottamazione Quater': 'Rottamazione Quater',
+  'Riam. Quater': 'Riammissione Quater',
+  'Altro': 'ALTRO',
+};
+
+function buildTypesArg(selected: string[] | null | undefined): string[] | null {
+  const labels = selected ?? [];
+  const ALL = Object.keys(TYPE_LABEL_TO_DB);
+  // Nessun tipo o tutti i tipi selezionati => nessun filtro
+  if (labels.length === 0 || labels.length === ALL.length) return null;
+  return labels.map(l => TYPE_LABEL_TO_DB[l] ?? l);
+}
+
+function buildStatusesArg(filters: StatsFilters): string[] | null {
+  const toLower = (s?: string) => (s ?? '').toLowerCase();
+  const CLOSED = ['interrotta', 'estinta'];
+  const OPERATIVE = ['attiva', 'in_ritardo', 'completata', 'decaduta'];
+
+  const input = (filters.statuses ?? []).map(toLower);
+
+  if (!filters.includeClosed) {
+    if (input.length === 0) return OPERATIVE;
+    const onlyOpen = input.filter(s => !CLOSED.includes(s));
+    return onlyOpen.length ? onlyOpen : ['__no_match__'];
+  }
+  // includeClosed ON: se niente selezionato → nessun filtro
+  return input.length ? input : null;
+}
+
 export function useStatsByTypeEffective(
   filters: StatsFilters
 ): UseStatsByTypeEffectiveResult {
@@ -27,32 +60,11 @@ export function useStatsByTypeEffective(
     const toYMD = (d?: string | Date | null) =>
       d ? new Date(d).toISOString().slice(0, 10) : null;
 
-    const U = (s: string) => (s ?? '').toUpperCase();
-
-    const CLOSED = ['INTERROTTA', 'ESTINTA'];
-    const OPERATIVE = ['ATTIVA', 'IN_RITARDO', 'COMPLETATA', 'DECADUTA'];
-
-    const inputStatuses = (filters.statuses ?? []).map(U);
-
-    let effectiveStatuses: string[] | null;
-    if (!filters.includeClosed) {
-      if (inputStatuses.length === 0) {
-        effectiveStatuses = OPERATIVE;
-      } else {
-        const tmp = inputStatuses.filter(s => !CLOSED.includes(s));
-        effectiveStatuses = tmp.length ? tmp : ['__NO_MATCH__'];
-      }
-    } else {
-      effectiveStatuses = inputStatuses.length ? inputStatuses : null;
-    }
-
-    const typeLabels = filters.typeLabels && filters.typeLabels.length ? filters.typeLabels : null;
-
     return {
       p_date_from: toYMD(filters.startDate),
       p_date_to: toYMD(filters.endDate),
-      p_states: effectiveStatuses,
-      p_types: typeLabels,
+      p_states: buildStatusesArg(filters),
+      p_types: buildTypesArg(filters.typeLabels),
       p_include_interrupted_estinte: !!filters.includeClosed,
     };
   }, [filters]);
