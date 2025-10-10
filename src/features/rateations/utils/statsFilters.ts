@@ -5,7 +5,8 @@
 
 import type { StatsFilters, CollapsedSections } from '../types/stats';
 
-const FILTERS_KEY = 'stats:filters:v1';
+// v2: Reset filtri per fix visualizzazione stati/tipologie
+const FILTERS_KEY = 'stats:filters:v2';
 const LAYOUT_KEY = 'stats:layout:v1';
 const TTL_DAYS = 30;
 
