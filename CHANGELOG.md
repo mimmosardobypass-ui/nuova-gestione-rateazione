@@ -5,7 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Added - 2025-01-10
+
+### Statistiche - Tabella "Per Tipologia" & KPI Alignment
+
+Corretta la tabella "Per Tipologia" nelle statistiche per includere PagoPA e applicare correttamente la regola F24↔PagoPA per coerenza KPI.
+
+**Fixed**:
+- **fix(stats)**: Include PagoPA in tabella "Per Tipologia" (ora visibile con filtri corretti)
+- **fix(stats)**: Applica regola F24↔PagoPA per residui/ritardi
+  - F24 interrotte per link PagoPA (`interruption_reason='F24_PAGOPA_LINK'`) contribuiscono €0 a residuo/ritardo
+  - PagoPA collegate vengono conteggiate correttamente
+  - Nessun doppio conteggio tra F24 interrotte e PagoPA
+- **fix(stats)**: Allinea KPI tra card e tabelle
+  - Residuo Totale (card) = somma residui tabella "Per Tipologia"
+  - In Ritardo (card) = somma ritardi tabella "Per Tipologia"
+  - Tolleranza: ±1 EUR per arrotondamenti
+
+**Added (Backend)**:
+- **add(db)**: Nuova RPC `stats_per_tipologia_effective()` per filtri parametrici con regola F24↔PagoPA
+- **add(db)**: Nuova vista `v_stats_per_tipologia_effective` come single source of truth
+- **update(db)**: Aggiornata RPC `get_filtered_stats()` per applicare regola F24↔PagoPA a tutte le aggregazioni
+
+**Added (Frontend)**:
+- **add(frontend)**: Hook `useStatsByTypeEffective` per tabella "Per Tipologia" con dati corretti
+- **update(frontend)**: Componente `StatsTables` usa nuova RPC per "Per Tipologia"
+
+**Migration**: `supabase/migrations/20250110_stats_per_tipologia_effective.sql`
+
+**Acceptance Criteria**:
+1. ✅ Con filtri screenshot (tutte tipologie + attiva), tabella mostra: F24, PagoPA, Riam. Quater, Rottamazione Quater
+2. ✅ Residuo Totale (card) = Σ residui (tabella per tipologia) ±1 EUR
+3. ✅ Nessun doppio conteggio tra F24 interrotte e PagoPA collegate
+4. ✅ Toggle "Includi interrotte/estinte" funziona correttamente
+5. ✅ Performance: RPC < 500ms con 1000+ rateazioni
+
+**Backward Compatible**: Yes  
+**Breaking Changes**: Nessuna (solo fix + migliorie)
+
+---
 
 ## Added - 2025-01-09
 

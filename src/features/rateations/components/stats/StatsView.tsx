@@ -126,10 +126,10 @@ export function StatsView() {
           </Button>
         </CardHeader>
         {!collapsed.tables && stats && (
-          stats.by_type.length > 0 || stats.by_status.length > 0 || stats.by_taxpayer.length > 0 || stats.cashflow.length > 0 ? (
+          stats.by_status.length > 0 || stats.by_taxpayer.length > 0 || stats.cashflow.length > 0 ? (
             <CardContent>
               <StatsTables
-                byType={stats.by_type}
+                activeFilters={activeFilters}
                 byStatus={stats.by_status}
                 byTaxpayer={stats.by_taxpayer}
                 cashflow={stats.cashflow}

@@ -1,17 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { StatsByType, StatsByStatus, StatsByTaxpayer, StatsCashflowMonthly } from "../../types/stats";
+import type { StatsByType, StatsByStatus, StatsByTaxpayer, StatsCashflowMonthly, StatsFilters } from "../../types/stats";
 import { formatEuroFromCents } from "@/lib/formatters";
 import { formatMonth } from "../../utils/statsFormatters";
+import { useStatsByTypeEffective } from "../../hooks/useStatsByTypeEffective";
 
 interface StatsTablesProps {
-  byType: StatsByType[];
+  activeFilters: StatsFilters;
   byStatus: StatsByStatus[];
   byTaxpayer: StatsByTaxpayer[];
   cashflow: StatsCashflowMonthly[];
 }
 
-export function StatsTables({ byType, byStatus, byTaxpayer, cashflow }: StatsTablesProps) {
+export function StatsTables({ activeFilters, byStatus, byTaxpayer, cashflow }: StatsTablesProps) {
+  // Usa hook dedicato per "Per Tipologia" con regola F24↔PagoPA
+  const { byType, loading: typeLoading, error: typeError } = useStatsByTypeEffective(activeFilters);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -19,30 +23,45 @@ export function StatsTables({ byType, byStatus, byTaxpayer, cashflow }: StatsTab
           <CardTitle>Per Tipologia</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Conteggio</TableHead>
-                <TableHead className="text-right">Totale</TableHead>
-                <TableHead className="text-right">Pagato</TableHead>
-                <TableHead className="text-right">Residuo</TableHead>
-                <TableHead className="text-right">In Ritardo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {byType.map((row, idx) => (
-                <TableRow key={idx}>
-                  <TableCell>{row.type_label}</TableCell>
-                  <TableCell className="text-right">{row.count}</TableCell>
-                  <TableCell className="text-right">{formatEuroFromCents(row.total_amount_cents)}</TableCell>
-                  <TableCell className="text-right">{formatEuroFromCents(row.paid_amount_cents)}</TableCell>
-                  <TableCell className="text-right">{formatEuroFromCents(row.residual_amount_cents)}</TableCell>
-                  <TableCell className="text-right">{formatEuroFromCents(row.overdue_amount_cents)}</TableCell>
+          {typeError && (
+            <div className="text-destructive text-sm mb-4">
+              Errore: {typeError}
+            </div>
+          )}
+          {typeLoading ? (
+            <div className="text-muted-foreground text-center py-4">
+              Caricamento...
+            </div>
+          ) : byType.length === 0 ? (
+            <div className="text-muted-foreground text-center py-4">
+              Nessun dato disponibile per il periodo selezionato
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Conteggio</TableHead>
+                  <TableHead className="text-right">Totale</TableHead>
+                  <TableHead className="text-right">Pagato</TableHead>
+                  <TableHead className="text-right">Residuo</TableHead>
+                  <TableHead className="text-right">In Ritardo</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {byType.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{row.type_label}</TableCell>
+                    <TableCell className="text-right">{row.count}</TableCell>
+                    <TableCell className="text-right">{formatEuroFromCents(row.total_amount_cents)}</TableCell>
+                    <TableCell className="text-right">{formatEuroFromCents(row.paid_amount_cents)}</TableCell>
+                    <TableCell className="text-right">{formatEuroFromCents(row.residual_amount_cents)}</TableCell>
+                    <TableCell className="text-right">{formatEuroFromCents(row.overdue_amount_cents)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

@@ -3682,6 +3682,17 @@ export type Database = {
         }
         Relationships: []
       }
+      v_stats_per_tipologia_effective: {
+        Row: {
+          conteggio: number | null
+          in_ritardo_cents: number | null
+          pagato_cents: number | null
+          residuo_cents: number | null
+          tipo: string | null
+          totale_cents: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_rateation_edits: {
@@ -4067,6 +4078,23 @@ export type Database = {
       sanitize_legacy_interruption_reasons: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      stats_per_tipologia_effective: {
+        Args: {
+          p_date_from: string
+          p_date_to: string
+          p_include_interrupted_estinte?: boolean
+          p_states: string[]
+          p_types: string[]
+        }
+        Returns: {
+          conteggio: number
+          in_ritardo_cents: number
+          pagato_cents: number
+          residuo_cents: number
+          tipo: string
+          totale_cents: number
+        }[]
       }
       unlink_f24_from_pagopa: {
         Args: { p_f24_id: number; p_reason?: string }
