@@ -1,8 +1,7 @@
 /**
- * Hook per statistiche "Per Tipologia" con regola F24↔PagoPA
- * Usa la nuova RPC stats_per_tipologia_effective che applica correttamente:
- * - Mappatura tipologie: F24, PagoPA, Rottamazione Quater, Riam. Quater, Altro
- * - Regola F24↔PagoPA: F24 interrotte per link PagoPA → residuo/ritardo = 0
+ * Hook per statistiche per tipologia con regola F24↔PagoPA
+ * Usa la RPC stats_per_tipologia_effective() che esclude residui/ritardi
+ * delle F24 interrotte per link PagoPA
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,7 +15,9 @@ interface UseStatsByTypeEffectiveResult {
   reload: () => void;
 }
 
-export function useStatsByTypeEffective(filters: StatsFilters): UseStatsByTypeEffectiveResult {
+export function useStatsByTypeEffective(
+  filters: StatsFilters
+): UseStatsByTypeEffectiveResult {
   const [byType, setByType] = useState<StatsByType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function useStatsByTypeEffective(filters: StatsFilters): UseStatsByTypeEf
     setError(null);
 
     try {
-      // Calcolo stati effettivi (stessa logica di useStats)
+      // Calcola effectiveStatuses con la stessa logica di useStats
       let effectiveStatuses = filters.statuses;
 
       const CLOSED = ['INTERROTTA', 'interrotta', 'ESTINTA', 'estinta'];
@@ -48,28 +49,31 @@ export function useStatsByTypeEffective(filters: StatsFilters): UseStatsByTypeEf
         }
       }
 
-      // Chiamata RPC con regola F24↔PagoPA applicata
-      const { data, error: rpcError } = await supabase.rpc('stats_per_tipologia_effective', {
-        p_date_from: filters.startDate,
-        p_date_to: filters.endDate,
-        p_states: effectiveStatuses,
-        p_types: filters.typeLabels,
-        p_include_interrupted_estinte: filters.includeClosed,
-      });
+      // Chiama RPC stats_per_tipologia_effective
+      const { data, error: rpcError } = await supabase.rpc(
+        'stats_per_tipologia_effective',
+        {
+          p_date_from: filters.startDate,
+          p_date_to: filters.endDate,
+          p_states: effectiveStatuses,
+          p_types: filters.typeLabels,
+          p_include_interrupted_estinte: filters.includeClosed,
+        }
+      );
 
       if (rpcError) throw rpcError;
 
-      // Mappa risultati alla struttura StatsByType
-      const mappedData: StatsByType[] = (data || []).map((row: any) => ({
+      // Mappa i risultati al formato StatsByType
+      const mapped: StatsByType[] = (data || []).map((row: any) => ({
         type_label: row.tipo,
-        count: Number(row.conteggio),
-        total_amount_cents: Number(row.totale_cents),
-        paid_amount_cents: Number(row.pagato_cents),
-        residual_amount_cents: Number(row.residuo_cents),
-        overdue_amount_cents: Number(row.in_ritardo_cents),
+        count: row.conteggio,
+        total_amount_cents: row.totale_cents,
+        paid_amount_cents: row.pagato_cents,
+        residual_amount_cents: row.residuo_cents,
+        overdue_amount_cents: row.in_ritardo_cents,
       }));
 
-      setByType(mappedData);
+      setByType(mapped);
     } catch (e: any) {
       console.error('[useStatsByTypeEffective]', e);
       setError(e.message || 'Errore caricamento statistiche per tipologia');
