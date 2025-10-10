@@ -21,7 +21,16 @@ const TYPE_LABEL_TO_DB: Record<string, string> = {
   'PagoPA': 'PAGOPA',
   'Rottamazione Quater': 'Rottamazione Quater',
   'Riam. Quater': 'Riammissione Quater',
-  'Altro': 'ALTRO',
+  'Altro': 'Altro',
+};
+
+// Reverse mapping: DB value -> UI display label
+const DB_TO_DISPLAY: Record<string, string> = {
+  'F24': 'F24',
+  'PAGOPA': 'PagoPA',
+  'Rottamazione Quater': 'Rottamazione Quater',
+  'Riammissione Quater': 'Riam. Quater',
+  'Altro': 'Altro',
 };
 
 function buildTypesArg(selected: string[] | null | undefined): string[] | null {
@@ -78,7 +87,7 @@ export function useStatsByTypeEffective(
       if (rpcError) throw rpcError;
 
       const mapped: StatsByType[] = (data ?? []).map((row: any) => ({
-        type_label: String(row?.tipo ?? ''),
+        type_label: DB_TO_DISPLAY[row?.tipo] ?? row?.tipo,
         count: Number(row?.conteggio ?? 0),
         total_amount_cents: Number(row?.totale_cents ?? 0),
         paid_amount_cents: Number(row?.pagato_cents ?? 0),
