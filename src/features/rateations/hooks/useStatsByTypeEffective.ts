@@ -83,7 +83,9 @@ export function useStatsByTypeEffective(
     setError(null);
 
     try {
+      console.log('[useStatsByTypeEffective] RPC args:', rpcArgs);
       const { data, error: rpcError } = await supabase.rpc('stats_per_tipologia_effective', rpcArgs);
+      console.log('[useStatsByTypeEffective] RPC data:', data);
       if (rpcError) throw rpcError;
 
       const mapped: StatsByType[] = (data ?? []).map((row: any) => ({

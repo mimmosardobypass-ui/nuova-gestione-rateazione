@@ -14,7 +14,8 @@ interface StatsFiltersProps {
 }
 
 const TYPE_OPTIONS = ['F24', 'PagoPA', 'Rottamazione Quater', 'Riam. Quater', 'Altro'];
-const STATUS_OPTIONS = ['attiva', 'INTERROTTA', 'completata', 'decaduta'];
+// Normalizzati in lowercase per coerenza con RPC UPPER()
+const STATUS_OPTIONS = ['attiva', 'interrotta', 'completata', 'decaduta'];
 
 export function StatsFiltersComponent({ filters, onApply, onReset }: StatsFiltersProps) {
   const [local, setLocal] = useState<StatsFilters>(filters);
