@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client-resilient';
 import type { StatsFilters, ResidualDetailRow } from '../types/stats';
+import { buildTypesArg, buildStatusesArg } from '../utils/statsArgs';
 
 interface UseResidualDetailReturn {
   rows: ResidualDetailRow[];
@@ -19,33 +20,11 @@ export function useResidualDetail(filters: StatsFilters): UseResidualDetailRetur
       setLoading(true);
       setError(null);
 
-      // ===== CALCOLO effectiveStatuses (case-insensitive) =====
-      let effectiveStatuses = filters.statuses;
-
-      const CLOSED = ['INTERROTTA', 'interrotta', 'ESTINTA', 'estinta'];
-      const OPERATIVE = [
-        'ATTIVA', 'attiva',
-        'IN_RITARDO', 'in_ritardo',
-        'COMPLETATA', 'completata',
-        'DECADUTA', 'decaduta',
-      ];
-
-      if (!filters.includeClosed) {
-        if (!filters.statuses || filters.statuses.length === 0) {
-          effectiveStatuses = OPERATIVE;
-        } else {
-          effectiveStatuses = filters.statuses.filter(s => !CLOSED.includes(s));
-          if (effectiveStatuses.length === 0) {
-            effectiveStatuses = ['__NO_MATCH__'];
-          }
-        }
-      }
-
       const { data, error: rpcError } = await supabase.rpc('get_residual_detail', {
         p_start_date: filters.startDate,
         p_end_date: filters.endDate,
-        p_type_labels: filters.typeLabels,
-        p_statuses: effectiveStatuses,
+        p_type_labels: buildTypesArg(filters.typeLabels),
+        p_statuses: buildStatusesArg(filters),
         p_taxpayer_search: filters.taxpayerSearch,
         p_owner_only: filters.ownerOnly,
       });

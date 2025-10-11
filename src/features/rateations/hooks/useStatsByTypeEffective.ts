@@ -7,54 +7,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
 import type { StatsFilters, StatsByType } from '../types/stats';
+import { buildTypesArg, buildStatusesArg, DB_TO_DISPLAY } from '../utils/statsArgs';
 
 interface UseStatsByTypeEffectiveResult {
   byType: StatsByType[];
   loading: boolean;
   error: string | null;
   reload: () => void;
-}
-
-// Mapping UI label -> DB canonical value
-const TYPE_LABEL_TO_DB: Record<string, string> = {
-  'F24': 'F24',
-  'PagoPA': 'PAGOPA',
-  'Rottamazione Quater': 'Rottamazione Quater',
-  'Riam. Quater': 'Riammissione Quater',
-  'Altro': 'Altro',
-};
-
-// Reverse mapping: DB value -> UI display label
-const DB_TO_DISPLAY: Record<string, string> = {
-  'F24': 'F24',
-  'PAGOPA': 'PagoPA',
-  'Rottamazione Quater': 'Rottamazione Quater',
-  'Riammissione Quater': 'Riam. Quater',
-  'Altro': 'Altro',
-};
-
-function buildTypesArg(selected: string[] | null | undefined): string[] | null {
-  const labels = selected ?? [];
-  const ALL = Object.keys(TYPE_LABEL_TO_DB);
-  // Nessun tipo o tutti i tipi selezionati => nessun filtro
-  if (labels.length === 0 || labels.length === ALL.length) return null;
-  return labels.map(l => TYPE_LABEL_TO_DB[l] ?? l);
-}
-
-function buildStatusesArg(filters: StatsFilters): string[] | null {
-  const toLower = (s?: string) => (s ?? '').toLowerCase();
-  const CLOSED = ['interrotta', 'estinta'];
-  const OPERATIVE = ['attiva', 'in_ritardo', 'completata', 'decaduta'];
-
-  const input = (filters.statuses ?? []).map(toLower);
-
-  if (!filters.includeClosed) {
-    if (input.length === 0) return OPERATIVE;
-    const onlyOpen = input.filter(s => !CLOSED.includes(s));
-    return onlyOpen.length ? onlyOpen : ['__no_match__'];
-  }
-  // includeClosed ON: se niente selezionato → nessun filtro
-  return input.length ? input : null;
 }
 
 export function useStatsByTypeEffective(

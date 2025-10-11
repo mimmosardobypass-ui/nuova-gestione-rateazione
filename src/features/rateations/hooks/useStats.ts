@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client-resilient';
 import { useQuaterSaving } from '@/hooks/useQuaterSaving';
 import type { StatsFilters, FilteredStats, StatsKPIs } from '../types/stats';
 import { formatCentsToEur } from '../utils/statsFormatters';
+import { buildTypesArg, buildStatusesArg } from '../utils/statsArgs';
 
 interface UseStatsResult {
   stats: FilteredStats | null;
@@ -15,39 +16,6 @@ interface UseStatsResult {
   loading: boolean;
   error: string | null;
   reload: () => void;
-}
-
-// Mapping UI label -> DB canonical value
-const TYPE_LABEL_TO_DB: Record<string, string> = {
-  'F24': 'F24',
-  'PagoPA': 'PAGOPA',
-  'Rottamazione Quater': 'Rottamazione Quater',
-  'Riam. Quater': 'Riammissione Quater',
-  'Altro': 'ALTRO',
-};
-
-function buildTypesArg(selected: string[] | null | undefined): string[] | null {
-  const labels = selected ?? [];
-  const ALL = Object.keys(TYPE_LABEL_TO_DB);
-  // Nessun tipo o tutti i tipi selezionati => nessun filtro
-  if (labels.length === 0 || labels.length === ALL.length) return null;
-  return labels.map(l => TYPE_LABEL_TO_DB[l] ?? l);
-}
-
-function buildStatusesArg(filters: StatsFilters): string[] | null {
-  const toLower = (s?: string) => (s ?? '').toLowerCase();
-  const CLOSED = ['interrotta', 'estinta'];
-  const OPERATIVE = ['attiva', 'in_ritardo', 'completata', 'decaduta'];
-
-  const input = (filters.statuses ?? []).map(toLower);
-
-  if (!filters.includeClosed) {
-    if (input.length === 0) return OPERATIVE;
-    const onlyOpen = input.filter(s => !CLOSED.includes(s));
-    return onlyOpen.length ? onlyOpen : ['__no_match__'];
-  }
-  // includeClosed ON: se niente selezionato → nessun filtro
-  return input.length ? input : null;
 }
 
 export function useStats(filters: StatsFilters): UseStatsResult {
