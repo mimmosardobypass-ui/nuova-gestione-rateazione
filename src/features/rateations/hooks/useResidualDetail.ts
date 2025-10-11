@@ -24,7 +24,7 @@ export function useResidualDetail(filters: StatsFilters): UseResidualDetailRetur
         p_start_date: filters.startDate,
         p_end_date: filters.endDate,
         p_type_labels: buildTypesArg(filters.typeLabels),
-        p_statuses: buildStatusesArg(filters),
+        p_statuses: buildStatusesArg(filters.statuses),
         p_taxpayer_search: filters.taxpayerSearch,
         p_owner_only: filters.ownerOnly,
       });

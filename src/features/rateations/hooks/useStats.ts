@@ -28,18 +28,17 @@ export function useStats(filters: StatsFilters): UseStatsResult {
 
   // Normalizza payload per la RPC
   const rpcArgs = useMemo(() => {
-    const toYMD = (d?: string | Date | null) =>
-      d ? new Date(d).toISOString().slice(0, 10) : null;
-
     return {
-      p_start_date: toYMD(filters.startDate),
-      p_end_date: toYMD(filters.endDate),
+      p_start_date: filters.startDate || null,
+      p_end_date: filters.endDate || null,
       p_types: buildTypesArg(filters.typeLabels),
-      p_statuses: buildStatusesArg(filters),
-      p_taxpayer_search: filters.taxpayerSearch || null,
-      p_owner_only: !!filters.ownerOnly,
-      p_include_closed: !!filters.includeClosed,
-    };
+      p_statuses: buildStatusesArg(filters.statuses),
+      p_taxpayer_search: filters.taxpayerSearch && filters.taxpayerSearch.trim() !== ''
+        ? filters.taxpayerSearch.trim()
+        : null,
+      p_owner_only: Boolean(filters.ownerOnly),
+      p_include_closed: Boolean(filters.includeClosed),
+    } as const;
   }, [filters]);
 
   const load = useCallback(async () => {
