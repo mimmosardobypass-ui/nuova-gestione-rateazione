@@ -4066,13 +4066,13 @@ export type Database = {
       get_filtered_stats: {
         Args:
           | {
-              p_end_date: string
-              p_include_closed: boolean
-              p_owner_only: boolean
-              p_start_date: string
-              p_statuses: string[]
-              p_taxpayer_search: string
-              p_types: string[]
+              p_end_date?: string
+              p_include_closed?: boolean
+              p_owner_only?: boolean
+              p_start_date?: string
+              p_statuses?: string[]
+              p_taxpayer_search?: string
+              p_types?: string[]
             }
           | {
               p_end_date?: string
