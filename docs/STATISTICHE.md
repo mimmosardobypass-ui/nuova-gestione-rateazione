@@ -79,11 +79,31 @@ Genera un PDF multipagina con:
 ## Persistenza Layout
 Lo stato "collapsed/expanded" delle sezioni (KPI, Grafici, Tabelle) è salvato in LocalStorage (`stats:layout:v1`) per 30 giorni.
 
-## Performance
+## Architettura RPC Stats v2.0
+
+### ⚠️ Breaking Change: Periodo di Filtro
+**Prima (v1.0):** Filtro su `rateations.created_at`  
+**Ora (v2.0):** Filtro su `installments.due_date`
+
+**Perché?**
+- Una rateazione creata a settembre 2025 può avere rate da marzo 2025 a febbraio 2032
+- Filtrare su `created_at` la escludeva dai periodi 2024, 2026-2032
+- Filtrare su `due_date` garantisce visibilità in tutti i periodi rilevanti
+
+### Vista Canonica: `v_rateation_type_label`
+Priorità mapping:
+1. **PAGOPA** (prioritario su is_f24)
+2. **F24**
+3. **Rottamazione/Riammissione Quater**
+4. **ALTRO**
+
+### Performance
 - Una sola chiamata RPC (`get_filtered_stats`) per caricare tutti i dati
 - Dati in cents lato DB, convertiti in EUR lato UI
 - Nessun N+1 query
 - Risparmio RQ caricato separatamente da `v_quater_saving_per_user`
+- Nuovo indice: `idx_installments_rateation_due` su `(rateation_id, due_date)`
+- Tutte le RPC ora usano questo indice per il filtro periodo
 
 ## Palette Colori
 

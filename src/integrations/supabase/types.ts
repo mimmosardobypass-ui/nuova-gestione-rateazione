@@ -4020,6 +4020,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      norm_lower_arr: {
+        Args: { arr: string[] }
+        Returns: string[]
+      }
+      norm_upper_arr: {
+        Args: { arr: string[] }
+        Returns: string[]
+      }
       pagopa_link_rq_v2: {
         Args: { payload: Json }
         Returns: {
