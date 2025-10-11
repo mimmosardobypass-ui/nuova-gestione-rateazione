@@ -9,8 +9,8 @@ import type { StatsFilters } from "../types/stats";
 export const TYPE_LABEL_TO_DB: Record<string, string> = {
   "F24": "F24",
   "PagoPA": "PAGOPA",
-  "Rottamazione Quater": "Rottamazione Quater",
-  "Riam. Quater": "Riammissione Quater",
+  "Rottamazione Quater": "Quater",
+  "Riam. Quater": "Riam.Quater",
   "Altro": "ALTRO",
 };
 
@@ -18,8 +18,8 @@ export const TYPE_LABEL_TO_DB: Record<string, string> = {
 export const DB_TO_DISPLAY: Record<string, string> = {
   "F24": "F24",
   "PAGOPA": "PagoPA",
-  "Rottamazione Quater": "Rottamazione Quater",
-  "Riammissione Quater": "Riam. Quater",
+  "Quater": "Rottamazione Quater",
+  "Riam.Quater": "Riam. Quater",
   "ALTRO": "Altro",
 };
 
