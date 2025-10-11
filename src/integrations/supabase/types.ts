@@ -4089,19 +4089,19 @@ export type Database = {
       }
       stats_per_tipologia_effective: {
         Args: {
-          p_date_from: string
-          p_date_to: string
-          p_include_interrupted_estinte?: boolean
-          p_states: string[]
-          p_types: string[]
+          p_end_date?: string
+          p_include_closed?: boolean
+          p_start_date?: string
+          p_statuses?: string[]
+          p_type_labels?: string[]
         }
         Returns: {
-          conteggio: number
-          in_ritardo_cents: number
-          pagato_cents: number
-          residuo_cents: number
-          tipo: string
-          totale_cents: number
+          count: number
+          overdue_amount_cents: number
+          paid_amount_cents: number
+          residual_amount_cents: number
+          total_amount_cents: number
+          type_label: string
         }[]
       }
       unlink_f24_from_pagopa: {
