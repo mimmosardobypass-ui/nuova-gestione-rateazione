@@ -22,6 +22,7 @@ export function useStats(filters: StatsFilters): UseStatsResult {
   const [stats, setStats] = useState<FilteredStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rpcKpis, setRpcKpis] = useState({ residual: 0, paid: 0, overdue: 0 });
 
   const { saving: quaterSaving, loading: savingLoading } = useQuaterSaving();
 
@@ -33,10 +34,11 @@ export function useStats(filters: StatsFilters): UseStatsResult {
     return {
       p_start_date: toYMD(filters.startDate),
       p_end_date: toYMD(filters.endDate),
-      p_type_labels: buildTypesArg(filters.typeLabels),
+      p_types: buildTypesArg(filters.typeLabels),
       p_statuses: buildStatusesArg(filters),
       p_taxpayer_search: filters.taxpayerSearch || null,
       p_owner_only: !!filters.ownerOnly,
+      p_include_closed: !!filters.includeClosed,
     };
   }, [filters]);
 
@@ -48,18 +50,25 @@ export function useStats(filters: StatsFilters): UseStatsResult {
       const { data, error: rpcError } = await supabase.rpc('get_filtered_stats', rpcArgs);
 
       if (rpcError) throw rpcError;
-      
-      // Ensure data has the correct structure with default empty arrays
+
+      // Guard-rail: assicura struttura completa
       const safeStats: FilteredStats = {
         by_type: Array.isArray(data?.by_type) ? data.by_type : [],
         by_status: Array.isArray(data?.by_status) ? data.by_status : [],
         by_taxpayer: Array.isArray(data?.by_taxpayer) ? data.by_taxpayer : [],
-        cashflow: Array.isArray(data?.cashflow) ? data.cashflow : [],
+        cashflow: [], // TODO: implementare cashflow nella RPC
       };
-      
+
+      // KPI dalla RPC (più affidabili del calcolo client-side)
+      setRpcKpis({
+        residual: formatCentsToEur(data?.kpi_residual_amount_cents ?? 0),
+        paid: formatCentsToEur(data?.kpi_paid_amount_cents ?? 0),
+        overdue: formatCentsToEur(data?.kpi_overdue_amount_cents ?? 0),
+      });
+
       setStats(safeStats);
     } catch (e: any) {
-      console.error('[useStats]', e);
+      console.error('[useStats] Error:', e);
       setError(e?.message ?? 'Errore caricamento statistiche');
       setStats(null);
     } finally {
@@ -71,11 +80,11 @@ export function useStats(filters: StatsFilters): UseStatsResult {
     load();
   }, [load]);
 
-  // Calculate KPIs from stats
+  // KPI: usa valori dalla RPC + risparmio quater separato
   const kpis: StatsKPIs = {
-    residual_total: stats?.by_status.reduce((sum, s) => sum + formatCentsToEur(s.residual_amount_cents), 0) || 0,
-    paid_total: stats?.by_status.reduce((sum, s) => sum + formatCentsToEur(s.paid_amount_cents), 0) || 0,
-    overdue_total: stats?.by_status.reduce((sum, s) => sum + formatCentsToEur(s.overdue_amount_cents), 0) || 0,
+    residual_total: rpcKpis.residual,
+    paid_total: rpcKpis.paid,
+    overdue_total: rpcKpis.overdue,
     quater_saving: quaterSaving,
   };
 
