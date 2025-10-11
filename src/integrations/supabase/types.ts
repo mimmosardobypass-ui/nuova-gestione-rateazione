@@ -3917,12 +3917,14 @@ export type Database = {
           p_type_labels?: string[]
         }
         Returns: {
-          created_at: string
           id: number
           number: string
+          overdue_amount_cents: number
+          paid_amount_cents: number
           residual_amount_cents: number
           status: string
           taxpayer_name: string
+          total_amount_cents: number
           type_label: string
         }[]
       }
@@ -4091,8 +4093,10 @@ export type Database = {
         Args: {
           p_end_date?: string
           p_include_closed?: boolean
+          p_owner_only?: boolean
           p_start_date?: string
           p_statuses?: string[]
+          p_taxpayer_search?: string
           p_type_labels?: string[]
         }
         Returns: {
