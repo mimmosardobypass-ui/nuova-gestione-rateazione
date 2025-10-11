@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, FileSpreadsheet, FileText } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChevronDown, ChevronUp, FileSpreadsheet, FileText, AlertCircle } from "lucide-react";
 import { StatsFiltersComponent } from "./StatsFilters";
 import { StatsKPI } from "./StatsKPI";
 import { StatsByTypeChart } from "./StatsByTypeChart";
@@ -91,6 +92,25 @@ export function StatsView() {
           </CardContent>
         )}
       </Card>
+
+      {/* No Results Alert */}
+      {!loading && stats && stats.by_type.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Nessun risultato</AlertTitle>
+          <AlertDescription>
+            {activeFilters.typeLabels?.some(t => t.toUpperCase().includes('PAGOPA')) ? (
+              <>
+                Non ci sono rateazioni PagoPA con i filtri selezionati.
+                <br />
+                Suggerimento: attiva "Includi interrotte/estinte" per visualizzare tutte le PagoPA.
+              </>
+            ) : (
+              'Prova a modificare i criteri di ricerca.'
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Charts Section */}
       <Card>
