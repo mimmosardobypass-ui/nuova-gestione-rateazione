@@ -3909,12 +3909,12 @@ export type Database = {
       }
       get_residual_detail: {
         Args: {
-          p_end_date: string
-          p_owner_only: boolean
-          p_start_date: string
-          p_statuses: string[]
-          p_taxpayer_search: string
-          p_type_labels: string[]
+          p_end_date?: string
+          p_owner_only?: boolean
+          p_start_date?: string
+          p_statuses?: string[]
+          p_taxpayer_search?: string
+          p_type_labels?: string[]
         }
         Returns: {
           id: number
@@ -4090,11 +4090,11 @@ export type Database = {
       }
       stats_per_tipologia_effective: {
         Args: {
-          p_end_date: string
-          p_include_closed: boolean
-          p_start_date: string
-          p_statuses: string[]
-          p_type_labels: string[]
+          p_end_date?: string
+          p_include_closed?: boolean
+          p_start_date?: string
+          p_statuses?: string[]
+          p_type_labels?: string[]
         }
         Returns: {
           count: number
