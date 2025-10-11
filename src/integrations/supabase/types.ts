@@ -3917,13 +3917,14 @@ export type Database = {
           p_type_labels: string[]
         }
         Returns: {
-          created_at: string
           id: number
-          number: string
-          residual_amount_cents: number
+          overdue_cents: number
+          paid_cents: number
+          residual_cents: number
           status: string
           taxpayer_name: string
-          type_label: string
+          tipo: string
+          total_due_cents: number
         }[]
       }
       get_rq_available_for_pagopa: {
@@ -4088,23 +4089,13 @@ export type Database = {
         Returns: number
       }
       stats_per_tipologia_effective: {
-        Args:
-          | {
-              p_end_date: string
-              p_include_closed: boolean
-              p_start_date: string
-              p_statuses: string[]
-              p_type_labels: string[]
-            }
-          | {
-              p_end_date?: string
-              p_include_closed?: boolean
-              p_owner_only?: boolean
-              p_start_date?: string
-              p_statuses?: string[]
-              p_taxpayer_search?: string
-              p_type_labels?: string[]
-            }
+        Args: {
+          p_end_date: string
+          p_include_closed: boolean
+          p_start_date: string
+          p_statuses: string[]
+          p_type_labels: string[]
+        }
         Returns: {
           count: number
           overdue_amount_cents: number
