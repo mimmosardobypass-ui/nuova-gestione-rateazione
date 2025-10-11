@@ -48,7 +48,16 @@ export function useStats(filters: StatsFilters): UseStatsResult {
       const { data, error: rpcError } = await supabase.rpc('get_filtered_stats', rpcArgs);
 
       if (rpcError) throw rpcError;
-      setStats(data as FilteredStats);
+      
+      // Ensure data has the correct structure with default empty arrays
+      const safeStats: FilteredStats = {
+        by_type: Array.isArray(data?.by_type) ? data.by_type : [],
+        by_status: Array.isArray(data?.by_status) ? data.by_status : [],
+        by_taxpayer: Array.isArray(data?.by_taxpayer) ? data.by_taxpayer : [],
+        cashflow: Array.isArray(data?.cashflow) ? data.cashflow : [],
+      };
+      
+      setStats(safeStats);
     } catch (e: any) {
       console.error('[useStats]', e);
       setError(e?.message ?? 'Errore caricamento statistiche');
