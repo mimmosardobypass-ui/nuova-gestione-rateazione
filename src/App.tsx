@@ -14,6 +14,7 @@ import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
 import Stats from "./pages/Stats";
+import AdvancedStats from "./pages/AdvancedStats";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
@@ -66,7 +67,11 @@ const App = () => {
                 <Stats />
               </ProtectedRoute>
             } />
-            <Route path="/advanced-stats" element={<Navigate to="/statistiche" replace />} />
+            <Route path="/statistiche-v2" element={
+              <ProtectedRoute>
+                <AdvancedStats />
+              </ProtectedRoute>
+            } />
             <Route path="/print/riepilogo" element={
               <ProtectedRoute>
                 <Suspense fallback={<div>Caricamento...</div>}>
