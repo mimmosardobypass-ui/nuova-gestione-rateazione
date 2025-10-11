@@ -3909,9 +3909,9 @@ export type Database = {
       }
       get_residual_detail: {
         Args: {
-          p_end_date?: string
+          p_end_date: string
           p_owner_only?: boolean
-          p_start_date?: string
+          p_start_date: string
           p_statuses?: string[]
           p_taxpayer_search?: string
           p_type_labels?: string[]

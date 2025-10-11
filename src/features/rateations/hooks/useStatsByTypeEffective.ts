@@ -29,11 +29,11 @@ export function useStatsByTypeEffective(
       d ? new Date(d).toISOString().slice(0, 10) : null;
 
     return {
-      p_date_from: toYMD(filters.startDate),
-      p_date_to: toYMD(filters.endDate),
-      p_states: buildStatusesArg(filters),
-      p_types: buildTypesArg(filters.typeLabels),
-      p_include_interrupted_estinte: !!filters.includeClosed,
+      p_start_date: toYMD(filters.startDate),
+      p_end_date: toYMD(filters.endDate),
+      p_statuses: buildStatusesArg(filters),
+      p_type_labels: buildTypesArg(filters.typeLabels),
+      p_include_closed: !!filters.includeClosed,
     };
   }, [filters]);
 
@@ -48,12 +48,12 @@ export function useStatsByTypeEffective(
       if (rpcError) throw rpcError;
 
       const mapped: StatsByType[] = (data ?? []).map((row: any) => ({
-        type_label: DB_TO_DISPLAY[row?.tipo] ?? row?.tipo,
-        count: Number(row?.conteggio ?? 0),
-        total_amount_cents: Number(row?.totale_cents ?? 0),
-        paid_amount_cents: Number(row?.pagato_cents ?? 0),
-        residual_amount_cents: Number(row?.residuo_cents ?? 0),
-        overdue_amount_cents: Number(row?.in_ritardo_cents ?? 0),
+        type_label: DB_TO_DISPLAY[row?.type_label] ?? row?.type_label,
+        count: Number(row?.count ?? 0),
+        total_amount_cents: Number(row?.total_amount_cents ?? 0),
+        paid_amount_cents: Number(row?.paid_amount_cents ?? 0),
+        residual_amount_cents: Number(row?.residual_amount_cents ?? 0),
+        overdue_amount_cents: Number(row?.overdue_amount_cents ?? 0),
       }))
       .sort((a, b) => {
         const order = ['F24', 'PagoPA', 'Rottamazione Quater', 'Riam. Quater', 'Altro'];
