@@ -142,6 +142,8 @@ html, body {
   overflow-x: hidden !important;
   width: 100%;
   max-width: 100vw;
+  /* Previene shift layout quando scrollbar compare/scompare */
+  scrollbar-gutter: stable both-edges;
 }
 
 /* Fix per container root */
@@ -154,9 +156,10 @@ html, body {
 #fit-root {
   max-width: 100%;
   min-width: 0; /* Previene flex/grid children overflow */
+  overflow-x: clip; /* Più efficiente di hidden per GPU */
 }
 
-/* Override per classi Tailwind che potrebbero causare overflow */
+/* Override per classi Tailwind che causano overflow */
 [class*="w-screen"], [class*="min-w-screen"] {
   width: 100% !important;
   max-width: 100vw !important;
@@ -171,8 +174,12 @@ html, body {
   overflow-x: hidden !important;
 }
 
+.overflow-x-clip {
+  overflow-x: clip !important;
+}
+
 /* Fix specifico per container tabelle */
 .rounded-xl.border {
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: clip; /* Cambiato da hidden a clip */
 }

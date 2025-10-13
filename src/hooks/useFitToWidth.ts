@@ -41,24 +41,38 @@ export function useFitToWidth<T extends HTMLElement>(
       return;
     }
 
-    // Calcola quanto è larga la pagina rispetto alla finestra
-    const contentWidth = el.scrollWidth;
+    // --- MISURA A STATO NATURALE (fix critico) ---
+    const prevTransform = el.style.transform;
+    const prevWidth = el.style.width;
+    const prevOrigin = el.style.transformOrigin;
+
+    // Reset completo per misura accurata
+    el.style.transform = "";
+    el.style.width = "";
+    el.style.transformOrigin = "top left";
+
+    // Forza reflow (fix bug browser)
+    void el.offsetHeight;
+
+    const naturalWidth = el.scrollWidth;       // Ora è accurato!
     const viewportWidth = window.innerWidth;
 
-    // Calcola la scala necessaria
-    let scale = viewportWidth / contentWidth;
+    let scale = viewportWidth / naturalWidth;
     scale = Math.max(minScale, Math.min(maxScale, scale));
 
-    // Applica solo se scala < 1 (contenuto deborda)
+    // --- APPLICA SOLO SE SERVE + MARGINE ANTI-SUBPIXEL ---
     if (scale < 1) {
       el.style.transform = `scale(${scale})`;
       el.style.transformOrigin = "top left";
-      el.style.width = `${(100 / scale).toFixed(3)}%`;
+      
+      // +1px elimina il "pixel fantasma" che causa scrollbar
+      const widened = (100 / scale);
+      el.style.width = `calc(${widened.toFixed(3)}% + 1px)`;
     } else {
-      // Reset se il contenuto sta già tutto dentro
+      // Reset completo
       el.style.transform = "";
-      el.style.transformOrigin = "";
       el.style.width = "";
+      el.style.transformOrigin = prevOrigin || "";
     }
   }, [minScale, maxScale, breakpoint]);
 
