@@ -16,8 +16,11 @@ import { useResidualDetail } from "../../hooks/useResidualDetail";
 import type { StatsFilters, CollapsedSections } from "../../types/stats";
 import { loadFilters, saveFilters, getDefaultFilters, loadLayout, saveLayout, loadResidualPrefs } from "../../utils/statsFilters";
 import { exportResidualToExcel, exportResidualToPDF } from "../../utils/statsExport";
+import { useFitToWidth } from '@/hooks/useFitToWidth';
 
 export function StatsView() {
+  const containerRef = useFitToWidth<HTMLDivElement>({ minScale: 0.85 });
+  
   const [filters, setFilters] = useState<StatsFilters>(loadFilters);
   const [activeFilters, setActiveFilters] = useState<StatsFilters>(filters);
   const [collapsed, setCollapsed] = useState<CollapsedSections>(loadLayout);
@@ -61,7 +64,7 @@ export function StatsView() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div ref={containerRef} className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Statistiche</h1>
         <ExportButtons

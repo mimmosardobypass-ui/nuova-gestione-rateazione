@@ -4,6 +4,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, TrendingUp, DollarSign, CheckCircle2 } from 'lucide-react';
 import type { AdvStatsFilters } from '../../types/advStats';
 import { useAdvancedStats } from '../../hooks/useAdvancedStats';
+import { useFitToWidth } from '@/hooks/useFitToWidth';
 
 function getDefaultFilters(): AdvStatsFilters {
   const today = new Date();
@@ -21,6 +22,8 @@ function getDefaultFilters(): AdvStatsFilters {
 }
 
 export default function AdvancedStatsView() {
+  const containerRef = useFitToWidth<HTMLDivElement>({ minScale: 0.85 });
+  
   const [filters, setFilters] = useState<AdvStatsFilters>(getDefaultFilters());
   const { data, loading, error } = useAdvancedStats(filters);
 
@@ -29,7 +32,7 @@ export default function AdvancedStatsView() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div ref={containerRef} className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Statistiche Avanzate V2</h1>

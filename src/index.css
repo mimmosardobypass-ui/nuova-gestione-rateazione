@@ -134,3 +134,18 @@ All colors MUST be HSL.
 .flatpickr-input[readonly] {
   cursor: pointer; /* feedback chiaro che è cliccabile */
 }
+
+/* ============================================
+   Sistema Fit Continuo: Eliminazione scroll orizzontale 
+   ============================================ */
+html, body {
+  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* Fix per container root che potrebbero debordare */
+#root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
