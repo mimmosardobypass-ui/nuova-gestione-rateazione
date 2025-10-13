@@ -34,45 +34,47 @@ export const useMigrationMonitoring = () => {
       // Get basic stats
       const { data: stats, error: statsError } = await supabase
         .from('v_rateations_with_kpis')
-        .select('id, is_pagopa, rq_migration_status, debts_total, debts_migrated')
+        .select('id, is_pagopa')
         .eq('is_pagopa', true);
 
       if (statsError) throw statsError;
 
       const total_pagopa_rateations = stats?.length || 0;
-      const partially_migrated = stats?.filter(r => r.rq_migration_status === 'partial').length || 0;
-      const fully_migrated = stats?.filter(r => r.rq_migration_status === 'full').length || 0;
+      // Migration status tracking not yet implemented in DB
+      const partially_migrated = 0;
+      const fully_migrated = 0;
 
       // Check for inconsistencies
       const inconsistencies: MigrationInconsistency[] = [];
 
-      for (const rateation of stats || []) {
-        // Check if migrated debts actually exist
-        if (rateation.debts_migrated > 0) {
-          const { data: migratedDebts, error: debtError } = await supabase
-            .from('rateation_debts')
-            .select('debt_id, status')
-            .eq('rateation_id', toIntId(rateation.id, 'rateationId'))
-            .eq('status', 'migrated_out');
-
-          if (debtError) {
-            console.warn(`Error checking debts for rateation ${rateation.id}:`, debtError);
-            continue;
-          }
-
-          const actualMigrated = migratedDebts?.length || 0;
-          if (actualMigrated !== rateation.debts_migrated) {
-            inconsistencies.push({
-              rateation_id: String(Number(rateation.id)),
-              issue_type: 'status_mismatch',
-              details: {
-                expected_count: rateation.debts_migrated,
-                actual_count: actualMigrated
-              }
-            });
-          }
-        }
-      }
+      // Migration inconsistency checks disabled until DB columns are added
+      // for (const rateation of stats || []) {
+      //   // Check if migrated debts actually exist
+      //   if (rateation.debts_migrated > 0) {
+      //     const { data: migratedDebts, error: debtError } = await supabase
+      //       .from('rateation_debts')
+      //       .select('debt_id, status')
+      //       .eq('rateation_id', toIntId(rateation.id, 'rateationId'))
+      //       .eq('status', 'migrated_out');
+      // 
+      //     if (debtError) {
+      //       console.warn(`Error checking debts for rateation ${rateation.id}:`, debtError);
+      //       continue;
+      //     }
+      // 
+      //     const actualMigrated = migratedDebts?.length || 0;
+      //     if (actualMigrated !== rateation.debts_migrated) {
+      //       inconsistencies.push({
+      //         rateation_id: String(Number(rateation.id)),
+      //         issue_type: 'status_mismatch',
+      //         details: {
+      //           expected_count: rateation.debts_migrated,
+      //           actual_count: actualMigrated
+      //         }
+      //       });
+      //     }
+      //   }
+      // }
 
       return {
         total_pagopa_rateations,

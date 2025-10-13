@@ -116,9 +116,9 @@ export function useRqAllocation() {
         }
       }
 
-      // Carica RQ attive dalla vista canonica con campi in cents
+      // Carica RQ attive dalla vista con i campi in cents
       const { data: rqData, error: rqError } = await supabase
-        .from('v_rateations_list_ui')
+        .from('v_rateations_with_kpis')
         .select('id, number, taxpayer_name, quater_total_due_cents')
         .eq('owner_uid', user.id) // SICUREZZA: filtro per utente
         .eq('is_quater', true)

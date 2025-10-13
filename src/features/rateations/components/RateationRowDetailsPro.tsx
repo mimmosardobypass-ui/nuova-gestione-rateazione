@@ -151,14 +151,14 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           decadence_at: null,
           taxpayer_name: rateationData.taxpayer_name,
           number: rateationData.number,
-          type_name: rateationData.tipo,
+          type_name: (rateationData as any).tipo || 'N/A', // tipo not in v_rateations_with_kpis
           is_pagopa: !!rateationData.is_pagopa,
-          rq_migration_status:
-            (rateationData.rq_migration_status || 'none') as 'none' | 'partial' | 'full',
-          migrated_debt_numbers: rateationData.migrated_debt_numbers || [],
-          remaining_debt_numbers: rateationData.remaining_debt_numbers || [],
-          rq_target_ids: (rateationData.rq_target_ids || []).map(String),
-          excluded_from_stats: rateationData.excluded_from_stats || false,
+          // Migration fields not yet implemented in DB
+          rq_migration_status: 'none' as 'none' | 'partial' | 'full',
+          migrated_debt_numbers: [],
+          remaining_debt_numbers: [],
+          rq_target_ids: [],
+          excluded_from_stats: false,
         });
       }
     } catch (e: any) {
