@@ -3162,11 +3162,9 @@ export type Database = {
           latest_rq_id: number | null
           linked_rq_count: number | null
           number: string | null
-          original_total_due_cents: number | null
           overdue_effective_cents: number | null
           owner_uid: string | null
           paid_amount_cents: number | null
-          quater_total_due_cents: number | null
           residual_effective_cents: number | null
           rq_total_at_link_cents: number | null
           status: string | null
@@ -3174,7 +3172,6 @@ export type Database = {
           tipo: string | null
           total_amount_cents: number | null
           type_id: number | null
-          type_label: string | null
           updated_at: string | null
         }
         Relationships: [
@@ -3199,7 +3196,7 @@ export type Database = {
           created_at: string | null
           id: number | null
           overdue_amount_cents: number | null
-          owner_id: string | null
+          owner_uid: string | null
           paid_amount_cents: number | null
           residual_amount_cents: number | null
           status: string | null
