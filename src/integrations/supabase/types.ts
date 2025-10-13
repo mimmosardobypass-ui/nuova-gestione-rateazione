@@ -4600,6 +4600,18 @@ export type Database = {
           type_label: string
         }[]
       }
+      stats_v2: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_group_by?: string
+          p_include_interrupted?: boolean
+          p_owner?: string
+          p_status?: string[]
+          p_types?: string[]
+        }
+        Returns: Json
+      }
       unaccent: {
         Args: { "": string }
         Returns: string
