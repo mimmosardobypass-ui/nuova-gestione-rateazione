@@ -2338,6 +2338,24 @@ export type Database = {
           taxpayer_name: string | null
           total_amount: number | null
         }
+        Insert: {
+          allocatable_cents?: never
+          id?: number | null
+          interrupted_by_rateation_id?: number | null
+          number?: string | null
+          status?: string | null
+          taxpayer_name?: string | null
+          total_amount?: number | null
+        }
+        Update: {
+          allocatable_cents?: never
+          id?: number | null
+          interrupted_by_rateation_id?: number | null
+          number?: string | null
+          status?: string | null
+          taxpayer_name?: string | null
+          total_amount?: number | null
+        }
         Relationships: [
           {
             foreignKeyName: "rateations_interrupted_by_rateation_id_fkey"
@@ -3276,44 +3294,148 @@ export type Database = {
       }
       v_rateations_with_kpis: {
         Row: {
-          at_risk_decadence: boolean | null
           created_at: string | null
-          debts_migrated: number | null
-          debts_total: number | null
+          decadence_at: string | null
+          decadence_confirmed_by: string | null
+          decadence_installment_id: number | null
+          decadence_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           due_today_cents: number | null
-          excluded_from_stats: boolean | null
+          frequency: string | null
           id: number | null
           interrupted_at: string | null
           interrupted_by_rateation_id: number | null
+          interruption_reason: string | null
+          is_deleted: boolean | null
           is_f24: boolean | null
           is_pagopa: boolean | null
-          max_skips_effective: number | null
-          migrated_debt_numbers: string[] | null
+          is_quater: boolean | null
+          notes: string | null
           number: string | null
+          original_total_due_cents: number | null
           overdue_amount_cents: number | null
+          overdue_amount_cents_calc: number | null
           overdue_at_interruption_cents: number | null
           overdue_effective_cents: number | null
           owner_uid: string | null
           paid_amount_cents: number | null
+          quater_total_due_cents: number | null
           rate_in_ritardo: number | null
           rate_pagate: number | null
           rate_totali: number | null
-          remaining_debt_numbers: string[] | null
+          replaced_by_rateation_id: number | null
           residual_amount_cents: number | null
+          residual_amount_cents_calc: number | null
+          residual_at_decadence: number | null
+          residual_at_decadence_cents: number | null
           residual_at_interruption_cents: number | null
           residual_effective_cents: number | null
-          rq_migration_status: string | null
-          rq_target_ids: number[] | null
-          skip_remaining: number | null
+          start_due_date: string | null
           status: string | null
           taxpayer_name: string | null
-          tipo: string | null
           total_amount: number | null
-          total_amount_cents: number | null
+          transferred_amount: number | null
           type_id: number | null
           unpaid_due_today: number | null
           unpaid_overdue_today: number | null
           updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          decadence_at?: string | null
+          decadence_confirmed_by?: string | null
+          decadence_installment_id?: number | null
+          decadence_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          due_today_cents?: never
+          frequency?: string | null
+          id?: number | null
+          interrupted_at?: string | null
+          interrupted_by_rateation_id?: number | null
+          interruption_reason?: string | null
+          is_deleted?: boolean | null
+          is_f24?: boolean | null
+          is_pagopa?: never
+          is_quater?: boolean | null
+          notes?: string | null
+          number?: string | null
+          original_total_due_cents?: number | null
+          overdue_amount_cents?: number | null
+          overdue_amount_cents_calc?: never
+          overdue_at_interruption_cents?: number | null
+          overdue_effective_cents?: never
+          owner_uid?: string | null
+          paid_amount_cents?: number | null
+          quater_total_due_cents?: number | null
+          rate_in_ritardo?: never
+          rate_pagate?: never
+          rate_totali?: never
+          replaced_by_rateation_id?: number | null
+          residual_amount_cents?: number | null
+          residual_amount_cents_calc?: never
+          residual_at_decadence?: number | null
+          residual_at_decadence_cents?: number | null
+          residual_at_interruption_cents?: number | null
+          residual_effective_cents?: never
+          start_due_date?: string | null
+          status?: string | null
+          taxpayer_name?: string | null
+          total_amount?: number | null
+          transferred_amount?: number | null
+          type_id?: number | null
+          unpaid_due_today?: never
+          unpaid_overdue_today?: never
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          decadence_at?: string | null
+          decadence_confirmed_by?: string | null
+          decadence_installment_id?: number | null
+          decadence_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          due_today_cents?: never
+          frequency?: string | null
+          id?: number | null
+          interrupted_at?: string | null
+          interrupted_by_rateation_id?: number | null
+          interruption_reason?: string | null
+          is_deleted?: boolean | null
+          is_f24?: boolean | null
+          is_pagopa?: never
+          is_quater?: boolean | null
+          notes?: string | null
+          number?: string | null
+          original_total_due_cents?: number | null
+          overdue_amount_cents?: number | null
+          overdue_amount_cents_calc?: never
+          overdue_at_interruption_cents?: number | null
+          overdue_effective_cents?: never
+          owner_uid?: string | null
+          paid_amount_cents?: number | null
+          quater_total_due_cents?: number | null
+          rate_in_ritardo?: never
+          rate_pagate?: never
+          rate_totali?: never
+          replaced_by_rateation_id?: number | null
+          residual_amount_cents?: number | null
+          residual_amount_cents_calc?: never
+          residual_at_decadence?: number | null
+          residual_at_decadence_cents?: number | null
+          residual_at_interruption_cents?: number | null
+          residual_effective_cents?: never
+          start_due_date?: string | null
+          status?: string | null
+          taxpayer_name?: string | null
+          total_amount?: number | null
+          transferred_amount?: number | null
+          type_id?: number | null
+          unpaid_due_today?: never
+          unpaid_overdue_today?: never
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -4015,17 +4137,6 @@ export type Database = {
           residual_amount_cents: number | null
           taxpayer_name: string | null
           total_amount_cents: number | null
-        }
-        Relationships: []
-      }
-      v_stats_by_type: {
-        Row: {
-          count: number | null
-          overdue_amount_cents: number | null
-          paid_amount_cents: number | null
-          residual_amount_cents: number | null
-          total_amount_cents: number | null
-          type_label: string | null
         }
         Relationships: []
       }
