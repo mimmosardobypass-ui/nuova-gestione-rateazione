@@ -11,8 +11,6 @@ interface RateListProps {
   loading: boolean;
   error?: string | null;
   online: boolean;
-  onDelete: (id: string) => void;
-  deleting?: string | null;
   onRefresh: () => void;
   onDataChanged: () => void;
   refreshKey: number;
@@ -25,9 +23,7 @@ export function RateList({
   loading, 
   error, 
   online, 
-  onDelete, 
-  deleting, 
-  onRefresh, 
+  onRefresh,
   onDataChanged, 
   refreshKey,
   onViewChange,
@@ -74,8 +70,6 @@ export function RateList({
               loading={loading}
               error={error}
               online={online}
-              onDelete={onDelete}
-              deleting={deleting}
               onRefresh={onRefresh}
               onDataChanged={onDataChanged}
             />
@@ -94,8 +88,6 @@ export function RateList({
               loading={loading}
               error={error}
               online={online}
-              onDelete={onDelete}
-              deleting={deleting}
               onRefresh={onRefresh}
               onDataChanged={onDataChanged}
             />
@@ -114,8 +106,6 @@ export function RateList({
               loading={loading}
               error={error}
               online={online}
-              onDelete={onDelete}
-              deleting={deleting}
               onRefresh={onRefresh}
               onDataChanged={onDataChanged}
             />

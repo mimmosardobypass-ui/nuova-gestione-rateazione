@@ -9,6 +9,7 @@ import { useQuaterSaving } from '@/hooks/useQuaterSaving';
 import type { StatsFilters, FilteredStats, StatsKPIs } from '../types/stats';
 import { formatCentsToEur } from '../utils/statsFormatters';
 import { buildTypesArg, buildStatusesArg } from '../utils/statsArgs';
+import { RATEATION_CHANGED, RATEATION_DELETED } from '@/lib/events';
 
 interface UseStatsResult {
   stats: FilteredStats | null;
@@ -76,7 +77,24 @@ export function useStats(filters: StatsFilters): UseStatsResult {
   }, [rpcArgs]);
 
   useEffect(() => {
-    load();
+    void load();
+  }, [load]);
+
+  // Event listener for rateation changes (soft-delete support)
+  useEffect(() => {
+    const handleRateationChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.debug("[useStats] Rateation event received:", e.type, detail);
+      void load();
+    };
+    
+    window.addEventListener(RATEATION_CHANGED, handleRateationChange);
+    window.addEventListener(RATEATION_DELETED, handleRateationChange);
+    
+    return () => {
+      window.removeEventListener(RATEATION_CHANGED, handleRateationChange);
+      window.removeEventListener(RATEATION_DELETED, handleRateationChange);
+    };
   }, [load]);
 
   // KPI: usa valori dalla RPC + risparmio quater separato

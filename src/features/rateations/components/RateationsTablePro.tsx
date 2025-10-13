@@ -6,11 +6,12 @@ import { MigrationStatusBadge } from "./MigrationStatusBadge";
 import { MigrationDialog } from "./MigrationDialog";
 import { InterruptionBadge } from "./InterruptionBadge";
 import { isPagoPAPlan } from "../utils/isPagopa";
+import { DeleteRateationDialog } from "./DeleteRateationDialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, Package, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Pencil, Package, RotateCcw } from "lucide-react";
 import { EditRateationModal } from "./EditRateationModal";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
 import { useNavigateToRateation } from '../hooks/useNavigateToRateation';
@@ -62,10 +63,8 @@ interface RateationsTableProProps {
   loading?: boolean;
   error?: string | null;
   online?: boolean;
-  onDelete?: (id: string) => void;
   onRefresh?: () => void;
   onDataChanged?: () => void;
-  deleting?: string | null;
 }
 
 export function RateationsTablePro({ 
@@ -73,10 +72,8 @@ export function RateationsTablePro({
   loading, 
   error, 
   online, 
-  onDelete, 
   onRefresh, 
-  onDataChanged, 
-  deleting 
+  onDataChanged
 }: RateationsTableProProps) {
   const { navigateToRateation } = useNavigateToRateation();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -277,15 +274,11 @@ export function RateationsTablePro({
                           </>
                           );
                         })()}
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => onDelete?.(r.id)}
-                          disabled={deleting === r.id}
-                          className="p-1 h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <DeleteRateationDialog 
+                          id={Number(r.id)} 
+                          number={r.numero} 
+                          taxpayer={r.contribuente}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

@@ -256,8 +256,6 @@ export default function Rateations() {
           loading={loading}
           error={error}
           online={online}
-          onDelete={undefined} // Remove delete functionality for now
-          deleting={null}
           onRefresh={() => {
             debouncedReload();
             setRefreshKey(prev => prev + 1);

@@ -78,8 +78,23 @@ export const addRateationType = async (name: string): Promise<RateationType> => 
 // LOVABLE:END addRateationType
 
 // LOVABLE:START deleteRateation
+/**
+ * @deprecated ⚠️ DO NOT USE - Use delete_rateation_safely RPC instead
+ * 
+ * This function performs HARD DELETE (irreversible data loss).
+ * Use the new soft-delete approach via DeleteRateationDialog component.
+ * 
+ * Migration path:
+ * - Replace any usage with <DeleteRateationDialog id={...} />
+ * - The RPC `delete_rateation_safely` provides soft-delete with safety checks
+ * 
+ * This function will be removed in a future version.
+ */
 export const deleteRateation = async (id: string): Promise<void> => {
-  // Delete installments first
+  throw new Error("deleteRateation is deprecated. Use delete_rateation_safely RPC and DeleteRateationDialog component.");
+  
+  // Old implementation commented out to prevent accidental usage
+  /*
   const { error: installmentsError } = await supabase
     .from("installments")
     .delete()
@@ -87,13 +102,13 @@ export const deleteRateation = async (id: string): Promise<void> => {
 
   if (installmentsError) throw installmentsError;
 
-  // Delete rateation
   const { error: rateationError } = await supabase
     .from("rateations")
     .delete()
     .eq("id", toIntId(id, 'rateationId'));
 
   if (rateationError) throw rateationError;
+  */
 };
 // LOVABLE:END deleteRateation
 

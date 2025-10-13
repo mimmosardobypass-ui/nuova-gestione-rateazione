@@ -969,11 +969,14 @@ export type Database = {
           decadence_confirmed_by: string | null
           decadence_installment_id: number | null
           decadence_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           frequency: string | null
           id: number
           interrupted_at: string | null
           interrupted_by_rateation_id: number | null
           interruption_reason: string | null
+          is_deleted: boolean
           is_f24: boolean
           is_quater: boolean | null
           notes: string | null
@@ -1003,11 +1006,14 @@ export type Database = {
           decadence_confirmed_by?: string | null
           decadence_installment_id?: number | null
           decadence_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           frequency?: string | null
           id?: number
           interrupted_at?: string | null
           interrupted_by_rateation_id?: number | null
           interruption_reason?: string | null
+          is_deleted?: boolean
           is_f24?: boolean
           is_quater?: boolean | null
           notes?: string | null
@@ -1037,11 +1043,14 @@ export type Database = {
           decadence_confirmed_by?: string | null
           decadence_installment_id?: number | null
           decadence_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           frequency?: string | null
           id?: number
           interrupted_at?: string | null
           interrupted_by_rateation_id?: number | null
           interruption_reason?: string | null
+          is_deleted?: boolean
           is_f24?: boolean
           is_quater?: boolean | null
           notes?: string | null
@@ -4159,6 +4168,10 @@ export type Database = {
           rateations_count: number
           user_id: string
         }[]
+      }
+      delete_rateation_safely: {
+        Args: { p_id: number }
+        Returns: Json
       }
       fn_create_rateation_auto: {
         Args: {

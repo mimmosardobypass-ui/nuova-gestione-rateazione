@@ -4,6 +4,7 @@ import type { RateationRow } from "@/features/rateations/types";
 import { supabase } from "@/integrations/supabase/client-resilient";
 import { RateationListRowsSchema } from "@/schemas/RateationListRow.schema";
 import { mapListRowToUI } from "@/mappers/mapRateationListRow";
+import { RATEATION_CHANGED, RATEATION_DELETED } from "@/lib/events";
 
 interface UseAllRateationsReturn {
   rows: RateationRow[];
@@ -193,6 +194,24 @@ export const useAllRateations = (): UseAllRateationsReturn => {
     
     window.addEventListener('rateations:reload-kpis', handleReloadKpis);
     return () => window.removeEventListener('rateations:reload-kpis', handleReloadKpis);
+  }, [loadData, clearCache]);
+
+  // Event listener for rateation changes (soft-delete support)
+  useEffect(() => {
+    const handleRateationChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.debug("[useAllRateations] Rateation event received:", e.type, detail);
+      clearCache();
+      void loadData();
+    };
+    
+    window.addEventListener(RATEATION_CHANGED, handleRateationChange);
+    window.addEventListener(RATEATION_DELETED, handleRateationChange);
+    
+    return () => {
+      window.removeEventListener(RATEATION_CHANGED, handleRateationChange);
+      window.removeEventListener(RATEATION_DELETED, handleRateationChange);
+    };
   }, [loadData, clearCache]);
 
   return {

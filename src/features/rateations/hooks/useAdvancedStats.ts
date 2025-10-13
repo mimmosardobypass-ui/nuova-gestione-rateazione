@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
 import type { AdvStatsFilters, AdvStatsPayload } from '../types/advStats';
 import { buildTypesArg, buildStatusesArg } from '../utils/advStatsArgs';
+import { RATEATION_CHANGED, RATEATION_DELETED } from '@/lib/events';
 
 interface UseAdvancedStatsResult {
   data: AdvStatsPayload | null;
@@ -71,6 +72,23 @@ export function useAdvancedStats(filters: AdvStatsFilters): UseAdvancedStatsResu
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Event listener for rateation changes (soft-delete support)
+  useEffect(() => {
+    const handleRateationChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.debug("[useAdvancedStats] Rateation event received:", e.type, detail);
+      void load();
+    };
+    
+    window.addEventListener(RATEATION_CHANGED, handleRateationChange);
+    window.addEventListener(RATEATION_DELETED, handleRateationChange);
+    
+    return () => {
+      window.removeEventListener(RATEATION_CHANGED, handleRateationChange);
+      window.removeEventListener(RATEATION_DELETED, handleRateationChange);
+    };
   }, [load]);
 
   return { data, loading, error, reload: load };
