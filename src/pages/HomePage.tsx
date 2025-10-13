@@ -10,11 +10,9 @@ import { useEffectiveKpis } from "@/hooks/useEffectiveKpis";
 import { useQuaterSaving } from "@/hooks/useQuaterSaving";
 import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
-import { useFitToWidth } from "@/hooks/useFitToWidth";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const containerRef = useFitToWidth<HTMLDivElement>({ minScale: 0.85 });
   
   // Set SEO meta tags
   setSEO(
@@ -37,7 +35,7 @@ export default function HomePage() {
   }), [effectiveKpis]);
 
   return (
-    <main ref={containerRef} className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-12">
         <div className="container mx-auto px-4">

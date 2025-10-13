@@ -48,7 +48,7 @@ export function RateList({
     } as RateationRowPro));
 
   return (
-    <Card className="card-elevated">
+    <Card className="card-elevated min-w-0">
       <CardContent className="pt-6">
         <Tabs defaultValue="all">
           <TabsList>

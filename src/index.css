@@ -144,8 +144,35 @@ html, body {
   max-width: 100vw;
 }
 
-/* Fix per container root che potrebbero debordare */
+/* Fix per container root */
 #root {
   max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Contenitore principale del Fit Continuo */
+#fit-root {
+  max-width: 100%;
+  min-width: 0; /* Previene flex/grid children overflow */
+}
+
+/* Override per classi Tailwind che potrebbero causare overflow */
+[class*="w-screen"], [class*="min-w-screen"] {
+  width: 100% !important;
+  max-width: 100vw !important;
+}
+
+/* Per tabelle e grafici molto larghi */
+.min-w-0 {
+  min-width: 0 !important;
+}
+
+.overflow-x-hidden {
+  overflow-x: hidden !important;
+}
+
+/* Fix specifico per container tabelle */
+.rounded-xl.border {
+  min-width: 0;
   overflow-x: hidden;
 }

@@ -103,7 +103,7 @@ export function RateationsTablePro({
 
   return (
     <>
-      <div className="rounded-xl border">
+      <div className="rounded-xl border min-w-0 overflow-x-hidden">
         <Table>
           <TableHeader>
             <TableRow>

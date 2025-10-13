@@ -29,7 +29,6 @@ import { RateList } from "@/features/rateations/components/views/RateList";
 import AnnualMatrixCard from "@/features/rateations/components/AnnualMatrixCard";
 import { Deadlines } from "@/features/rateations/components/views/Deadlines";
 import { RateationsHealthBanner } from "@/components/RateationsHealthBanner";
-import { useFitToWidth } from "@/hooks/useFitToWidth";
 
 
 export default function Rateations() {
@@ -37,13 +36,6 @@ export default function Rateations() {
   const { session, loading: authLoading } = useAuth();
   const { rows, loading, error, online } = useAllRateations();
   const { toast } = useToast();
-  
-  // Hook fit continuo con configurazione professionale
-  const containerRef = useFitToWidth<HTMLDivElement>({
-    minScale: 0.85,  // Leggibilità garantita
-    maxScale: 1.0,
-    breakpoint: 768, // Fit disabilitato su mobile
-  });
   
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   const { saving: quaterSaving, loading: savingLoading, reload: reloadSaving } = useQuaterSaving();
@@ -180,7 +172,7 @@ export default function Rateations() {
   }
 
   return (
-    <main ref={containerRef} className="container mx-auto px-4 py-8">
+    <main className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
         <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import SupabaseOutageBanner from "@/components/SupabaseOutageBanner";
+import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import HomePage from "./pages/HomePage";
 import RateationsGross from "./pages/RateationsGross";
@@ -40,8 +41,9 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+          <AppLayout>
+            <Routes>
+              <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>
                 <HomePage />
@@ -108,9 +110,10 @@ const App = () => {
                 <RateationsDebug />
               </ProtectedRoute>
             } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppLayout>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
