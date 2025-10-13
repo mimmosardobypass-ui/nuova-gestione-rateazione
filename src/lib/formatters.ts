@@ -23,3 +23,15 @@ export const formatEuro = (amount: number): string => {
  */
 export const formatEuroFromCents = (cents: number): string => 
   formatEUR.format(Math.round(cents) / 100);
+
+/**
+ * Format date to Italian month (e.g., "2025-03-01" → "mar 2025")
+ * Used for time series charts in Statistics V2
+ */
+export const formatMonth = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('it-IT', { 
+    year: 'numeric', 
+    month: 'short' 
+  });
+};

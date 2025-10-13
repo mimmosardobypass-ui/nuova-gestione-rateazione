@@ -58,3 +58,42 @@ export interface AdvStatsPayload {
   series_monthly: AdvStatsMonthlyPoint[];
   errors: string[];
 }
+
+// ---- V2 Types (RPC stats_v2) ----
+export interface StatsV2Totals {
+  total_cents: number;
+  residual_cents: number;
+  paid_cents: number;
+}
+
+export interface StatsV2ByType {
+  type: string;
+  total_cents: number;
+  residual_cents: number;
+  paid_cents: number;
+}
+
+export interface StatsV2Series {
+  month: string; // 'YYYY-MM-DD'
+  total_cents: number;
+  residual_cents: number;
+  paid_cents: number;
+}
+
+export interface StatsV2Response {
+  totals: StatsV2Totals;
+  by_type: StatsV2ByType[];
+  series: StatsV2Series[];
+}
+
+export type RateType = "F24" | "PAGOPA" | "ROTTAMAZIONE_QUATER" | "RIAMMISSIONE_QUATER" | "ALTRO";
+
+export type GroupBy = "due" | "created";
+
+export interface StatsV2Params {
+  types: RateType[];
+  includeInterrupted: boolean;
+  groupBy: GroupBy;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+}
