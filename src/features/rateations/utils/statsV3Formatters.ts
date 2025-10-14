@@ -32,10 +32,7 @@ export function formatTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     F24: "F24",
     PAGOPA: "PagoPA",
-    "ROTTAMAZIONE QUATER": "Rottamazione Quater",
-    "ROTTAMAZIONE_QUATER": "Rottamazione Quater",
-    "RIAMMISSIONE QUATER": "Riammissione Quater",
-    "RIAMMISSIONE_QUATER": "Riammissione Quater",
+    RIAMMISSIONE_QUATER: "Riammissione Quater",
     ALTRO: "Altro",
   };
   return labels[type] || type;

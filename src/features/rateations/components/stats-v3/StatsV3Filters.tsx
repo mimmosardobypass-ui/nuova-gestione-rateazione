@@ -12,13 +12,12 @@ interface StatsV3FiltersProps {
   onReset: () => void;
 }
 
-const AVAILABLE_TYPES = ["F24", "PAGOPA", "ROTTAMAZIONE_QUATER", "RIAMMISSIONE_QUATER", "ALTRO"];
+const AVAILABLE_TYPES = ["F24", "PAGOPA", "RIAMMISSIONE_QUATER", "ALTRO"];
 const AVAILABLE_STATUSES = ["attiva", "completata", "interrotta", "decaduta", "estinta"];
 
 const TYPE_LABELS: Record<string, string> = {
   F24: "F24",
   PAGOPA: "PagoPA",
-  ROTTAMAZIONE_QUATER: "Rottamazione Quater",
   RIAMMISSIONE_QUATER: "Riammissione Quater",
   ALTRO: "Altro",
 };
