@@ -23,6 +23,16 @@ export default function ScadenzePrint() {
   const { data: deadlines = [], isLoading: deadlinesLoading } = useDeadlines(filters);
   const { data: kpis, isLoading: kpisLoading } = useDeadlineKPIs(filters);
 
+  // Auto-trigger print dialog when data is loaded
+  React.useEffect(() => {
+    if (!deadlinesLoading && !kpisLoading && kpis && deadlines) {
+      const timer = setTimeout(() => {
+        window.print();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [deadlinesLoading, kpisLoading, kpis, deadlines]);
+
   const logoUrl = searchParams.get('logo') || undefined;
   const theme = searchParams.get('theme') || 'bn';
 
