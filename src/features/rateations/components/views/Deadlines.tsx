@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, Download, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Calendar, Download, FileSpreadsheet, Printer, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { toLocalISO } from '@/utils/date';
 import { it } from 'date-fns/locale';
@@ -16,7 +16,10 @@ import { DeadlineFilters as FilterComponent } from '@/features/rateations/compon
 import { DeadlineKPICards } from '@/features/rateations/components/DeadlineKPICards';
 import { SegmentedPayFilter, type PayFilterValue } from '@/components/SegmentedPayFilter';
 import { BUCKET_COLORS } from '@/features/rateations/constants/buckets';
+import { exportDeadlinesToExcel } from '@/features/rateations/utils/deadlinesExport';
+import { PrintService } from '@/utils/printUtils';
 import type { RateationRow } from '@/features/rateations/types';
+import { toast } from 'sonner';
 
 interface DeadlinesProps {
   rows: RateationRow[];
@@ -84,6 +87,30 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
     window.URL.revokeObjectURL(url);
   };
 
+  const exportToExcel = () => {
+    if (!kpis) {
+      toast.error('Impossibile esportare: dati KPI non disponibili');
+      return;
+    }
+    try {
+      exportDeadlinesToExcel(deadlines, kpis, filters);
+      toast.success('File Excel scaricato con successo');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Errore durante l\'esportazione');
+    }
+  };
+
+  const printToPDF = () => {
+    try {
+      PrintService.openScadenzePreview(filters);
+      toast.success('Apertura anteprima stampa...');
+    } catch (error) {
+      console.error('Error printing to PDF:', error);
+      toast.error('Errore durante la stampa');
+    }
+  };
+
   if (loading && !kpis) {
     return (
       <div className="space-y-6">
@@ -123,10 +150,16 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
             <p className="text-muted-foreground">Analisi dettagliata delle scadenze</p>
           </div>
         </div>
-        <Button variant="outline" onClick={exportToCSV} disabled={!deadlines.length}>
-          <Download className="h-4 w-4 mr-2" />
-          Esporta CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel} disabled={!deadlines.length || !kpis}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Esporta Excel
+          </Button>
+          <Button variant="outline" onClick={printToPDF} disabled={!deadlines.length || !kpis}>
+            <Printer className="h-4 w-4 mr-2" />
+            Stampa PDF
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

@@ -25,6 +25,7 @@ import RisparmiRQ from "./pages/RisparmiRQ";
 const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport"));
 const SchedaRateazione = React.lazy(() => import("./pages/print/SchedaRateazione"));
 const AnnualMatrix = React.lazy(() => import("./pages/print/AnnualMatrix"));
+const ScadenzePrint = React.lazy(() => import("./pages/print/Scadenze"));
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,13 @@ const App = () => {
               <ProtectedRoute>
                 <Suspense fallback={<div>Caricamento...</div>}>
                   <AnnualMatrix />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/print/scadenze" element={
+              <ProtectedRoute>
+                <Suspense fallback={<div>Caricamento...</div>}>
+                  <ScadenzePrint />
                 </Suspense>
               </ProtectedRoute>
             } />

@@ -34,6 +34,7 @@ export interface DeadlineItem {
 export interface DeadlineKPIs {
   total_count: number;
   total_amount: number;
+  saldo_da_pagare: number;
   in_ritardo_count: number;
   in_ritardo_amount: number;
   oggi_count: number;
@@ -101,7 +102,7 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
   return useQuery({
     queryKey: ['deadline-kpis', filters],
     queryFn: async (): Promise<DeadlineKPIs> => {
-      let query = supabase.from('v_scadenze').select('bucket, amount');
+      let query = supabase.from('v_scadenze').select('bucket, amount, is_paid');
 
       if (filters.startDate && filters.endDate) {
         query = query.gte('due_date', filters.startDate).lte('due_date', filters.endDate);
@@ -118,6 +119,7 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
       const kpis: DeadlineKPIs = {
         total_count: 0,
         total_amount: 0,
+        saldo_da_pagare: 0,
         in_ritardo_count: 0,
         in_ritardo_amount: 0,
         oggi_count: 0,
@@ -135,6 +137,10 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
       data?.forEach((item) => {
         kpis.total_count++;
         kpis.total_amount += item.amount;
+
+        if (!item.is_paid) {
+          kpis.saldo_da_pagare += item.amount;
+        }
 
         switch (item.bucket) {
           case 'In ritardo':

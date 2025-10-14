@@ -156,6 +156,39 @@ export class PrintService {
     setTimeout(() => w.location.replace(`${window.location.origin}${path}`), 60);
   }
 
+  /** Anteprima report scadenze (client-side, con anti-popup) */
+  static openScadenzePreview(
+    filters: {
+      startDate?: string;
+      endDate?: string;
+      typeIds?: number[];
+      bucket?: string;
+      search?: string;
+      payFilter?: 'paid' | 'unpaid' | 'all';
+    },
+    options: PrintOptions = {}
+  ) {
+    const q = this.buildQuery({
+      theme: options.theme ?? 'bn',
+      density: options.density ?? 'compact',
+      logo: options.logo ?? undefined,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      typeIds: filters.typeIds?.join(','),
+      bucket: filters.bucket,
+      search: filters.search,
+      payFilter: filters.payFilter,
+    });
+    const path = `/print/scadenze${q}`;
+
+    const w = this.preOpenWindow();
+    if (!w) {
+      window.location.assign(path);
+      return;
+    }
+    setTimeout(() => w.location.replace(`${window.location.origin}${path}`), 60);
+  }
+
   /**
    * Print current page using browser's native print functionality
    */
