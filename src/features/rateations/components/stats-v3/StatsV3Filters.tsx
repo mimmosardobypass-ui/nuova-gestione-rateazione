@@ -23,7 +23,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  attiva: "Attiva",
+  attiva: "Attiva (incl. in ritardo)",
   completata: "Completata",
   interrotta: "Interrotta",
   decaduta: "Decaduta",
