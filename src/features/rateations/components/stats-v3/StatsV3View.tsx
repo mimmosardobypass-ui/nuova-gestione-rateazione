@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useStatsV3, type StatsV3Filters } from "../../hooks/useStatsV3";
 import { StatsV3KPIs } from "./StatsV3KPIs";
 import { StatsV3Filters as FiltersComponent } from "./StatsV3Filters";
@@ -22,6 +23,7 @@ const DEFAULT_FILTERS: StatsV3Filters = {
 
 export default function StatsV3View() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // Initialize filters from URL
   const [filters, setFilters] = useState<StatsV3Filters>(() => {
@@ -78,6 +80,25 @@ export default function StatsV3View() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Navigation */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => navigate("/")}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Torna alla Home
+        </Button>
+        
+        <div className="text-sm text-muted-foreground">
+          <span className="cursor-pointer hover:text-foreground" onClick={() => navigate("/")}>Home</span>
+          <span className="mx-2">/</span>
+          <span className="font-medium text-foreground">Statistiche Avanzate V3</span>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
