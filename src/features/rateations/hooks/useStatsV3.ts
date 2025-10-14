@@ -83,11 +83,18 @@ export function useStatsV3(filters: StatsV3Filters) {
     setError(null);
 
     try {
+      // Logica intelligente: se tutti gli stati sono selezionati, invia null
+      const ALL_STATUSES = ['attiva', 'completata', 'interrotta', 'decaduta', 'estinta'];
+      const statusesToSend = (
+        filters.statuses && 
+        filters.statuses.length === ALL_STATUSES.length
+      ) ? null : filters.statuses;
+
       const { data: result, error: rpcError } = await supabase.rpc("stats_v3", {
         p_date_from: filters.dateFrom,
         p_date_to: filters.dateTo,
         p_types: filters.types,
-        p_statuses: filters.statuses,
+        p_statuses: statusesToSend,
         p_include_interrupted: filters.includeInterrupted,
         p_include_decayed: filters.includeDecayed,
         p_group_by: filters.groupBy,

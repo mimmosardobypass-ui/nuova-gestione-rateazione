@@ -15,8 +15,8 @@ const DEFAULT_FILTERS: StatsV3Filters = {
   dateTo: null,
   types: null,
   statuses: null,
-  includeInterrupted: false,
-  includeDecayed: false,
+  includeInterrupted: true,
+  includeDecayed: true,
   groupBy: 'due',
 };
 
