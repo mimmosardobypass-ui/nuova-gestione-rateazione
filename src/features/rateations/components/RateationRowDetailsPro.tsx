@@ -89,6 +89,10 @@ interface RateationInfo {
   excluded_from_stats?: boolean;
   // PagoPA interruption fields
   interrupted_by_rateation_id?: string | null;
+  // Financial fields for decadence
+  residual_at_decadence_cents?: number | null;
+  total_amount_cents?: number | null;
+  paid_amount_cents?: number | null;
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis }: RateationRowDetailsProProps) {
@@ -144,7 +148,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       // Info rateazione (come avevi già)
       const { data: rateationData } = await supabase
         .from('rateations')
-        .select('id, number, status, is_f24, taxpayer_name, decadence_at, interrupted_by_rateation_id, type_id, rateation_types(name)')
+        .select('id, number, status, is_f24, taxpayer_name, decadence_at, interrupted_by_rateation_id, type_id, residual_at_decadence_cents, paid_amount_cents, rateation_types(name)')
         .eq('id', toIntId(rateationId, 'rateationId'))
         .single();
 
@@ -166,6 +170,8 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
           remaining_debt_numbers: [],
           rq_target_ids: [],
           excluded_from_stats: false,
+          residual_at_decadence_cents: rateationData.residual_at_decadence_cents,
+          paid_amount_cents: rateationData.paid_amount_cents,
         });
       }
     } catch (e: any) {
@@ -522,11 +528,11 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                       contribuente: rateationInfo.taxpayer_name ?? '',
                       is_f24: true,
                       status: 'DECADUTA',
-                      residuo: 0,
-                      importoTotale: 0,
-                      importoPagato: 0,
+                      residuo: (rateationInfo.residual_at_decadence_cents ?? 0) / 100,
+                      importoTotale: ((rateationInfo.residual_at_decadence_cents ?? 0) + (rateationInfo.paid_amount_cents ?? 0)) / 100,
+                      importoPagato: (rateationInfo.paid_amount_cents ?? 0) / 100,
                       importoRitardo: 0,
-                      residuoEffettivo: 0,
+                      residuoEffettivo: (rateationInfo.residual_at_decadence_cents ?? 0) / 100,
                       rateTotali: 0,
                       ratePagate: 0,
                       rateNonPagate: 0,
