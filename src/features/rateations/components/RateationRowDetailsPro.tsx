@@ -220,9 +220,14 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
         description: "Il piano è stato marcato come decaduto" 
       });
       
+      // Force fresh data load with cache invalidation
+      ctrlRef.current?.abort();
       await load();
       
-      console.log('[DECADENCE] Data reloaded, new status:', rateationInfo?.status);
+      // Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('[DECADENCE] Data reloaded');
       
       onDataChanged?.();
       window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
@@ -491,12 +496,17 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                   rateationInfo.status?.toUpperCase() === 'DECADUTA' || 
                   !!rateationInfo.decadence_at;
                 
-                console.log('[F24 BUTTON]', {
+                console.log('[F24 BUTTON] Visibility check:', {
                   is_f24: rateationInfo.is_f24,
                   status: rateationInfo.status,
+                  status_upper: rateationInfo.status?.toUpperCase(),
                   decadence_at: rateationInfo.decadence_at,
                   isDecaduta,
                   interrupted_by: rateationInfo.interrupted_by_rateation_id,
+                  check_is_f24: !rateationInfo.is_f24,
+                  check_not_decaduta: !isDecaduta,
+                  check_interrupted: !!rateationInfo.interrupted_by_rateation_id,
+                  final_condition: !rateationInfo.is_f24 || !isDecaduta || rateationInfo.interrupted_by_rateation_id,
                   shouldShow: rateationInfo.is_f24 && isDecaduta && !rateationInfo.interrupted_by_rateation_id
                 });
                 
