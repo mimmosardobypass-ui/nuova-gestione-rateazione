@@ -3,11 +3,12 @@ import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Plus, Eye, BarChart3 } from "lucide-react";
 import { CollapsibleKpiSection } from "@/components/kpi/CollapsibleKpiSection";
-import { QuaterSavingCard } from "@/components/kpi/QuaterSavingCard";
+import { FinancialBalanceCard } from "@/components/kpi/FinancialBalanceCard";
 import { ResidualDecadenceRow } from "@/components/kpi/CompactKpiCards";
 import { useResidualAndDecadenceKpis } from "@/features/rateations/hooks/useResidualAndDecadenceKpis";
 import { useEffectiveKpis } from "@/hooks/useEffectiveKpis";
 import { useQuaterSaving } from "@/hooks/useQuaterSaving";
+import { useF24PagopaCost } from "@/hooks/useF24PagopaCost";
 import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
 
@@ -23,8 +24,9 @@ export default function HomePage() {
   const residualDecadenceKpis = useResidualAndDecadenceKpis();
   const effectiveKpis = useEffectiveKpis();
   const quaterSaving = useQuaterSaving();
+  const f24PagopaCost = useF24PagopaCost();
 
-  const loading = residualDecadenceKpis.loading || effectiveKpis.loading || quaterSaving.loading;
+  const loading = residualDecadenceKpis.loading || effectiveKpis.loading || quaterSaving.loading || f24PagopaCost.loading;
 
   // Create mock gross KPIs for the collapsible section (these would come from a useGrossKpis hook)
   const grossKpis = useMemo(() => ({
@@ -123,9 +125,10 @@ export default function HomePage() {
               />
             </div>
             <div className="lg:col-span-1">
-              <QuaterSavingCard
-                saving={quaterSaving.saving}
-                loading={quaterSaving.loading}
+              <FinancialBalanceCard
+                savingRQ={quaterSaving.saving}
+                costF24PagoPA={f24PagopaCost.cost}
+                loading={quaterSaving.loading || f24PagopaCost.loading}
                 onClick={() => navigate("/risparmio-rq")}
               />
             </div>

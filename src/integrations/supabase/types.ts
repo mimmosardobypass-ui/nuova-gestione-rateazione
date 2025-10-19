@@ -1788,6 +1788,13 @@ export type Database = {
           },
         ]
       }
+      v_f24_pagopa_cost_per_user: {
+        Row: {
+          cost_eur: number | null
+          owner_uid: string | null
+        }
+        Relationships: []
+      }
       v_f24_pagopa_maggiorazione: {
         Row: {
           f24_id: number | null

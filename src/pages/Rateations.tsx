@@ -15,8 +15,9 @@ import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { KpiCards } from "@/features/rateations/components/KpiCards";
 import { SaldoDecadutoCard } from "@/features/rateations/components/SaldoDecadutoCard";
-import { QuaterSavingCard } from "@/components/kpi/QuaterSavingCard";
+import { FinancialBalanceCard } from "@/components/kpi/FinancialBalanceCard";
 import { DecadenceDetailView } from "@/features/rateations/components/DecadenceDetailView";
+import { useF24PagopaCost } from "@/hooks/useF24PagopaCost";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrintButtons } from "@/components/print/PrintButtons";
@@ -39,6 +40,7 @@ export default function Rateations() {
   
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   const { saving: quaterSaving, loading: savingLoading, reload: reloadSaving } = useQuaterSaving();
+  const { cost: f24PagopaCost, loading: costLoading, reload: reloadCost } = useF24PagopaCost();
   
   // Decadence state
   const [decadenceDashboard, setDecadenceDashboard] = React.useState<DecadenceDashboard | null>(null);
@@ -78,12 +80,13 @@ export default function Rateations() {
     const handleKpiReload = () => {
       reloadStats();          // Reload KPI stats
       reloadSaving();         // Reload Quater saving
+      reloadCost();           // Reload F24→PagoPA cost
       loadDecadenceData();    // Reload Saldo Decaduto
     };
     
     window.addEventListener('rateations:reload-kpis', handleKpiReload);
     return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
-  }, [reloadStats, reloadSaving, loadDecadenceData]);
+  }, [reloadStats, reloadSaving, reloadCost, loadDecadenceData]);
 
   // Cleanup timeouts on unmount
   React.useEffect(() => cleanup, [cleanup]);
@@ -218,17 +221,12 @@ export default function Rateations() {
           previousStats={previousStats}
         />
         
-        {/* Quater Saving Card */}
-        <QuaterSavingCard 
-          saving={quaterSaving}
-          loading={savingLoading}
-          onClick={() => {
-            // Navigate to savings report or show modal
-            toast({
-              title: "Risparmio RQ",
-              description: `Risparmio totale stimato: €${quaterSaving.toLocaleString('it-IT', {minimumFractionDigits: 2})}`
-            });
-          }}
+        {/* Financial Balance Card */}
+        <FinancialBalanceCard 
+          savingRQ={quaterSaving}
+          costF24PagoPA={f24PagopaCost}
+          loading={savingLoading || costLoading}
+          onClick={() => navigate("/risparmio-rq")}
         />
         
         {/* Saldo Decaduto Card */}
