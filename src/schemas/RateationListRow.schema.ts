@@ -13,6 +13,11 @@ export const RateationListRowSchema = z.object({
   type_id: z.number().nullable().optional(),
   created_at: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
+  
+  // Interruption fields for F24→PagoPA and PagoPA→RQ link display
+  interruption_reason: z.string().nullable().optional(),
+  interrupted_at: z.string().nullable().optional(),
+  interrupted_by_rateation_id: z.number().nullable().optional(),
 
   // Monetary fields (canonical in cents from v_rateations_list_ui)
   total_amount_cents: z.number().nonnegative(),

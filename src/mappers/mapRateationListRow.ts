@@ -32,6 +32,11 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     is_pagopa: !!r.is_pagopa,
     is_f24: !!r.is_f24,
     is_quater: !!r.is_quater,
+    
+    // Interruption fields for F24→PagoPA link display
+    interruption_reason: r.interruption_reason ?? null,
+    interrupted_at: r.interrupted_at ?? null,
+    interrupted_by_rateation_id: r.interrupted_by_rateation_id ? String(r.interrupted_by_rateation_id) : null,
 
     // Database fields for compatibility
     created_at: r.created_at ?? undefined,
