@@ -143,21 +143,24 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
 
       // Info rateazione (come avevi già)
       const { data: rateationData } = await supabase
-        .from('v_rateations_with_kpis')
-        .select('*')
+        .from('rateations')
+        .select('id, number, status, is_f24, taxpayer_name, decadence_at, interrupted_by_rateation_id, type_id, rateation_types(name)')
         .eq('id', toIntId(rateationId, 'rateationId'))
         .single();
 
       if (!ctrl.signal.aborted && myReqId === reqIdRef.current && rateationData) {
+        // Determine is_pagopa from type name (PagoPA types contain "pagopa" in name)
+        const isPagopa = rateationData.rateation_types?.name?.toLowerCase().includes('pagopa') ?? false;
+        
         setRateationInfo({
           is_f24: rateationData.is_f24 || false,
-          status: (rateationData.status || 'active') as RateationStatus,
-          decadence_at: null,
+          status: (rateationData.status?.toUpperCase() as RateationStatus) || 'ATTIVA',
+          decadence_at: rateationData.decadence_at || null,
           taxpayer_name: rateationData.taxpayer_name,
           number: rateationData.number,
-          type_name: (rateationData as any).tipo || 'N/A', // tipo not in v_rateations_with_kpis
-          is_pagopa: !!rateationData.is_pagopa,
-          // Migration fields not yet implemented in DB
+          type_name: rateationData.rateation_types?.name || 'N/A',
+          is_pagopa: isPagopa,
+          interrupted_by_rateation_id: rateationData.interrupted_by_rateation_id?.toString() || null,
           rq_migration_status: 'none' as 'none' | 'partial' | 'full',
           migrated_debt_numbers: [],
           remaining_debt_numbers: [],
@@ -205,19 +208,26 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
 
     try {
       setProcessing(prev => ({ ...prev, 'decadence': true }));
+      
+      console.log('[DECADENCE] Confirming:', { rateationId, installmentId, reason });
+      
       await confirmDecadence(toIntId(rateationId, 'rateationId'), installmentId, reason);
+      
+      console.log('[DECADENCE] Confirmed successfully');
       
       toast({ 
         title: "Decadenza confermata", 
         description: "Il piano è stato marcato come decaduto" 
       });
       
-      // Reload data
       await load();
+      
+      console.log('[DECADENCE] Data reloaded, new status:', rateationInfo?.status);
+      
       onDataChanged?.();
-      // Trigger global KPI reload
       window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
     } catch (e: any) {
+      console.error('[DECADENCE] Error:', e);
       toast({ 
         variant: "destructive", 
         title: "Errore", 
@@ -226,7 +236,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
     } finally {
       setProcessing(prev => ({ ...prev, 'decadence': false }));
     }
-  }, [rateationId, online, toast, load, onDataChanged]);
+  }, [rateationId, online, toast, load, onDataChanged, rateationInfo]);
 
   const handleViewOverdueInstallments = useCallback(() => {
     // Scroll to the installments table
@@ -474,42 +484,60 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
               )}
               
               {/* F24 Decaduto: Link to PagoPA button */}
-              {rateationInfo && 
-               rateationInfo.is_f24 && 
-               rateationInfo.status === 'DECADUTA' && 
-               !rateationInfo.interrupted_by_rateation_id && (
-                <LinkF24Dialog
-                  f24={{
-                    id: rateationId,
-                    numero: rateationInfo.number ?? '',
-                    contribuente: rateationInfo.taxpayer_name ?? '',
-                    is_f24: true,
-                    status: 'DECADUTA',
-                    residuo: 0,
-                    importoTotale: 0,
-                    importoPagato: 0,
-                    importoRitardo: 0,
-                    residuoEffettivo: 0,
-                    rateTotali: 0,
-                    ratePagate: 0,
-                    rateNonPagate: 0,
-                    rateInRitardo: 0,
-                    ratePaidLate: 0,
-                    tipo: 'F24',
-                  }}
-                  trigger={
-                    <Button size="sm" variant="secondary" className="text-xs gap-1">
-                      <Link className="h-3 w-3" />
-                      Collega a PagoPA
-                    </Button>
-                  }
-                  onLinkComplete={() => {
-                    load();
-                    onDataChanged?.();
-                    window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
-                  }}
-                />
-              )}
+              {(() => {
+                if (!rateationInfo) return null;
+                
+                const isDecaduta = 
+                  rateationInfo.status?.toUpperCase() === 'DECADUTA' || 
+                  !!rateationInfo.decadence_at;
+                
+                console.log('[F24 BUTTON]', {
+                  is_f24: rateationInfo.is_f24,
+                  status: rateationInfo.status,
+                  decadence_at: rateationInfo.decadence_at,
+                  isDecaduta,
+                  interrupted_by: rateationInfo.interrupted_by_rateation_id,
+                  shouldShow: rateationInfo.is_f24 && isDecaduta && !rateationInfo.interrupted_by_rateation_id
+                });
+                
+                if (!rateationInfo.is_f24 || !isDecaduta || rateationInfo.interrupted_by_rateation_id) {
+                  return null;
+                }
+                
+                return (
+                  <LinkF24Dialog
+                    f24={{
+                      id: rateationId,
+                      numero: rateationInfo.number ?? '',
+                      contribuente: rateationInfo.taxpayer_name ?? '',
+                      is_f24: true,
+                      status: 'DECADUTA',
+                      residuo: 0,
+                      importoTotale: 0,
+                      importoPagato: 0,
+                      importoRitardo: 0,
+                      residuoEffettivo: 0,
+                      rateTotali: 0,
+                      ratePagate: 0,
+                      rateNonPagate: 0,
+                      rateInRitardo: 0,
+                      ratePaidLate: 0,
+                      tipo: 'F24',
+                    }}
+                    trigger={
+                      <Button size="sm" variant="secondary" className="text-xs gap-1">
+                        <Link className="h-3 w-3" />
+                        Collega a PagoPA
+                      </Button>
+                    }
+                    onLinkComplete={() => {
+                      load();
+                      onDataChanged?.();
+                      window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
+                    }}
+                  />
+                );
+              })()}
             </div>
           </div>
           <div className="space-y-2">
