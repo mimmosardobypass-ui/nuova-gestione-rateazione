@@ -8,6 +8,7 @@ import type { RateationRow } from "../types";
 import { formatEuro } from "@/lib/formatters";
 import { LinkF24Dialog } from './LinkF24Dialog';
 import { ExtraCostBadge } from './ExtraCostBadge';
+import { LinkedPagopaInfoBadge } from './LinkedPagopaInfoBadge';
 
 interface RateationsTableProps {
   rows: RateationRow[];
@@ -99,11 +100,14 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
                     />
                   )}
                   
-                  {/* F24 già collegato: badge maggiorazione */}
+                  {/* F24 già collegato: badge maggiorazione + info PagoPA collegata */}
                   {row.is_f24 && row.interrupted_by_rateation_id && row.interruption_reason === 'F24_PAGOPA_LINK' && (
-                    <ExtraCostBadge 
-                      maggiorazioneCents={row.maggiorazione_allocata_cents || 0} 
-                    />
+                    <div className="flex gap-2 items-center">
+                      <LinkedPagopaInfoBadge f24Id={parseInt(row.id)} />
+                      <ExtraCostBadge 
+                        maggiorazioneCents={row.maggiorazione_allocata_cents || 0} 
+                      />
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
