@@ -1,11 +1,13 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Link } from "lucide-react";
 import { RateationRowDetails } from "./RateationRowDetails";
 import { EditRateationModal } from "./EditRateationModal";
 import type { RateationRow } from "../types";
 import { formatEuro } from "@/lib/formatters";
+import { LinkF24Dialog } from './LinkF24Dialog';
+import { ExtraCostBadge } from './ExtraCostBadge';
 
 interface RateationsTableProps {
   rows: RateationRow[];
@@ -58,6 +60,7 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
             <TableHead>Ritardo</TableHead>
             <TableHead>Residuo</TableHead>
             <TableHead>Rate (T/P/NP/R)</TableHead>
+            <TableHead>Info</TableHead>
             <TableHead>Azioni</TableHead>
             {/* LOVABLE:END columns */}
           </TableRow>
@@ -80,6 +83,28 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
                   <span className={row.rateInRitardo > 0 ? "text-red-600 font-medium" : ""}>
                     {row.rateInRitardo}
                   </span>
+                </TableCell>
+                <TableCell>
+                  {/* F24 Decaduto: pulsante per collegare a PagoPA */}
+                  {row.is_f24 && row.status === 'decaduta' && !row.interrupted_by_rateation_id && (
+                    <LinkF24Dialog
+                      f24={row}
+                      trigger={
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Link className="h-3 w-3" />
+                          Collega
+                        </Button>
+                      }
+                      onLinkComplete={onRefresh}
+                    />
+                  )}
+                  
+                  {/* F24 già collegato: badge maggiorazione */}
+                  {row.is_f24 && row.interrupted_by_rateation_id && row.interruption_reason === 'F24_PAGOPA_LINK' && (
+                    <ExtraCostBadge 
+                      maggiorazioneCents={row.maggiorazione_allocata_cents || 0} 
+                    />
+                  )}
                 </TableCell>
                 <TableCell>
                   {/* LOVABLE:START actions */}

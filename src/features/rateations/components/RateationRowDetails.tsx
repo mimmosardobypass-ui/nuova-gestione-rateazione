@@ -4,14 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { RateationRow, InstallmentUI } from "../types";
 import { AttachmentsPanel } from "./AttachmentsPanel";
+import { F24LinksSection } from "./F24LinksSection";
 import { postponeInstallment, fetchInstallments } from "../api/installments";
 import { formatEuro } from "@/lib/formatters";
 import { InstallmentPaymentActions } from "./InstallmentPaymentActions";
 import { InstallmentStatusBadge } from "./InstallmentStatusBadge";
 
 export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow; onDataChanged?: () => void }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState<InstallmentUI[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +112,10 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
     }
   };
 
+  const handleNavigateToRateation = (rateationId: string) => {
+    navigate(`/rateations?search=${rateationId}`);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <Card className="card-elevated lg:col-span-2">
@@ -163,6 +170,18 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
       </Card>
 
       <AttachmentsPanel rateationId={row.id} />
+
+      {/* F24 Links Section - mostra se F24 decaduto */}
+      {row.is_f24 && row.status === 'decaduta' && (
+        <F24LinksSection
+          f24Id={Number(row.id)}
+          onNavigateToRateation={handleNavigateToRateation}
+          onLinksChanged={() => {
+            loadInstallments();
+            onDataChanged?.();
+          }}
+        />
+      )}
     </div>
   );
 }

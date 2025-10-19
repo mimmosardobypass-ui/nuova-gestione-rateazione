@@ -1,7 +1,7 @@
 // Centralized types for rateations feature
 
 // F24 Decadence Management Types + PagoPA Interruption
-export type RateationStatus = 'ATTIVA' | 'INTERROTTA' | 'ESTINTA';
+export type RateationStatus = 'ATTIVA' | 'INTERROTTA' | 'ESTINTA' | 'decaduta';
 
 export interface DecadenceInfo {
   decadence_at?: string | null;
@@ -64,6 +64,10 @@ export interface RateationRow {
   linked_rq_count?: number;          // Number of active RQ links (from view)
   latest_linked_rq_number?: string | null; // Number of latest linked RQ (for quick navigation)
   latest_rq_id?: number | null;      // ID of latest linked RQ (for direct navigation)
+  
+  // F24→PagoPA link fields
+  maggiorazione_allocata_cents?: number | null; // Extra costo da F24→PagoPA migration
+  f24_pagopa_link_id?: string | null;           // ID del link attivo (se esiste)
 }
 
 export interface DecadenceDashboard {
