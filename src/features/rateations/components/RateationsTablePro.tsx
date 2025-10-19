@@ -56,6 +56,8 @@ export type RateationRowPro = {
   linked_rq_count?: number;
   latest_linked_rq_number?: string | null;
   latest_rq_id?: number | null;
+  // F24 link fields
+  is_f24?: boolean;
 };
 
 interface RateationsTableProProps {

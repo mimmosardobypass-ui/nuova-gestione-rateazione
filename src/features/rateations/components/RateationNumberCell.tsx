@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigateToRateation } from "../hooks/useNavigateToRateation";
+import { useF24LinkedPagopa } from "../hooks/useF24LinkedPagopa";
 
 interface RateationNumberCellProps {
   row: {
@@ -15,6 +16,9 @@ interface RateationNumberCellProps {
     is_interrupted?: boolean;
     linked_rq_numbers?: string[];
     linked_rq_ids?: number[];
+    // F24 link fields
+    is_f24?: boolean;
+    interruption_reason?: string | null;
   };
 }
 
@@ -34,6 +38,11 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
   const isPagopa = !!row.is_pagopa;
   const hasLinks = isPagopa && (row.linked_rq_count ?? 0) > 0;
   
+  // F24 link detection
+  const isF24 = !!row.is_f24;
+  const isF24Linked = isF24 && row.interruption_reason === 'F24_PAGOPA_LINK';
+  const { data: f24LinkData } = useF24LinkedPagopa(isF24Linked ? parseInt(row.id) : 0);
+  
   // Get RQ numbers and IDs arrays from view
   const rqNumbers: string[] = (row as any).linked_rq_numbers ?? [];
   const rqIds: number[] = (row as any).linked_rq_ids ?? [];
@@ -50,8 +59,8 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
       {/* Numero rateazione */}
       <span className="font-medium">{row.numero || "—"}</span>
 
-      {/* Sub-row: Badge Status + RQ Links */}
-      {(isInterrotta || isDecaduta || hasLinks) && (
+      {/* Sub-row: Badge Status + Links */}
+      {(isInterrotta || isDecaduta || hasLinks || isF24Linked) && (
         <div className="flex flex-col gap-1">
           {/* Riga 1: Badge + Conteggio */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -75,16 +84,24 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
               </Badge>
             )}
 
-            {/* Conteggio RQ collegate */}
+            {/* Conteggio RQ collegate (PagoPA) */}
             {hasLinks && (
               <>
                 {(isInterrotta || isDecaduta) && <span>•</span>}
                 <span>→ collegata a {row.linked_rq_count} RQ</span>
               </>
             )}
+
+            {/* PagoPA collegata (F24) */}
+            {isF24Linked && f24LinkData && (
+              <>
+                {(isInterrotta || isDecaduta) && <span>•</span>}
+                <span>→ collegata a {f24LinkData.pagopa_number}</span>
+              </>
+            )}
           </div>
 
-          {/* Riga 2: Chip numeri RQ (se disponibili) */}
+          {/* Riga 2: Chip numeri RQ (PagoPA) */}
           {hasLinks && sortedRqNumbers.length > 0 && (
             <div className="flex flex-wrap gap-1 text-xs">
               {sortedRqNumbers.map((num, idx) => {
@@ -103,6 +120,20 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Riga 2: Chip numero PagoPA (F24) */}
+          {isF24Linked && f24LinkData && (
+            <div className="flex flex-wrap gap-1 text-xs">
+              <button
+                type="button"
+                className="px-1.5 py-0.5 rounded bg-green-100 border border-green-200 text-green-700 hover:bg-green-200 transition-colors"
+                onClick={() => navigateToRateation(String(f24LinkData.pagopa_id))}
+                title={`Apri ${f24LinkData.pagopa_number}`}
+              >
+                {f24LinkData.pagopa_number}
+              </button>
             </div>
           )}
         </div>
