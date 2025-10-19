@@ -1,5 +1,5 @@
 import type { RateationListRow } from "@/schemas/RateationListRow.schema";
-import type { RateationRow } from "@/features/rateations/types";
+import type { RateationRow, RateationStatus } from "@/features/rateations/types";
 
 const centsToEur = (cents: number) => cents / 100;
 
@@ -27,8 +27,8 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     rateNonPagate: r.installments_total - r.installments_paid,
     rateInRitardo: r.installments_overdue_today ?? 0,
 
-    // Status and flags
-    status: (r.status as any) ?? "ATTIVA",
+    // Status and flags - NORMALIZE to uppercase for consistency
+    status: ((r.status?.toUpperCase() as RateationStatus) ?? "ATTIVA"),
     is_pagopa: !!r.is_pagopa,
     is_f24: !!r.is_f24,
     is_quater: !!r.is_quater,

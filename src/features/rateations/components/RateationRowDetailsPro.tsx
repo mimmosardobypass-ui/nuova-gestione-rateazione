@@ -31,6 +31,8 @@ import { MigrationDialog } from "./MigrationDialog";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
 import { PagopaLinks } from "./PagopaLinks";
 import { isPagoPAPlan } from "../utils/isPagopa";
+import { LinkF24Dialog } from './LinkF24Dialog';
+import { Link } from "lucide-react";
 
 // --- SAFE HELPERS ---
 const DEBUG = process.env.NODE_ENV !== 'production';
@@ -85,6 +87,8 @@ interface RateationInfo {
   remaining_debt_numbers?: string[];
   rq_target_ids?: string[];
   excluded_from_stats?: boolean;
+  // PagoPA interruption fields
+  interrupted_by_rateation_id?: string | null;
 }
 
 export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis }: RateationRowDetailsProProps) {
@@ -465,6 +469,44 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                   onRollbackComplete={() => {
                     load();
                     onDataChanged?.();
+                  }}
+                />
+              )}
+              
+              {/* F24 Decaduto: Link to PagoPA button */}
+              {rateationInfo && 
+               rateationInfo.is_f24 && 
+               rateationInfo.status === 'DECADUTA' && 
+               !rateationInfo.interrupted_by_rateation_id && (
+                <LinkF24Dialog
+                  f24={{
+                    id: rateationId,
+                    numero: rateationInfo.number ?? '',
+                    contribuente: rateationInfo.taxpayer_name ?? '',
+                    is_f24: true,
+                    status: 'DECADUTA',
+                    residuo: 0,
+                    importoTotale: 0,
+                    importoPagato: 0,
+                    importoRitardo: 0,
+                    residuoEffettivo: 0,
+                    rateTotali: 0,
+                    ratePagate: 0,
+                    rateNonPagate: 0,
+                    rateInRitardo: 0,
+                    ratePaidLate: 0,
+                    tipo: 'F24',
+                  }}
+                  trigger={
+                    <Button size="sm" variant="secondary" className="text-xs gap-1">
+                      <Link className="h-3 w-3" />
+                      Collega a PagoPA
+                    </Button>
+                  }
+                  onLinkComplete={() => {
+                    load();
+                    onDataChanged?.();
+                    window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
                   }}
                 />
               )}

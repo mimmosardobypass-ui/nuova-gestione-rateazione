@@ -86,7 +86,7 @@ export function RateationsTable({ rows, loading, error, online, onDelete, onRefr
                 </TableCell>
                 <TableCell>
                   {/* F24 Decaduto: pulsante per collegare a PagoPA */}
-                  {row.is_f24 && row.status === 'decaduta' && !row.interrupted_by_rateation_id && (
+                  {row.is_f24 && row.status === 'DECADUTA' && !row.interrupted_by_rateation_id && (
                     <LinkF24Dialog
                       f24={row}
                       trigger={

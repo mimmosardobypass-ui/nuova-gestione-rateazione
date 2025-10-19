@@ -172,7 +172,7 @@ export function RateationRowDetails({ row, onDataChanged }: { row: RateationRow;
       <AttachmentsPanel rateationId={row.id} />
 
       {/* F24 Links Section - mostra se F24 decaduto */}
-      {row.is_f24 && row.status === 'decaduta' && (
+      {row.is_f24 && row.status === 'DECADUTA' && (
         <F24LinksSection
           f24Id={Number(row.id)}
           onNavigateToRateation={handleNavigateToRateation}
