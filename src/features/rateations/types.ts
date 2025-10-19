@@ -1,7 +1,7 @@
 // Centralized types for rateations feature
 
 // F24 Decadence Management Types + PagoPA Interruption
-export type RateationStatus = 'ATTIVA' | 'INTERROTTA' | 'ESTINTA' | 'DECADUTA';
+export type RateationStatus = 'ATTIVA' | 'IN_RITARDO' | 'COMPLETATA' | 'DECADUTA' | 'INTERROTTA' | 'ESTINTA';
 
 export interface DecadenceInfo {
   decadence_at?: string | null;

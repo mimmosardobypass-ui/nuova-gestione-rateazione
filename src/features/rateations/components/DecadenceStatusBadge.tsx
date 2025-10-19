@@ -40,6 +40,16 @@ export function DecadenceStatusBadge({
     );
   }
 
+  // Decadence status
+  if (status === 'DECADUTA') {
+    return (
+      <Badge variant="destructive" className="animate-pulse">
+        <Skull className="h-3 w-3 mr-1" />
+        Decaduta
+      </Badge>
+    );
+  }
+
   // Extinct status
   if (status === 'ESTINTA') {
     return (

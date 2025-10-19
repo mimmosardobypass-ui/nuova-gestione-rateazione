@@ -6,7 +6,7 @@ interface RateationNumberCellProps {
   row: {
     id: string;
     numero: string;
-    status: 'ATTIVA' | 'INTERROTTA' | 'ESTINTA';
+    status: 'ATTIVA' | 'IN_RITARDO' | 'COMPLETATA' | 'DECADUTA' | 'INTERROTTA' | 'ESTINTA';
     is_pagopa?: boolean;
     linked_rq_count?: number;
     latest_linked_rq_number?: string | null;
@@ -30,6 +30,7 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
   
   // Use explicit flag with fallback to status
   const isInterrotta = (row as any).is_interrupted ?? (row.status === 'INTERROTTA');
+  const isDecaduta = row.status === 'DECADUTA';
   const isPagopa = !!row.is_pagopa;
   const hasLinks = isPagopa && (row.linked_rq_count ?? 0) > 0;
   
@@ -50,7 +51,7 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
       <span className="font-medium">{row.numero || "—"}</span>
 
       {/* Sub-row: Badge Status + RQ Links */}
-      {(isInterrotta || hasLinks) && (
+      {(isInterrotta || isDecaduta || hasLinks) && (
         <div className="flex flex-col gap-1">
           {/* Riga 1: Badge + Conteggio */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -64,10 +65,20 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
               </Badge>
             )}
 
+            {/* Badge "Decaduta" */}
+            {isDecaduta && (
+              <Badge 
+                variant="destructive" 
+                className="text-xs px-1.5 py-0 animate-pulse"
+              >
+                Decaduta
+              </Badge>
+            )}
+
             {/* Conteggio RQ collegate */}
             {hasLinks && (
               <>
-                {isInterrotta && <span>•</span>}
+                {(isInterrotta || isDecaduta) && <span>•</span>}
                 <span>→ collegata a {row.linked_rq_count} RQ</span>
               </>
             )}
