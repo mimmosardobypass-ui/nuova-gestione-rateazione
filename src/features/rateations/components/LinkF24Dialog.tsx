@@ -18,6 +18,15 @@ import {
   type F24PagopaLink
 } from '../api/linkF24';
 import { ExtraCostBreakdown } from './ExtraCostBadge';
+import { supabase } from '@/integrations/supabase/client';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+
+interface F24PreviewData {
+  f24_residual_cents: number;
+  pagopa_total_cents: number;
+  delta_cents: number;
+}
 
 interface LinkF24DialogProps {
   f24: RateationRow;
@@ -33,6 +42,7 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
   const [selectedPagopaId, setSelectedPagopaId] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [existingLink, setExistingLink] = useState<F24PagopaLink | null>(null);
+  const [preview, setPreview] = useState<F24PreviewData | null>(null);
 
   const { toast } = useToast();
 
@@ -44,6 +54,7 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
       // Reset on close
       setSelectedPagopaId(null);
       setNote('');
+      setPreview(null);
     }
   }, [open]);
 
@@ -66,6 +77,47 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPreview = async (pagopaId: number) => {
+    try {
+      console.log('[F24 PREVIEW] Loading for PagoPA:', pagopaId);
+      
+      const { data, error } = await supabase.rpc('preview_link_f24_to_pagopa', {
+        p_f24_id: Number(f24.id),
+        p_pagopa_id: pagopaId,
+      });
+
+      if (error) {
+        console.error('[F24 PREVIEW] RPC error:', error);
+        throw error;
+      }
+
+      const row = Array.isArray(data) ? data[0] : data;
+      
+      if (!row) {
+        console.warn('[F24 PREVIEW] No data returned from RPC');
+        setPreview(null);
+        return;
+      }
+
+      const previewData: F24PreviewData = {
+        f24_residual_cents: Number(row.f24_residual_cents ?? 0),
+        pagopa_total_cents: Number(row.pagopa_total_cents ?? 0),
+        delta_cents: Number(row.delta_cents ?? 0),
+      };
+
+      console.log('[F24 PREVIEW] Loaded:', previewData);
+      setPreview(previewData);
+    } catch (e: any) {
+      console.error('[F24 PREVIEW] Error:', e);
+      toast({
+        variant: 'destructive',
+        title: 'Errore',
+        description: 'Impossibile caricare anteprima collegamento',
+      });
+      setPreview(null);
     }
   };
 
@@ -137,11 +189,6 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
     }
   };
 
-  // Calculate preview
-  const selectedPagopa = pagopaOptions.find(p => p.id === selectedPagopaId);
-  const f24ResiduoCents = (f24.residuo || 0) * 100;
-  const pagopaTotalCents = selectedPagopa?.pagopa_total_cents || 0;
-  const maggiorazioneCents = Math.max(0, pagopaTotalCents - f24ResiduoCents);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -223,7 +270,11 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
               <Label htmlFor="pagopa-select">Seleziona PagoPA di Destinazione</Label>
               <Select
                 value={selectedPagopaId ? String(selectedPagopaId) : undefined}
-                onValueChange={(v) => setSelectedPagopaId(Number(v))}
+                onValueChange={(v) => {
+                  const id = Number(v);
+                  setSelectedPagopaId(id);
+                  loadPreview(id);
+                }}
                 disabled={processing}
               >
                 <SelectTrigger id="pagopa-select">
@@ -250,26 +301,86 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
               </Select>
             </div>
 
-            {/* Preview Calculation */}
-            {selectedPagopa && (
-              <Card className={maggiorazioneCents > 0 ? 'border-destructive/50 bg-destructive/5' : 'border-green-200 bg-green-50'}>
+            {/* Preview Collegamento da RPC */}
+            {preview && selectedPagopaId && (
+              <Card className={cn(
+                "border-2",
+                preview.delta_cents >= 0 
+                  ? "border-red-200 bg-red-50" 
+                  : "border-green-200 bg-green-50"
+              )}>
                 <CardHeader>
-                  <CardTitle className="text-sm">Anteprima Collegamento</CardTitle>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    {preview.delta_cents >= 0 ? (
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                    ) : (
+                      <span className="text-green-600">✓</span>
+                    )}
+                    Anteprima Collegamento
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ExtraCostBreakdown
-                    residuoF24Cents={f24ResiduoCents}
-                    totalePagopaCents={pagopaTotalCents}
-                    maggiorazioneCents={maggiorazioneCents}
-                  />
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Residuo F24 (decaduto):</span>
+                    <span className="font-mono font-medium">
+                      {formatEuro(preview.f24_residual_cents / 100)}
+                    </span>
+                  </div>
                   
-                  {maggiorazioneCents === 0 && (
-                    <div className="mt-3 text-sm text-green-700">
-                      ✓ Nessun costo aggiuntivo (PagoPA ≤ Residuo F24)
-                    </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Totale PagoPA:</span>
+                    <span className="font-mono font-medium">
+                      {formatEuro(preview.pagopa_total_cents / 100)}
+                    </span>
+                  </div>
+                  
+                  <Separator className="my-2" />
+                  
+                  <div className={cn(
+                    "flex justify-between text-sm font-bold",
+                    preview.delta_cents >= 0 ? "text-red-700" : "text-green-700"
+                  )}>
+                    <span>
+                      {preview.delta_cents >= 0 
+                        ? '⚠️ Extra costo (maggiorazione):' 
+                        : '✓ Risparmio:'}
+                    </span>
+                    <span className="font-mono">
+                      {preview.delta_cents >= 0 ? '+' : '−'}
+                      {formatEuro(Math.abs(preview.delta_cents) / 100)}
+                    </span>
+                  </div>
+
+                  {preview.delta_cents > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      La PagoPA ha un importo superiore al residuo F24. 
+                      La differenza verrà tracciata come maggiorazione allocata.
+                    </p>
+                  )}
+
+                  {preview.delta_cents < 0 && (
+                    <p className="text-xs text-green-700 mt-2 italic">
+                      La PagoPA ha un importo inferiore al residuo F24. 
+                      Questo collegamento genera un risparmio.
+                    </p>
+                  )}
+
+                  {preview.delta_cents === 0 && (
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      La PagoPA ha esattamente lo stesso importo del residuo F24. 
+                      Nessun costo aggiuntivo o risparmio.
+                    </p>
                   )}
                 </CardContent>
               </Card>
+            )}
+
+            {/* Loading Preview */}
+            {selectedPagopaId && !preview && (
+              <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
+                Caricamento anteprima...
+              </div>
             )}
 
             {/* Note */}
@@ -293,9 +404,21 @@ export function LinkF24Dialog({ f24, trigger, onLinkComplete }: LinkF24DialogPro
           </Button>
           <Button
             onClick={handleLink}
-            disabled={!selectedPagopaId || processing || loading}
+            disabled={!selectedPagopaId || processing || loading || !preview}
           >
-            {processing ? 'Collegamento...' : existingLink ? 'Aggiorna Collegamento' : 'Collega F24 a PagoPA'}
+            {processing ? (
+              'Collegamento...'
+            ) : (
+              <>
+                {existingLink ? 'Aggiorna Collegamento' : 'Collega F24 a PagoPA'}
+                {preview && preview.delta_cents !== 0 && (
+                  <span className="ml-2 text-xs opacity-80">
+                    ({preview.delta_cents > 0 ? '+' : ''}
+                    {formatEuro(preview.delta_cents / 100)})
+                  </span>
+                )}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

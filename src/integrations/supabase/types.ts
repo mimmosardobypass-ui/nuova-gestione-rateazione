@@ -4740,6 +4740,14 @@ export type Database = {
         Args: { p_pagopa_id: number }
         Returns: boolean
       }
+      preview_link_f24_to_pagopa: {
+        Args: { p_f24_id: number; p_pagopa_id: number }
+        Returns: {
+          delta_cents: number
+          f24_residual_cents: number
+          pagopa_total_cents: number
+        }[]
+      }
       rateation_auto_flag_predecadence: {
         Args: Record<PropertyKey, never>
         Returns: undefined
