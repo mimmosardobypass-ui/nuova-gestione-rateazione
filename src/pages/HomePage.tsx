@@ -65,25 +65,13 @@ export default function HomePage() {
                 Nuova Rateazione
               </Button>
               <Button 
-                onClick={() => navigate("/statistiche")}
-                variant="outline"
+                onClick={() => navigate("/statistiche-v3")}
+                variant="default"
                 size="lg"
                 className="gap-2"
               >
                 <BarChart3 className="h-4 w-4" />
                 Statistiche
-              </Button>
-              <Button 
-                onClick={() => navigate("/statistiche-v3")}
-                variant="default"
-                size="lg"
-                className="gap-2 relative"
-              >
-                <BarChart3 className="h-4 w-4" />
-                Statistiche V3
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-medium rounded-full">
-                  NEW
-                </span>
               </Button>
             </div>
           </div>

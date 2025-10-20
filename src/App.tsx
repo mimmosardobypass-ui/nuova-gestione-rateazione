@@ -14,7 +14,6 @@ import RateationsGross from "./pages/RateationsGross";
 import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
-import Stats from "./pages/Stats";
 import StatsV3 from "./pages/StatsV3";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
@@ -63,11 +62,6 @@ const App = () => {
             <Route path="/rateazioni" element={
               <ProtectedRoute>
                 <Rateations />
-              </ProtectedRoute>
-            } />
-            <Route path="/statistiche" element={
-              <ProtectedRoute>
-                <Stats />
               </ProtectedRoute>
             } />
             <Route path="/statistiche-v3" element={
