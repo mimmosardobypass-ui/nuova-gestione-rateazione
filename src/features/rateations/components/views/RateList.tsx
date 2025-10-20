@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
@@ -29,6 +29,60 @@ export function RateList({
   onViewChange,
   onStats
 }: RateListProps) {
+  // State management per i filtri
+  const [filters, setFilters] = useState({
+    tipo: 'all',
+    stato: 'all',
+    mese: '',
+    anno: ''
+  });
+
+  // Handler per cambiare i filtri
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Handler per reset filtri
+  const handleResetFilters = () => {
+    setFilters({
+      tipo: 'all',
+      stato: 'all',
+      mese: '',
+      anno: ''
+    });
+  };
+
+  // Funzione di filtraggio applicata a tutte le rows
+  const applyFilters = useMemo(() => (sourceRows: RateationRow[]) => {
+    let filtered = sourceRows;
+    
+    // Filtro per tipo
+    if (filters.tipo !== 'all') {
+      filtered = filtered.filter(row => row.tipo === filters.tipo);
+    }
+    
+    // Filtro per stato
+    if (filters.stato === 'active') {
+      filtered = filtered.filter(row => row.residuo > 0 && (row.rateInRitardo === 0 || row.rateInRitardo === null));
+    } else if (filters.stato === 'late') {
+      filtered = filtered.filter(row => (row.rateInRitardo ?? 0) > 0 || (row.importoRitardo ?? 0) > 0);
+    } else if (filters.stato === 'completed') {
+      filtered = filtered.filter(row => row.residuo === 0);
+    }
+    
+    // Filtro per anno (basato su numero rateazione se disponibile, altrimenti skip)
+    // Nota: potrebbe essere necessario un campo created_at per filtraggio più accurato
+    if (filters.anno) {
+      const anno = filters.anno;
+      filtered = filtered.filter(row => {
+        // Cerca l'anno nel numero della rateazione (es. "2024/001")
+        return row.numero?.includes(anno) || row.number?.includes(anno);
+      });
+    }
+    
+    return filtered;
+  }, [filters]);
+
   const processRows = (sourceRows: RateationRow[]) => 
     sourceRows.map(row => ({
       ...row,
@@ -62,11 +116,14 @@ export function RateList({
               onComparazione={() => onViewChange('annual')}
               onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onResetFilters={handleResetFilters}
             />
 
             <RateationsTablePro 
               key={refreshKey}
-              rows={processRows(rows)}
+              rows={processRows(applyFilters(rows))}
               loading={loading}
               error={error}
               online={online}
@@ -80,11 +137,14 @@ export function RateList({
               onComparazione={() => onViewChange('annual')}
               onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onResetFilters={handleResetFilters}
             />
 
             <RateationsTablePro 
               key={refreshKey}
-              rows={processRows(rows.filter(row => row.residuo > 0))}
+              rows={processRows(applyFilters(rows.filter(row => row.residuo > 0)))}
               loading={loading}
               error={error}
               online={online}
@@ -98,11 +158,14 @@ export function RateList({
               onComparazione={() => onViewChange('annual')}
               onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onResetFilters={handleResetFilters}
             />
 
             <RateationsTablePro 
               key={refreshKey}
-              rows={processRows(rows.filter(row => row.residuo === 0))}
+              rows={processRows(applyFilters(rows.filter(row => row.residuo === 0)))}
               loading={loading}
               error={error}
               online={online}
