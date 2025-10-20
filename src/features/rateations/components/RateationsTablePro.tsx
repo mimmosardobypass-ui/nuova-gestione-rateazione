@@ -113,15 +113,15 @@ export function RateationsTablePro({
               <TableHead>Numero</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Contribuente</TableHead>
-              <TableHead className="text-right">Importo totale</TableHead>
-              <TableHead className="text-right">Importo pagato</TableHead>
-              <TableHead className="text-right">Importo in ritardo</TableHead>
-              <TableHead className="text-right">Totale residuo</TableHead>
-              <TableHead className="text-center">Rate totali</TableHead>
-              <TableHead className="text-center">Rate pagate</TableHead>
-              <TableHead className="text-center">Rate non pagate</TableHead>
-              <TableHead className="text-center">Rate in ritardo / Scadenti oggi</TableHead>
-              <TableHead>Azioni</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Importo totale</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Importo pagato</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Importo in ritardo</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Totale residuo</TableHead>
+              <TableHead className="text-center whitespace-nowrap">Rate totali</TableHead>
+              <TableHead className="text-center whitespace-nowrap">Rate pagate</TableHead>
+              <TableHead className="text-center whitespace-nowrap">Rate non pagate</TableHead>
+              <TableHead className="text-center whitespace-nowrap">Rate in ritardo / Scadenti oggi</TableHead>
+              <TableHead className="w-[120px]">Azioni</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -140,7 +140,7 @@ export function RateationsTablePro({
                         aria-expanded={opened}
                         aria-controls={`row-details-${r.id}`}
                       >
-                        {opened ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        {opened ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                       </Button>
                     </TableCell>
                     <TableCell>
@@ -218,17 +218,17 @@ export function RateationsTablePro({
                           size="sm" 
                           variant="ghost"
                           onClick={() => toggle(r.id)}
-                          className="p-1 h-8 w-8"
+                          className="p-1 h-7 w-7"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button 
                           size="sm" 
                           variant="ghost"
                           onClick={() => setEditId(r.id)}
-                          className="p-1 h-8 w-8"
+                          className="p-1 h-7 w-7"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         {/* Migration and rollback buttons for PagoPA rateations */}
                         {(() => {
@@ -242,10 +242,10 @@ export function RateationsTablePro({
                                 <Button 
                                   size="sm" 
                                   variant="ghost"
-                                  className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700"
+                                  className="p-1 h-7 w-7 text-blue-600 hover:text-blue-700"
                                   title="Gestisci migrazione cartelle"
                                 >
-                                  <Package className="h-4 w-4" />
+                                  <Package className="h-3.5 w-3.5" />
                                 </Button>
                               }
                               onMigrationComplete={() => {
@@ -261,10 +261,10 @@ export function RateationsTablePro({
                                   <Button 
                                     size="sm" 
                                     variant="ghost"
-                                    className="p-1 h-8 w-8 text-orange-600 hover:text-orange-700"
+                                    className="p-1 h-7 w-7 text-orange-600 hover:text-orange-700"
                                     title="Ripristina migrazione"
                                   >
-                                    <RotateCcw className="h-4 w-4" />
+                                    <RotateCcw className="h-3.5 w-3.5" />
                                   </Button>
                                 }
                                 onRollbackComplete={() => {
