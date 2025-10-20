@@ -74,18 +74,6 @@ export default function HomePage() {
                 Statistiche
               </Button>
               <Button 
-                onClick={() => navigate("/statistiche-v2")}
-                variant="outline"
-                size="lg"
-                className="gap-2 relative"
-              >
-                <BarChart3 className="h-4 w-4" />
-                Statistiche V2
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-medium rounded-full">
-                  BETA
-                </span>
-              </Button>
-              <Button 
                 onClick={() => navigate("/statistiche-v3")}
                 variant="default"
                 size="lg"
