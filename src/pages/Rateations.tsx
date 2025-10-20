@@ -18,7 +18,7 @@ import { SaldoDecadutoCard } from "@/features/rateations/components/SaldoDecadut
 import { FinancialBalanceCard } from "@/components/kpi/FinancialBalanceCard";
 import { DecadenceDetailView } from "@/features/rateations/components/DecadenceDetailView";
 import { useF24PagopaCost } from "@/hooks/useF24PagopaCost";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrintButtons } from "@/components/print/PrintButtons";
 import { fetchDecadenceDashboard, fetchDecadenceDetails, fetchDecadencePreview, linkTransfer } from "@/features/rateations/api/decadence";
@@ -177,7 +177,19 @@ export default function Rateations() {
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Rateazioni</h1>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate("/")}
+            className="gap-2"
+            title="Torna alla Home"
+          >
+            <Home className="h-4 w-4" />
+            Home
+          </Button>
+        </div>
         <div className="flex items-center gap-2">
           <PrintButtons showSummaryOptions />
           <UserMenu />
