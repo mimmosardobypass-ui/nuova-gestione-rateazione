@@ -35,6 +35,7 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
   // Use explicit flag with fallback to status
   const isInterrotta = (row as any).is_interrupted ?? (row.status === 'INTERROTTA');
   const isDecaduta = row.status === 'DECADUTA';
+  const isCompletata = row.status === 'COMPLETATA';
   const isPagopa = !!row.is_pagopa;
   const hasLinks = isPagopa && (row.linked_rq_count ?? 0) > 0;
   
@@ -60,7 +61,7 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
       <span className="font-medium">{row.numero || "—"}</span>
 
       {/* Sub-row: Badge Status + Links */}
-      {(isInterrotta || isDecaduta || hasLinks || isF24Linked) && (
+      {(isInterrotta || isDecaduta || isCompletata || hasLinks || isF24Linked) && (
         <div className="flex flex-col gap-1">
           {/* Riga 1: Badge + Conteggio */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -81,6 +82,16 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
                 className="text-xs px-1.5 py-0 animate-pulse"
               >
                 Decaduta
+              </Badge>
+            )}
+
+            {/* Badge "Completata" */}
+            {isCompletata && (
+              <Badge 
+                variant="outline" 
+                className="bg-green-50 text-green-700 border-green-200 text-xs px-1.5 py-0"
+              >
+                Completata
               </Badge>
             )}
 
