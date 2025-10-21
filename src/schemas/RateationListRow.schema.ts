@@ -42,6 +42,9 @@ export const RateationListRowSchema = z.object({
   linked_rq_count: z.number().nonnegative().optional(),
   latest_linked_rq_number: z.string().nullable().optional(),
   latest_rq_id: z.number().nullable().optional(),
+  
+  // F24 Recovery Window (days until next unpaid due date, NULL if not F24)
+  f24_days_to_next_due: z.number().int().nullable().optional(),
 });
 
 export type RateationListRow = z.infer<typeof RateationListRowSchema>;

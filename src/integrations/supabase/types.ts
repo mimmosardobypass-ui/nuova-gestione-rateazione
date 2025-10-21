@@ -3302,6 +3302,7 @@ export type Database = {
         Row: {
           allocated_residual_cents: number | null
           created_at: string | null
+          f24_days_to_next_due: number | null
           id: number | null
           installments_overdue_today: number | null
           installments_paid: number | null
@@ -3316,9 +3317,11 @@ export type Database = {
           latest_rq_id: number | null
           linked_rq_count: number | null
           number: string | null
+          original_total_due_cents: number | null
           overdue_effective_cents: number | null
           owner_uid: string | null
           paid_amount_cents: number | null
+          quater_total_due_cents: number | null
           residual_effective_cents: number | null
           rq_total_at_link_cents: number | null
           status: string | null

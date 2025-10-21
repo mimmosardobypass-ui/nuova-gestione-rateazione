@@ -34,60 +34,37 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         setLoading(true);
         setError(null);
 
-        // Fetch all F24 rateations that are not completed or decaduta
-        const { data: f24Rateations, error: rateationsError } = await supabase
-          .from('rateations')
-          .select('id, number, taxpayer_name, status')
+        // SIMPLIFIED: Query v_rateations_list_ui directly with f24_days_to_next_due filter
+        // The view now calculates the recovery window server-side
+        const { data: atRiskData, error: queryError } = await supabase
+          .from('v_rateations_list_ui')
+          .select('id, number, taxpayer_name, f24_days_to_next_due, installments_total, installments_paid')
           .eq('is_f24', true)
-          .neq('status', 'completata')
-          .neq('status', 'decaduta')
-          .neq('status', 'COMPLETATA')
-          .neq('status', 'DECADUTA');
+          .not('f24_days_to_next_due', 'is', null)
+          .lte('f24_days_to_next_due', 20)
+          .order('f24_days_to_next_due', { ascending: true });
 
-        if (rateationsError) throw rateationsError;
+        if (queryError) throw queryError;
         if (!mounted) return;
 
-        if (!f24Rateations || f24Rateations.length === 0) {
-          setAtRiskF24s([]);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch installments for all F24s
-        const f24Ids = f24Rateations.map(r => r.id);
-        const { data: installments, error: installmentsError } = await supabase
-          .from('installments')
-          .select('id, rateation_id, due_date, is_paid, paid_at, paid_date')
-          .in('rateation_id', f24Ids);
-
-        if (installmentsError) throw installmentsError;
-        if (!mounted) return;
-
-        // Calculate recovery window for each F24
-        const atRisk: F24AtRiskItem[] = [];
-        
-        for (const rateation of f24Rateations) {
-          const rateationInstallments = (installments || []).filter(
-            inst => inst.rateation_id === rateation.id
-          );
-
-          const recoveryInfo = calculateF24RecoveryWindow(rateationInstallments);
-
-          // Only include if at risk (daysRemaining <= 20)
-          if (recoveryInfo.isAtRisk && recoveryInfo.nextDueDate) {
-            atRisk.push({
-              rateationId: String(rateation.id),
-              numero: rateation.number || 'N/A',
-              contribuente: rateation.taxpayer_name,
-              unpaidCount: recoveryInfo.unpaidCount,
-              nextDueDate: recoveryInfo.nextDueDate,
-              daysRemaining: recoveryInfo.daysRemaining
-            });
-          }
-        }
-
-        // Sort by days remaining (most urgent first)
-        atRisk.sort((a, b) => a.daysRemaining - b.daysRemaining);
+        // Map to F24AtRiskItem format
+        const atRisk: F24AtRiskItem[] = (atRiskData || []).map(row => {
+          const unpaidCount = row.installments_total - row.installments_paid;
+          const daysRemaining = row.f24_days_to_next_due!;
+          
+          // Calculate nextDueDate from days remaining
+          const nextDueDate = new Date();
+          nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
+          
+          return {
+            rateationId: String(row.id),
+            numero: row.number || 'N/A',
+            contribuente: row.taxpayer_name,
+            unpaidCount,
+            nextDueDate: nextDueDate.toISOString().split('T')[0],
+            daysRemaining
+          };
+        });
 
         if (mounted) {
           setAtRiskF24s(atRisk);

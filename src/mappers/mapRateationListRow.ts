@@ -77,5 +77,8 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     linked_rq_count: Number(r.linked_rq_count || 0),
     latest_linked_rq_number: r.latest_linked_rq_number ?? null,
     latest_rq_id: r.latest_rq_id ?? null,
+    
+    // F24 Recovery Window (server-calculated days to next due)
+    f24_days_to_next_due: r.f24_days_to_next_due ?? null,
   } as RateationRow;
 }

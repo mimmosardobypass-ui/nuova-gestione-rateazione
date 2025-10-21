@@ -76,16 +76,13 @@ export function RateList({
       filtered = filtered.filter(row => row.residuo === 0);
     }
     
-    // NEW: F24 At-Risk Filter (URL param at_risk=true)
+    // F24 At-Risk Filter: Use server-calculated f24_days_to_next_due field (≤ 20 days)
     if (atRiskFilter) {
       filtered = filtered.filter(row => {
-        // Must be F24
-        if (!row.is_f24) return false;
-        
-        // For now, we'll show all F24s with unpaid installments
-        // The full recovery window calculation would require installments data
-        // which we don't have at this level. The badge in detail view will show full info.
-        return (row.rateInRitardo ?? 0) > 0 || row.residuo > 0;
+        return row.is_f24 && 
+               row.f24_days_to_next_due !== null && 
+               row.f24_days_to_next_due !== undefined &&
+               row.f24_days_to_next_due <= 20;
       });
     }
     
