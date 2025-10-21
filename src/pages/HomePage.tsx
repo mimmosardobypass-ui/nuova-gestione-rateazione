@@ -11,6 +11,8 @@ import { useQuaterSaving } from "@/hooks/useQuaterSaving";
 import { useF24PagopaCost } from "@/hooks/useF24PagopaCost";
 import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
+import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
+import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -25,6 +27,7 @@ export default function HomePage() {
   const effectiveKpis = useEffectiveKpis();
   const quaterSaving = useQuaterSaving();
   const f24PagopaCost = useF24PagopaCost();
+  const { atRiskF24s } = useF24AtRisk();
 
   const loading = residualDecadenceKpis.loading || effectiveKpis.loading || quaterSaving.loading || f24PagopaCost.loading;
 
@@ -77,6 +80,16 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* F24 At-Risk Alert */}
+      {atRiskF24s.length > 0 && (
+        <section className="container mx-auto px-4 pt-8">
+          <F24AtRiskAlert 
+            atRiskCount={atRiskF24s.length}
+            onNavigate={() => navigate('/rateazioni?tipo=F24&at_risk=true')}
+          />
+        </section>
+      )}
 
       {/* Main KPI Section - Effective KPIs */}
       <section className="container mx-auto px-4 py-8">

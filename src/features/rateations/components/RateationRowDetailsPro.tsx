@@ -33,6 +33,8 @@ import { PagopaLinks } from "./PagopaLinks";
 import { isPagoPAPlan } from "../utils/isPagopa";
 import { LinkF24Dialog } from './LinkF24Dialog';
 import { Link } from "lucide-react";
+import { F24RecoveryAlert } from './F24RecoveryAlert';
+import { calculateF24RecoveryWindow } from '../utils/f24RecoveryWindow';
 
 // --- SAFE HELPERS ---
 const DEBUG = process.env.NODE_ENV !== 'production';
@@ -338,6 +340,12 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
     beforeReturnCheck: !loading && !error && items.length > 0
   });
 
+  // Calculate F24 recovery window if applicable
+  const f24RecoveryInfo = React.useMemo(() => {
+    if (!rateationInfo?.is_f24 || items.length === 0) return null;
+    return calculateF24RecoveryWindow(items);
+  }, [rateationInfo?.is_f24, items]);
+
   return (
     <div className="p-4 space-y-4">
       {/* Stati non-bloccanti */}
@@ -347,6 +355,16 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       )}
       {!loading && !error && items.length === 0 && (
         <div className="p-3 text-sm text-muted-foreground">Nessuna rata trovata.</div>
+      )}
+
+      {/* F24 Recovery Window Alert */}
+      {f24RecoveryInfo?.isAtRisk && f24RecoveryInfo.nextDueDate && (
+        <F24RecoveryAlert
+          unpaidCount={f24RecoveryInfo.unpaidCount}
+          nextDueDate={f24RecoveryInfo.nextDueDate}
+          daysRemaining={f24RecoveryInfo.daysRemaining}
+          onViewUnpaidInstallments={handleViewOverdueInstallments}
+        />
       )}
 
       {/* Decadence Alert */}

@@ -16,6 +16,8 @@ import { EditRateationModal } from "./EditRateationModal";
 import { RollbackMigrationDialog } from "./RollbackMigrationDialog";
 import { useNavigateToRateation } from '../hooks/useNavigateToRateation';
 import { RateationNumberCell } from "./RateationNumberCell";
+import { F24RecoveryBadge } from "./F24RecoveryBadge";
+import { calculateF24RecoveryWindow } from "../utils/f24RecoveryWindow";
 
 export type RateationRowPro = {
   id: string;
@@ -165,6 +167,13 @@ export function RateationsTablePro({
                          : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
                       }`}>
                            {(() => {
+                              // F24 Recovery Window Logic
+                              if (r.is_f24) {
+                                // We don't have installments here, so we'll show a simplified view
+                                // The full badge will be shown in the detail view
+                                return <span>{r.rateInRitardo + (r.ratePaidLate || 0)}</span>;
+                              }
+                              
                               // Use unified helper for PagoPA detection
                               const isPagoPA = isPagoPAPlan({ is_pagopa: r.is_pagopa, tipo: r.tipo });
                              return isPagoPA ? (

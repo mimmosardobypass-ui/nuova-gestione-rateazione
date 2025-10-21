@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
 import type { RateationRowPro } from "@/features/rateations/components/RateationsTablePro";
 import type { RateationRow } from "@/features/rateations/types";
+import { calculateF24RecoveryWindow } from "@/features/rateations/utils/f24RecoveryWindow";
 
 interface RateListProps {
   rows: RateationRow[];
@@ -29,9 +31,13 @@ export function RateList({
   onViewChange,
   onStats
 }: RateListProps) {
+  const [searchParams] = useSearchParams();
+  const atRiskFilter = searchParams.get('at_risk') === 'true';
+  const tipoFromUrl = searchParams.get('tipo');
+
   // State management per i filtri
   const [filters, setFilters] = useState({
-    tipo: 'all',
+    tipo: tipoFromUrl || 'all',
     stato: 'all',
     mese: '',
     anno: ''
@@ -70,6 +76,19 @@ export function RateList({
       filtered = filtered.filter(row => row.residuo === 0);
     }
     
+    // NEW: F24 At-Risk Filter (URL param at_risk=true)
+    if (atRiskFilter) {
+      filtered = filtered.filter(row => {
+        // Must be F24
+        if (!row.is_f24) return false;
+        
+        // For now, we'll show all F24s with unpaid installments
+        // The full recovery window calculation would require installments data
+        // which we don't have at this level. The badge in detail view will show full info.
+        return (row.rateInRitardo ?? 0) > 0 || row.residuo > 0;
+      });
+    }
+    
     // Filtro per anno (basato su numero rateazione se disponibile, altrimenti skip)
     // Nota: potrebbe essere necessario un campo created_at per filtraggio più accurato
     if (filters.anno) {
@@ -81,7 +100,7 @@ export function RateList({
     }
     
     return filtered;
-  }, [filters]);
+  }, [filters, atRiskFilter]);
 
   const processRows = (sourceRows: RateationRow[]) => 
     sourceRows.map(row => ({
