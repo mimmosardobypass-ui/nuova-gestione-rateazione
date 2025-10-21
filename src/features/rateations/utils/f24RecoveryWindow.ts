@@ -8,7 +8,8 @@
  */
 
 export interface F24RecoveryInfo {
-  unpaidCount: number;
+  overdueCount: number; // Rate scadute non pagate (due_date < today)
+  unpaidCount: number; // Tutte le rate future non pagate (due_date >= today)
   nextDueDate: string | null;
   daysRemaining: number;
   isAtRisk: boolean; // true if daysRemaining <= 20
@@ -30,18 +31,27 @@ export function calculateF24RecoveryWindow(
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Reset to midnight for accurate day calculation
   
-  // Find all unpaid installments with due_date >= today
-  const unpaidFuture = installments.filter(inst => {
+  // Find all unpaid installments
+  const allUnpaid = installments.filter(inst => {
     // Check if paid (support both is_paid and paid_at/paid_date)
     const isPaid = inst.is_paid || !!inst.paid_at || !!inst.paid_date;
-    if (isPaid) return false;
-    
+    return !isPaid;
+  });
+  
+  // Separate overdue (< today) from future unpaid (>= today)
+  const overdueInstallments = allUnpaid.filter(inst => {
+    const dueDate = new Date(inst.due_date);
+    return dueDate < today;
+  });
+  
+  const unpaidFuture = allUnpaid.filter(inst => {
     const dueDate = new Date(inst.due_date);
     return dueDate >= today;
   });
   
   if (unpaidFuture.length === 0) {
     return {
+      overdueCount: overdueInstallments.length,
       unpaidCount: 0,
       nextDueDate: null,
       daysRemaining: Infinity,
@@ -60,6 +70,7 @@ export function calculateF24RecoveryWindow(
   const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   
   return {
+    overdueCount: overdueInstallments.length,
     unpaidCount: unpaidFuture.length,
     nextDueDate: nextDueDate.toISOString(),
     daysRemaining: Math.max(0, daysRemaining), // Clamp to 0 minimum

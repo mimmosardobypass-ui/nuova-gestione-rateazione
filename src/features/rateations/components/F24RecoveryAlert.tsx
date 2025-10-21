@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Calendar, Clock } from "lucide-react";
 
 interface F24RecoveryAlertProps {
+  overdueCount: number;
   unpaidCount: number;
   nextDueDate: string;
   daysRemaining: number;
@@ -13,6 +14,7 @@ interface F24RecoveryAlertProps {
  * Expanded alert for F24 recovery window in detail panel
  */
 export function F24RecoveryAlert({ 
+  overdueCount,
   unpaidCount, 
   nextDueDate, 
   daysRemaining,
@@ -36,7 +38,12 @@ export function F24RecoveryAlert({
       </AlertTitle>
       <AlertDescription className="space-y-3">
         <p className={isUrgent ? 'text-red-800' : 'text-orange-800'}>
-          Hai <strong>{unpaidCount}</strong> {unpaidCount === 1 ? 'rata non pagata' : 'rate non pagate'} che {unpaidCount === 1 ? 'deve' : 'devono'} essere {unpaidCount === 1 ? 'saldata' : 'saldate'} entro la prossima scadenza per evitare la decadenza.
+          Hai <strong>{overdueCount}</strong> {overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} che {overdueCount === 1 ? 'deve' : 'devono'} essere {overdueCount === 1 ? 'saldata' : 'saldate'} entro la prossima scadenza per evitare la decadenza.
+          {unpaidCount > 0 && (
+            <span className="text-xs ml-1">
+              ({unpaidCount} {unpaidCount === 1 ? 'rata futura' : 'rate future'} non {unpaidCount === 1 ? 'pagata' : 'pagate'} in totale)
+            </span>
+          )}
         </p>
         
         <div className="flex flex-wrap gap-4 text-sm">

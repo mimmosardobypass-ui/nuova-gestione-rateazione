@@ -360,6 +360,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
       {/* F24 Recovery Window Alert */}
       {f24RecoveryInfo?.isAtRisk && f24RecoveryInfo.nextDueDate && (
         <F24RecoveryAlert
+          overdueCount={f24RecoveryInfo.overdueCount}
           unpaidCount={f24RecoveryInfo.unpaidCount}
           nextDueDate={f24RecoveryInfo.nextDueDate}
           daysRemaining={f24RecoveryInfo.daysRemaining}
