@@ -6,7 +6,6 @@ import { RateationsTablePro } from "@/features/rateations/components/RateationsT
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
 import type { RateationRowPro } from "@/features/rateations/components/RateationsTablePro";
 import type { RateationRow } from "@/features/rateations/types";
-import { calculateF24RecoveryWindow } from "@/features/rateations/utils/f24RecoveryWindow";
 
 interface RateListProps {
   rows: RateationRow[];
@@ -76,13 +75,12 @@ export function RateList({
       filtered = filtered.filter(row => row.residuo === 0);
     }
     
-    // F24 At-Risk Filter: Use server-calculated f24_days_to_next_due field (≤ 20 days)
+    // NEW: F24 At-Risk Filter (URL param at_risk=true)
+    // Uses server-side calculated f24_days_to_next_due field from v_rateations_list_ui
     if (atRiskFilter) {
       filtered = filtered.filter(row => {
-        return row.is_f24 && 
-               row.f24_days_to_next_due !== null && 
-               row.f24_days_to_next_due !== undefined &&
-               row.f24_days_to_next_due <= 20;
+        // Must be F24 with valid recovery window data (≤ 20 days)
+        return row.is_f24 && row.f24_days_to_next_due != null && row.f24_days_to_next_due <= 20;
       });
     }
     

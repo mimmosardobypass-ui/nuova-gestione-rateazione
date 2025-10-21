@@ -69,8 +69,8 @@ export interface RateationRow {
   maggiorazione_allocata_cents?: number | null; // Extra costo da F24→PagoPA migration
   f24_pagopa_link_id?: string | null;           // ID del link attivo (se esiste)
   
-  // F24 Recovery Window (server-calculated, NULL if not F24 or all paid)
-  f24_days_to_next_due?: number | null;         // Days until next unpaid due date
+  // F24 Recovery Window field (from DB view, calculated server-side)
+  f24_days_to_next_due?: number | null;         // Days until next unpaid F24 installment, null if not applicable
 }
 
 export interface DecadenceDashboard {

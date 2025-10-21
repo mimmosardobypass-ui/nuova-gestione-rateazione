@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
-import { calculateF24RecoveryWindow } from '../utils/f24RecoveryWindow';
 
 export interface F24AtRiskItem {
   rateationId: string;
@@ -20,6 +19,9 @@ export interface UseF24AtRiskResult {
 /**
  * Hook to fetch F24 rateations at risk of decadence
  * (with unpaid installments due within 20 days)
+ * 
+ * OPTIMIZED: Uses server-side calculated f24_days_to_next_due field
+ * from v_rateations_list_ui view for efficient filtering
  */
 export function useF24AtRisk(): UseF24AtRiskResult {
   const [atRiskF24s, setAtRiskF24s] = useState<F24AtRiskItem[]>([]);
@@ -34,8 +36,8 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         setLoading(true);
         setError(null);
 
-        // SIMPLIFIED: Query v_rateations_list_ui directly with f24_days_to_next_due filter
-        // The view now calculates the recovery window server-side
+        // Query v_rateations_list_ui with server-side filtering
+        // Only F24s with f24_days_to_next_due <= 20
         const { data: atRiskData, error: queryError } = await supabase
           .from('v_rateations_list_ui')
           .select('id, number, taxpayer_name, f24_days_to_next_due, installments_total, installments_paid')
@@ -47,12 +49,18 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         if (queryError) throw queryError;
         if (!mounted) return;
 
-        // Map to F24AtRiskItem format
-        const atRisk: F24AtRiskItem[] = (atRiskData || []).map(row => {
-          const unpaidCount = row.installments_total - row.installments_paid;
-          const daysRemaining = row.f24_days_to_next_due!;
+        if (!atRiskData || atRiskData.length === 0) {
+          setAtRiskF24s([]);
+          setLoading(false);
+          return;
+        }
+
+        // Transform view data to F24AtRiskItem format
+        const atRisk: F24AtRiskItem[] = atRiskData.map(row => {
+          const daysRemaining = row.f24_days_to_next_due ?? 0;
+          const unpaidCount = (row.installments_total ?? 0) - (row.installments_paid ?? 0);
           
-          // Calculate nextDueDate from days remaining
+          // Calculate next due date from days remaining
           const nextDueDate = new Date();
           nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
           

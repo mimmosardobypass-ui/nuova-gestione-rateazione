@@ -78,7 +78,7 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     latest_linked_rq_number: r.latest_linked_rq_number ?? null,
     latest_rq_id: r.latest_rq_id ?? null,
     
-    // F24 Recovery Window (server-calculated days to next due)
+    // F24 Recovery Window field (from view)
     f24_days_to_next_due: r.f24_days_to_next_due ?? null,
   } as RateationRow;
 }
