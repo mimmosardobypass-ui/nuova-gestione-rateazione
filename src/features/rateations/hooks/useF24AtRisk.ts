@@ -37,11 +37,12 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         setError(null);
 
         // Query v_rateations_list_ui with server-side filtering
-        // Only F24s with f24_days_to_next_due <= 20
+        // Only F24s with f24_days_to_next_due <= 20 AND status = 'attiva'
         const { data: atRiskData, error: queryError } = await supabase
           .from('v_rateations_list_ui')
           .select('id, number, taxpayer_name, f24_days_to_next_due, installments_total, installments_paid')
           .eq('is_f24', true)
+          .eq('status', 'attiva')
           .not('f24_days_to_next_due', 'is', null)
           .lte('f24_days_to_next_due', 20)
           .order('f24_days_to_next_due', { ascending: true });
