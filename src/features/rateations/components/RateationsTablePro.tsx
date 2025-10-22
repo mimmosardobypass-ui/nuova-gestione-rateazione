@@ -60,6 +60,10 @@ export type RateationRowPro = {
   latest_rq_id?: number | null;
   // F24 link fields
   is_f24?: boolean;
+  // Note fields
+  notes?: string | null;
+  notes_updated_at?: string | null;
+  has_notes?: boolean;
 };
 
 interface RateationsTableProProps {
@@ -186,7 +190,7 @@ export function RateationsTablePro({
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <RateationNumberCell row={r} />
+                      <RateationNumberCell row={r} onRefresh={onRefresh} />
                     </TableCell>
                     <TableCell>{r.tipo}</TableCell>
                     <TableCell>{r.contribuente || "—"}</TableCell>

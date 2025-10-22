@@ -25,8 +25,9 @@ interface NoteDrawerProps {
     contribuente: string | null;
     importo_totale: number | null;
     notes: string | null;
+    notes_updated_at?: string | null;
   };
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export function NoteDrawer({ open, onOpenChange, rateation, onRefresh }: NoteDrawerProps) {
@@ -53,7 +54,7 @@ export function NoteDrawer({ open, onOpenChange, rateation, onRefresh }: NoteDra
       
       if (error) throw error;
       
-      onRefresh();
+      onRefresh?.();
       onOpenChange(false);
       
     } catch (error) {

@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigateToRateation } from "../hooks/useNavigateToRateation";
 import { useF24LinkedPagopa } from "../hooks/useF24LinkedPagopa";
+import { FileText } from "lucide-react";
+import { NoteDrawer } from "./NoteDrawer";
 
 interface RateationNumberCellProps {
   row: {
@@ -19,7 +21,15 @@ interface RateationNumberCellProps {
     // F24 link fields
     is_f24?: boolean;
     interruption_reason?: string | null;
+    // Note fields
+    notes?: string | null;
+    notes_updated_at?: string | null;
+    has_notes?: boolean;
+    tipo?: string;
+    contribuente?: string | null;
+    importoTotale?: number;
   };
+  onRefresh?: () => void;
 }
 
 /**
@@ -28,9 +38,11 @@ interface RateationNumberCellProps {
  * - Rateation number
  * - Interruption badge (for INTERROTTA status)
  * - Linked RQ information (for PagoPA with active links)
+ * - Note icon (clickable to open NoteDrawer)
  */
-export function RateationNumberCell({ row }: RateationNumberCellProps) {
+export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps) {
   const { navigateToRateation } = useNavigateToRateation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   
   // Use explicit flag with fallback to status
   const isInterrotta = (row as any).is_interrupted ?? (row.status === 'INTERROTTA');
@@ -55,10 +67,28 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
     return numA - numB;
   });
 
+  const hasNotes = row.has_notes || !!row.notes;
+
   return (
-    <div className="flex flex-col gap-1">
-      {/* Numero rateazione */}
-      <span className="font-medium">{row.numero || "—"}</span>
+    <>
+      <div className="flex flex-col gap-1">
+        {/* Numero rateazione + Icona Note */}
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.numero || "—"}</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDrawerOpen(true);
+            }}
+            className="flex items-center justify-center transition-colors hover:opacity-70"
+            title={hasNotes ? "Visualizza nota" : "Aggiungi nota"}
+          >
+            <FileText 
+              className={`h-4 w-4 ${hasNotes ? 'text-yellow-500 fill-yellow-100' : 'text-muted-foreground'}`} 
+            />
+          </button>
+        </div>
 
       {/* Sub-row: Badge Status + Links */}
       {(isInterrotta || isDecaduta || isCompletata || hasLinks || isF24Linked) && (
@@ -149,6 +179,25 @@ export function RateationNumberCell({ row }: RateationNumberCellProps) {
           )}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Note Drawer */}
+      <NoteDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        rateation={{
+          id: row.id,
+          numero: row.numero,
+          tipo: row.tipo || '',
+          contribuente: row.contribuente || '',
+          importo_totale: row.importoTotale || 0,
+          notes: row.notes || null,
+          notes_updated_at: row.notes_updated_at || null
+        }}
+        onRefresh={() => {
+          onRefresh?.();
+        }}
+      />
+    </>
   );
 }
