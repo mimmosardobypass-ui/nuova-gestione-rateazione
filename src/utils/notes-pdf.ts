@@ -1,13 +1,13 @@
 import jsPDF from 'jspdf';
 
 interface RateationNote {
-  id: string;
+  id: number;
   numero: string | null;
   tipo: string | null;
   contribuente: string | null;
   importo_totale: number | null;
   notes: string;
-  notes_updated_at: string;
+  updated_at: string;
 }
 
 export function generateSingleNotePDF(rateation: RateationNote) {
@@ -89,7 +89,7 @@ export function generateSingleNotePDF(rateation: RateationNote) {
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   
-  const formattedDate = new Date(rateation.notes_updated_at).toLocaleString('it-IT', {
+  const formattedDate = new Date(rateation.updated_at).toLocaleString('it-IT', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -143,7 +143,7 @@ export function generateNotesPDF(notes: RateationNote[]) {
     // Timestamp
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
-    const formattedDate = new Date(note.notes_updated_at).toLocaleString('it-IT', {
+    const formattedDate = new Date(note.updated_at).toLocaleString('it-IT', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

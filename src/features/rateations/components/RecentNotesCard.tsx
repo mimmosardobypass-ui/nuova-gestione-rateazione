@@ -18,13 +18,13 @@ import { useToast } from "@/hooks/use-toast";
 import { generateNotesPDF } from "@/utils/notes-pdf";
 
 interface RateationNote {
-  id: string;
+  id: number;
   numero: string | null;
   tipo: string | null;
   contribuente: string | null;
   importo_totale: number | null;
   notes: string;
-  notes_updated_at: string;
+  updated_at: string;
 }
 
 export function RecentNotesCard() {
@@ -45,9 +45,9 @@ export function RecentNotesCard() {
 
       const { data, error } = await supabase
         .from('v_rateations_list_ui')
-        .select('id, numero, tipo, contribuente, importo_totale, notes, notes_updated_at')
+        .select('id, numero, tipo, contribuente, importo_totale, notes, updated_at')
         .not('notes', 'is', null)
-        .order('notes_updated_at', { ascending: false })
+        .order('updated_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
@@ -79,7 +79,7 @@ export function RecentNotesCard() {
     try {
       const { error } = await supabase
         .from('rateations')
-        .update({ notes: null, notes_updated_at: null })
+        .update({ notes: null })
         .eq('id', selectedForDelete.id);
 
       if (error) throw error;
@@ -238,7 +238,7 @@ export function RecentNotesCard() {
               
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {formatDateTime(note.notes_updated_at)}
+                {formatDateTime(note.updated_at)}
               </p>
             </div>
           ))}

@@ -19,13 +19,12 @@ interface NoteDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   rateation: {
-    id: string;
+    id: number;
     numero: string | null;
     tipo: string | null;
     contribuente: string | null;
     importo_totale: number | null;
     notes: string | null;
-    notes_updated_at?: string | null;
   };
   onRefresh?: () => void;
 }
@@ -41,14 +40,22 @@ export function NoteDrawer({ open, onOpenChange, rateation, onRefresh }: NoteDra
   }, [rateation.notes, open]);
 
   const handleSave = async () => {
+    if (!supabase) {
+      toast({
+        title: "Errore",
+        description: "Supabase non configurato",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     
     try {
       const { error } = await supabase
         .from('rateations')
         .update({ 
-          notes: notes.trim() || null,
-          notes_updated_at: notes.trim() ? new Date().toISOString() : null
+          notes: notes.trim() || null
         })
         .eq('id', rateation.id);
       

@@ -186,13 +186,12 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         rateation={{
-          id: row.id,
+          id: parseInt(row.id, 10),
           numero: row.numero,
           tipo: row.tipo || '',
           contribuente: row.contribuente || '',
           importo_totale: row.importoTotale || 0,
-          notes: row.notes || null,
-          notes_updated_at: row.notes_updated_at || null
+          notes: row.notes || null
         }}
         onRefresh={() => {
           onRefresh?.();
