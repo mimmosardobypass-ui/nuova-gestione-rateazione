@@ -83,14 +83,12 @@ export default function HomePage() {
       </section>
 
       {/* F24 At-Risk Alert */}
-      {atRiskF24s.length > 0 && (
-        <section className="container mx-auto px-4 pt-8">
-          <F24AtRiskAlert 
-            atRiskCount={atRiskF24s.length}
-            onNavigate={() => navigate('/rateazioni?tipo=F24&at_risk=true')}
-          />
-        </section>
-      )}
+      <section className="container mx-auto px-4 pt-8">
+        <F24AtRiskAlert 
+          atRiskCount={atRiskF24s.length}
+          onNavigate={() => navigate('/rateazioni?tipo=F24&at_risk=true')}
+        />
+      </section>
 
       {/* Recent Notes Section */}
       <section className="container mx-auto px-4 pt-8">
