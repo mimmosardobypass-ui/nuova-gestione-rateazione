@@ -115,14 +115,54 @@ export function RateationsTablePro({
               <TableHead>Numero</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Contribuente</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Importo totale</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Importo pagato</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Importo in ritardo</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Totale residuo</TableHead>
-              <TableHead className="text-center whitespace-nowrap">Rate totali</TableHead>
-              <TableHead className="text-center whitespace-nowrap">Rate pagate</TableHead>
-              <TableHead className="text-center whitespace-nowrap">Rate non pagate</TableHead>
-              <TableHead className="text-center whitespace-nowrap">Rate in ritardo / Scadenti oggi</TableHead>
+              <TableHead className="text-right">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-xs">Importo</span>
+                  <span className="text-xs font-semibold">totale</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-right">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-xs">Importo</span>
+                  <span className="text-xs font-semibold">pagato</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-right">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-xs">Importo</span>
+                  <span className="text-xs font-semibold">in ritardo</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-right">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-xs">Totale</span>
+                  <span className="text-xs font-semibold">residuo</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-center">
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-xs">Rate</span>
+                  <span className="text-xs font-semibold">totali</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-center">
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-xs">Rate</span>
+                  <span className="text-xs font-semibold">pagate</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-center">
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-xs">Rate</span>
+                  <span className="text-xs font-semibold">non pagate</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-center">
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-xs">Rate in ritardo</span>
+                  <span className="text-xs font-semibold">Scadenti oggi</span>
+                </div>
+              </TableHead>
               <TableHead className="w-[120px]">Azioni</TableHead>
             </TableRow>
           </TableHeader>
