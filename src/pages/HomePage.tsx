@@ -13,6 +13,7 @@ import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";
+import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -90,6 +91,11 @@ export default function HomePage() {
           />
         </section>
       )}
+
+      {/* Recent Notes Section */}
+      <section className="container mx-auto px-4 pt-8">
+        <RecentNotesCard />
+      </section>
 
       {/* Main KPI Section - Effective KPIs */}
       <section className="container mx-auto px-4 py-8">
