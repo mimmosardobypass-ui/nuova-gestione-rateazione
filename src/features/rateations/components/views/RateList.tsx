@@ -31,7 +31,8 @@ export function RateList({
   onStats
 }: RateListProps) {
   const [searchParams] = useSearchParams();
-  const atRiskFilter = searchParams.get('at_risk') === 'true';
+  const filterParam = searchParams.get('filter'); // NEW: Unified filter system
+  const atRiskFilter = searchParams.get('at_risk') === 'true'; // LEGACY: backward compatibility
   const tipoFromUrl = searchParams.get('tipo');
 
   // State management per i filtri
@@ -75,11 +76,24 @@ export function RateList({
       filtered = filtered.filter(row => row.residuo === 0);
     }
     
-    // NEW: F24 At-Risk Filter (URL param at_risk=true)
-    // Uses server-side calculated f24_days_to_next_due field from v_rateations_list_ui
-    if (atRiskFilter) {
+    // NEW: Unified At-Risk Filter System
+    if (filterParam === 'f24-at-risk') {
+      // F24 at risk: giorni al prossimo pagamento ≤ 20
       filtered = filtered.filter(row => {
-        // Must be F24 with valid recovery window data (≤ 20 days)
+        return row.is_f24 && row.f24_days_to_next_due != null && row.f24_days_to_next_due <= 20;
+      });
+    } else if (filterParam === 'pagopa-at-risk') {
+      // PagoPA at risk: ≥ 7 rate scadute non pagate E skip residui ≤ 1
+      filtered = filtered.filter(row => {
+        return row.is_pagopa && 
+               row.unpaid_overdue_today != null && 
+               row.unpaid_overdue_today >= 7 &&
+               row.skip_remaining != null &&
+               row.skip_remaining <= 1;
+      });
+    } else if (atRiskFilter) {
+      // LEGACY: backward compatibility per vecchi link ?at_risk=true
+      filtered = filtered.filter(row => {
         return row.is_f24 && row.f24_days_to_next_due != null && row.f24_days_to_next_due <= 20;
       });
     }
@@ -95,7 +109,7 @@ export function RateList({
     }
     
     return filtered;
-  }, [filters, atRiskFilter]);
+  }, [filters, filterParam, atRiskFilter]);
 
   const processRows = (sourceRows: RateationRow[]) => 
     sourceRows.map(row => ({
