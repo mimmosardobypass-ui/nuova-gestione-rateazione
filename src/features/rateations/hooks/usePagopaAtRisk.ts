@@ -1,0 +1,144 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client-resilient';
+import { ALERT_CONFIG } from '@/constants/alertConfig';
+
+export interface PagopaAtRiskItem {
+  rateationId: string;
+  numero: string;
+  contribuente: string | null;
+  unpaidOverdueCount: number;
+  skipRemaining: number;
+  nextDueDate: string | null;
+  daysRemaining: number;
+}
+
+export interface UsePagopaAtRiskResult {
+  atRiskPagopas: PagopaAtRiskItem[];
+  loading: boolean;
+  error: string | null;
+}
+
+/**
+ * Hook to fetch PagoPA rateations at risk of decadence
+ * 
+ * LOGIC: PagoPA is at risk if:
+ * - Has >= preWarningSkips unpaid overdue installments (default: 7)
+ * - AND status is 'attiva'
+ * - AND next unpaid installment is within daysThreshold days (default: 30)
+ * 
+ * Uses configurable thresholds from ALERT_CONFIG
+ */
+export function usePagopaAtRisk(): UsePagopaAtRiskResult {
+  const [atRiskPagopas, setAtRiskPagopas] = useState<PagopaAtRiskItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchPagopaAtRisk() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const config = ALERT_CONFIG.pagopa;
+
+        // Query v_rateations_list_ui for PagoPA with >= preWarningSkips unpaid overdue
+        const { data: atRiskData, error: queryError } = await supabase
+          .from('v_rateations_list_ui')
+          .select('id, number, taxpayer_name, installments_overdue_today')
+          .eq('is_pagopa', true)
+          .eq('status', 'attiva')
+          .gte('installments_overdue_today', config.preWarningSkips)
+          .order('installments_overdue_today', { ascending: false });
+
+        if (queryError) throw queryError;
+        if (!mounted) return;
+
+        if (!atRiskData || atRiskData.length === 0) {
+          setAtRiskPagopas([]);
+          setLoading(false);
+          return;
+        }
+
+        // For each rateation, find next unpaid installment and calculate days remaining
+        const atRiskItems: PagopaAtRiskItem[] = [];
+
+        for (const row of atRiskData) {
+          // Query installments to find next unpaid
+          const { data: installments, error: instError } = await supabase
+            .from('installments')
+            .select('due_date, is_paid')
+            .eq('rateation_id', row.id)
+            .order('due_date', { ascending: true });
+
+          if (instError) {
+            console.error('[usePagopaAtRisk] Error loading installments:', instError);
+            continue;
+          }
+
+          if (!installments || installments.length === 0) continue;
+
+          // Find next unpaid installment
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const nextUnpaid = installments.find(inst => !inst.is_paid);
+          if (!nextUnpaid || !nextUnpaid.due_date) continue;
+
+          const dueDate = new Date(nextUnpaid.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+          // Only include if within daysThreshold
+          if (daysRemaining > config.daysThreshold) continue;
+
+          const skipRemaining = config.maxSkips - (row.installments_overdue_today ?? 0);
+
+          atRiskItems.push({
+            rateationId: String(row.id),
+            numero: row.number || 'N/A',
+            contribuente: row.taxpayer_name,
+            unpaidOverdueCount: row.installments_overdue_today ?? 0,
+            skipRemaining: Math.max(0, skipRemaining),
+            nextDueDate: nextUnpaid.due_date,
+            daysRemaining,
+          });
+        }
+
+        // Sort by days remaining (most urgent first)
+        atRiskItems.sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+        if (mounted) {
+          setAtRiskPagopas(atRiskItems);
+        }
+      } catch (err: any) {
+        console.error('[usePagopaAtRisk] Error:', err);
+        if (mounted) {
+          setError(err?.message || 'Errore nel caricamento PagoPA a rischio');
+          setAtRiskPagopas([]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchPagopaAtRisk();
+
+    // Listen for rateations:reload-kpis event to refresh
+    const handleReload = () => {
+      fetchPagopaAtRisk();
+    };
+
+    window.addEventListener('rateations:reload-kpis', handleReload);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('rateations:reload-kpis', handleReload);
+    };
+  }, []);
+
+  return { atRiskPagopas, loading, error };
+}

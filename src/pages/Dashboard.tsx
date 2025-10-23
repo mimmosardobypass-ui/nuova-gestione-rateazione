@@ -25,6 +25,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import ResidualDecadenceSection from "@/pages/dashboard/ResidualDecadenceSection";
 import { toLocalISO } from "@/utils/date";
+import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
+import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
+import { calculateAlertDetails } from "@/constants/alertConfig";
 
 type Installment = {
   id: number;
@@ -107,6 +111,20 @@ export default function Dashboard() {
     window.addEventListener('rateations:reload-kpis', handleKpiReload);
     return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
   }, []);
+
+  // Alert hooks
+  const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
+  const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
+
+  // Calculate alert details for dynamic messages
+  const f24Details = useMemo(() => 
+    calculateAlertDetails(atRiskF24s, 'f24'), 
+    [atRiskF24s]
+  );
+  const pagopaDetails = useMemo(() => 
+    calculateAlertDetails(atRiskPagopas, 'pagopa'), 
+    [atRiskPagopas]
+  );
 
   // Calcoli
   const totalDue = useMemo(
@@ -225,6 +243,27 @@ export default function Dashboard() {
 
         {/* Compact KPI Cards */}
         <ResidualDecadenceSection />
+
+        {/* Configurable Alerts */}
+        <div className="mt-6 space-y-4">
+          {!loadingF24Risk && (
+            <ConfigurableAlert
+              type="f24"
+              count={atRiskF24s.length}
+              details={f24Details}
+              onNavigate={() => navigate("/rateazioni?filter=f24-at-risk")}
+            />
+          )}
+          
+          {!loadingPagopaRisk && (
+            <ConfigurableAlert
+              type="pagopa"
+              count={atRiskPagopas.length}
+              details={pagopaDetails}
+              onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
+            />
+          )}
+        </div>
 
         {/* Link per vedere dettagli completi */}
         <div className="mt-6 p-4 bg-muted rounded-lg">
