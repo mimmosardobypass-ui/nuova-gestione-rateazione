@@ -48,7 +48,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           .from('v_rateations_list_ui')
           .select('id, number, taxpayer_name, installments_overdue_today')
           .eq('is_pagopa', true)
-          .eq('status', 'attiva')
+          .in('status', ['attiva', 'in_ritardo'])
           .gte('installments_overdue_today', config.preWarningSkips)
           .order('installments_overdue_today', { ascending: false });
 
