@@ -12,7 +12,9 @@ import { useF24PagopaCost } from "@/hooks/useF24PagopaCost";
 import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
-import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";
+import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
+import { calculateAlertDetails } from "@/constants/alertConfig";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
 export default function HomePage() {
@@ -28,7 +30,28 @@ export default function HomePage() {
   const effectiveKpis = useEffectiveKpis();
   const quaterSaving = useQuaterSaving();
   const f24PagopaCost = useF24PagopaCost();
-  const { atRiskF24s } = useF24AtRisk();
+  
+  // Alert hooks
+  const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
+  const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
+
+  // Calculate alert details for dynamic messages
+  const f24Details = useMemo(() => 
+    calculateAlertDetails(atRiskF24s, 'f24'), 
+    [atRiskF24s]
+  );
+  const pagopaDetails = useMemo(() => 
+    calculateAlertDetails(atRiskPagopas, 'pagopa'), 
+    [atRiskPagopas]
+  );
+
+  // Debug: Log stato alert PagoPA
+  console.log('🟢 [HomePage] PagoPA Alert State:', {
+    loading: loadingPagopaRisk,
+    count: atRiskPagopas.length,
+    details: pagopaDetails,
+    items: atRiskPagopas
+  });
 
   const loading = residualDecadenceKpis.loading || effectiveKpis.loading || quaterSaving.loading || f24PagopaCost.loading;
 
@@ -82,12 +105,59 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* F24 At-Risk Alert */}
+      {/* Configurable Alerts */}
       <section className="container mx-auto px-4 pt-8">
-        <F24AtRiskAlert 
-          atRiskCount={atRiskF24s.length}
-          onNavigate={() => navigate('/rateazioni?tipo=F24&at_risk=true')}
-        />
+        <div className="space-y-4 border-2 border-purple-500 p-4 rounded-lg">
+          <p className="text-purple-500 text-xs font-mono">DEBUG: Alert container visible (HomePage)</p>
+          
+          {!loadingF24Risk && (
+            <ConfigurableAlert
+              type="f24"
+              count={atRiskF24s.length}
+              details={f24Details}
+              onNavigate={() => navigate("/rateazioni?filter=f24-at-risk")}
+            />
+          )}
+          
+          {(() => {
+            try {
+              if (loadingPagopaRisk) {
+                return (
+                  <div className="border border-muted bg-muted/10 p-4 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        Caricamento alert PagoPA...
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              
+              console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
+              return (
+                <ConfigurableAlert
+                  type="pagopa"
+                  count={atRiskPagopas.length}
+                  details={pagopaDetails}
+                  onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
+                />
+              );
+            } catch (error) {
+              console.error('🔴 [HomePage] Error rendering PagoPA alert:', error);
+              return (
+                <div className="border border-destructive bg-destructive/10 p-4 rounded-lg">
+                  <p className="text-sm text-destructive font-semibold">
+                    Errore visualizzazione alert PagoPA
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {String(error)}
+                  </p>
+                </div>
+              );
+            }
+          })()}
+        </div>
       </section>
 
       {/* Recent Notes Section */}
