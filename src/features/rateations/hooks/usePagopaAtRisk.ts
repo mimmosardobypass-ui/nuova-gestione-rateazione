@@ -29,152 +29,38 @@ export interface UsePagopaAtRiskResult {
  * Uses configurable thresholds from ALERT_CONFIG
  */
 export function usePagopaAtRisk(): UsePagopaAtRiskResult {
+  console.log('🔵 [usePagopaAtRisk] Hook START - FIRST LINE EXECUTED');
+  
   const [atRiskPagopas, setAtRiskPagopas] = useState<PagopaAtRiskItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // FALSE per test immediato
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('🔵 [usePagopaAtRisk] Hook mounted, starting fetch...');
-    let mounted = true;
-
-    async function fetchPagopaAtRisk() {
-      console.log('🔵 [usePagopaAtRisk] fetchPagopaAtRisk called');
-      try {
-        setLoading(true);
-        setError(null);
-
-        if (!supabase) {
-          console.error('[usePagopaAtRisk] Supabase client not available');
-          setError('Database non disponibile');
-          setLoading(false);
-          return;
-        }
-
-        const config = ALERT_CONFIG.pagopa;
-
-        // Query v_rateations_list_ui for PagoPA with >= preWarningSkips unpaid overdue
-        const { data: atRiskData, error: queryError } = await supabase
-          .from('v_rateations_list_ui')
-          .select('id, number, taxpayer_name, installments_overdue_today')
-          .eq('is_pagopa', true)
-          .in('status', ['attiva', 'in_ritardo'])
-          .gte('installments_overdue_today', config.preWarningSkips)
-          .order('installments_overdue_today', { ascending: false });
-
-        if (queryError) throw queryError;
-        if (!mounted) return;
-
-        console.log('[usePagopaAtRisk] Found', atRiskData?.length ?? 0, 'PagoPA with >=', config.preWarningSkips, 'unpaid overdue');
-
-        if (!atRiskData || atRiskData.length === 0) {
-          setAtRiskPagopas([]);
-          setLoading(false);
-          return;
-        }
-
-        // For each rateation, find next unpaid installment and calculate days remaining
-        const atRiskItems: PagopaAtRiskItem[] = [];
-
-        for (const row of atRiskData) {
-          console.log('[usePagopaAtRisk] Processing rateation', row.number, 'with', row.installments_overdue_today, 'overdue');
-          
-          // Query installments to find next unpaid
-          const { data: installments, error: instError } = await supabase
-            .from('installments')
-            .select('due_date, is_paid')
-            .eq('rateation_id', row.id)
-            .order('due_date', { ascending: true });
-
-          if (instError) {
-            console.error('[usePagopaAtRisk] Error loading installments:', instError);
-            continue;
-          }
-
-          if (!installments || installments.length === 0) continue;
-
-          // Find next RELEVANT unpaid installment (overdue or due soon)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          // Filter for unpaid installments that are already due or will be due within threshold
-          const relevantUnpaid = installments
-            .filter(inst => !inst.is_paid && inst.due_date)
-            .map(inst => {
-              const dueDate = new Date(inst.due_date!);
-              dueDate.setHours(0, 0, 0, 0);
-              const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              return { ...inst, dueDate, daysRemaining };
-            })
-            .filter(inst => inst.daysRemaining < 0 || inst.daysRemaining <= config.daysThreshold) // Include ALL overdue (negative) OR upcoming within threshold
-            .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-
-          if (relevantUnpaid.length === 0) {
-            console.log('[usePagopaAtRisk] No relevant unpaid installments within threshold');
-            continue;
-          }
-
-          const nextUnpaid = relevantUnpaid[0];
-          const daysRemaining = nextUnpaid.daysRemaining;
-
-          console.log('[usePagopaAtRisk] Next unpaid due:', nextUnpaid.due_date, 'daysRemaining:', daysRemaining);
-
-          // IMPORTANTE: Includere scadenze passate (daysRemaining < 0) e future vicine (0 <= daysRemaining <= threshold)
-          // Escludere SOLO se troppo lontane nel futuro (> threshold)
-          if (daysRemaining > config.daysThreshold) {
-            console.log('[usePagopaAtRisk] Skipping: too far in future');
-            continue;
-          }
-
-          const skipRemaining = Math.max(0, config.maxSkips - (row.installments_overdue_today ?? 0));
-
-          atRiskItems.push({
-            rateationId: String(row.id),
-            numero: row.number || 'N/A',
-            contribuente: row.taxpayer_name,
-            unpaidOverdueCount: row.installments_overdue_today ?? 0,
-            skipRemaining,
-            nextDueDate: nextUnpaid.due_date,
-            daysRemaining,
-          });
-        }
-
-        // Sort by days remaining (most urgent first - negativi prima)
-        atRiskItems.sort((a, b) => a.daysRemaining - b.daysRemaining);
-
-        console.log('[usePagopaAtRisk] Final at-risk items:', atRiskItems.length, atRiskItems.map(i => i.numero).join(', '));
-
-        if (mounted) {
-          setAtRiskPagopas(atRiskItems);
-        }
-      } catch (err: any) {
-        console.error('🔴 [usePagopaAtRisk] Error:', err);
-        if (mounted) {
-          setError(err?.message || 'Errore nel caricamento PagoPA a rischio');
-          setAtRiskPagopas([]);
-        }
-      } finally {
-        // SEMPRE impostare loading a false, anche in caso di errore
-        if (mounted) {
-          console.log('🔵 [usePagopaAtRisk] Setting loading to false');
-          setLoading(false);
-        }
+    console.log('🔵 [usePagopaAtRisk] useEffect TRIGGERED - setting mock data');
+    
+    // Mock data per test - simula 1 rateazione PagoPA a rischio
+    const mockData: PagopaAtRiskItem[] = [
+      {
+        rateationId: '28',
+        numero: 'N.11 PagoPa TEST',
+        contribuente: 'CONTRIBUENTE TEST',
+        unpaidOverdueCount: 7,
+        skipRemaining: 1,
+        nextDueDate: '2025-02-11',
+        daysRemaining: -254
       }
-    }
-
-    fetchPagopaAtRisk();
-
-    // Listen for rateations:reload-kpis event to refresh
-    const handleReload = () => {
-      fetchPagopaAtRisk();
-    };
-
-    window.addEventListener('rateations:reload-kpis', handleReload);
-
-    return () => {
-      mounted = false;
-      window.removeEventListener('rateations:reload-kpis', handleReload);
-    };
+    ];
+    
+    console.log('🔵 [usePagopaAtRisk] Setting mock data:', mockData);
+    setAtRiskPagopas(mockData);
   }, []);
+
+  console.log('🔵 [usePagopaAtRisk] Hook END - Returning state:', { 
+    count: atRiskPagopas.length, 
+    loading, 
+    error,
+    items: atRiskPagopas.map(i => i.numero)
+  });
 
   return { atRiskPagopas, loading, error };
 }
