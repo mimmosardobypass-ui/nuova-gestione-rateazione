@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client-resilient';
+import { supabase } from '@/integrations/supabase/client';
 import { ALERT_CONFIG } from '@/constants/alertConfig';
 
 export interface PagopaAtRiskItem {
@@ -34,9 +34,11 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🔵 [usePagopaAtRisk] Hook mounted, starting fetch...');
     let mounted = true;
 
     async function fetchPagopaAtRisk() {
+      console.log('🔵 [usePagopaAtRisk] fetchPagopaAtRisk called');
       try {
         setLoading(true);
         setError(null);
@@ -132,13 +134,15 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           setAtRiskPagopas(atRiskItems);
         }
       } catch (err: any) {
-        console.error('[usePagopaAtRisk] Error:', err);
+        console.error('🔴 [usePagopaAtRisk] Error:', err);
         if (mounted) {
           setError(err?.message || 'Errore nel caricamento PagoPA a rischio');
           setAtRiskPagopas([]);
         }
       } finally {
+        // SEMPRE impostare loading a false, anche in caso di errore
         if (mounted) {
+          console.log('🔵 [usePagopaAtRisk] Setting loading to false');
           setLoading(false);
         }
       }

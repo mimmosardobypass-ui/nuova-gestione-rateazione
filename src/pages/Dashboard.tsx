@@ -255,14 +255,12 @@ export default function Dashboard() {
             />
           )}
           
-          {!loadingPagopaRisk && (
-            <ConfigurableAlert
-              type="pagopa"
-              count={atRiskPagopas.length}
-              details={pagopaDetails}
-              onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
-            />
-          )}
+          <ConfigurableAlert
+            type="pagopa"
+            count={atRiskPagopas.length}
+            details={pagopaDetails}
+            onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
+          />
         </div>
 
         {/* Link per vedere dettagli completi */}
