@@ -92,16 +92,29 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
 
           if (!installments || installments.length === 0) continue;
 
-          // Find next unpaid installment
+          // Find next RELEVANT unpaid installment (overdue or due soon)
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
-          const nextUnpaid = installments.find(inst => !inst.is_paid);
-          if (!nextUnpaid || !nextUnpaid.due_date) continue;
+          // Filter for unpaid installments that are already due or will be due within threshold
+          const relevantUnpaid = installments
+            .filter(inst => !inst.is_paid && inst.due_date)
+            .map(inst => {
+              const dueDate = new Date(inst.due_date!);
+              dueDate.setHours(0, 0, 0, 0);
+              const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              return { ...inst, dueDate, daysRemaining };
+            })
+            .filter(inst => inst.daysRemaining <= config.daysThreshold) // Include overdue (negative) and upcoming within threshold
+            .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
-          const dueDate = new Date(nextUnpaid.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          if (relevantUnpaid.length === 0) {
+            console.log('[usePagopaAtRisk] No relevant unpaid installments within threshold');
+            continue;
+          }
+
+          const nextUnpaid = relevantUnpaid[0];
+          const daysRemaining = nextUnpaid.daysRemaining;
 
           console.log('[usePagopaAtRisk] Next unpaid due:', nextUnpaid.due_date, 'daysRemaining:', daysRemaining);
 

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import SupabaseOutageBanner from "@/components/SupabaseOutageBanner";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -37,12 +38,13 @@ const App = () => {
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <SupabaseOutageBanner />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppLayout>
-            <Routes>
+        <ErrorBoundary>
+          <SupabaseOutageBanner />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppLayout>
+              <Routes>
               <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>
@@ -117,6 +119,7 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
