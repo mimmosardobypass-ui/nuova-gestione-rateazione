@@ -105,160 +105,120 @@ export function generateSingleNotePDF(rateation: RateationNote) {
 
 export function generateNotesPDF(notes: RateationNote[]) {
   const doc = new jsPDF();
+  const margin = 15;
+  let yPos = 20;
   
-  // Configurazione layout 4×3 ultra-compatto
-  const pageWidth = 210; // A4 width in mm
-  const pageHeight = 297; // A4 height in mm
-  const margin = 8;
-  const headerHeight = 15;
-  const usableWidth = pageWidth - (margin * 2);
-  const usableHeight = pageHeight - headerHeight - margin;
+  // Header principale
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  const today = new Date().toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  doc.text(`RIEPILOGO NOTE - ${today}`, margin, yPos);
+  yPos += 10;
   
-  const cols = 3;
-  const rows = 4;
-  const colGap = 3;
-  const rowGap = 3;
+  // Separator dopo header
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, 195, yPos);
+  yPos += 10;
   
-  const boxWidth = (usableWidth - (colGap * (cols - 1))) / cols;
-  const boxHeight = (usableHeight - (rowGap * (rows - 1))) / rows;
-  
-  let currentPage = 0;
-  let currentIndex = 0;
-  
-  const notesPerPage = rows * cols; // 12 notes per page
-  const totalPages = Math.ceil(notes.length / notesPerPage);
-  
-  // Helper: Format taxpayer codes in 3 vertical columns (max 4 codes per column)
+  // Helper: Format taxpayer codes in 3 vertical columns
   const formatTaxpayerColumns = (taxpayerName: string | null): string[][] => {
     if (!taxpayerName) return [['N/A']];
     
     const codes = taxpayerName.trim().split(/\s+/).filter(c => c.length > 0);
     
-    // Single code: return as single column
     if (codes.length === 1) {
-      const code = codes[0].length > 20 ? codes[0].substring(0, 17) + '...' : codes[0];
-      return [[code]];
+      return [[codes[0]]];
     }
     
-    // Multiple codes: distribute in 3 columns (max 4 per column = 12 total)
+    // Multiple codes: distribute in 3 columns (max 4 per column)
     const maxCodes = 12;
     const codesToShow = codes.slice(0, maxCodes);
     
-    const column1 = codesToShow.slice(0, 4).map(c => 
-      c.length > 17 ? c.substring(0, 14) + '...' : c
-    );
-    const column2 = codesToShow.slice(4, 8).map(c => 
-      c.length > 17 ? c.substring(0, 14) + '...' : c
-    );
-    const column3 = codesToShow.slice(8, 12).map(c => 
-      c.length > 17 ? c.substring(0, 14) + '...' : c
-    );
+    const column1 = codesToShow.slice(0, 4);
+    const column2 = codesToShow.slice(4, 8);
+    const column3 = codesToShow.slice(8, 12);
     
     return [column1, column2, column3].filter(col => col.length > 0);
   };
   
-  // Generate pages
-  for (let page = 0; page < totalPages; page++) {
-    if (page > 0) doc.addPage();
+  // Render each note
+  notes.forEach((note, index) => {
+    // Check if we need a new page
+    if (yPos > 260) {
+      doc.addPage();
+      yPos = 20;
+    }
     
-    // Header compatto
+    // Note number and header
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('RIEPILOGO NOTE', margin, 10);
+    const headerText = `${index + 1}. ${note.number || 'N/A'} ${note.rateation_types?.name || ''} - `;
+    doc.text(headerText, margin, yPos);
+    yPos += 6;
     
-    doc.setFontSize(7);
+    // Taxpayer codes (3 columns if multiple)
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    const today = new Date().toLocaleDateString('it-IT');
-    doc.text(today, pageWidth - margin - 20, 10);
-    doc.text(`Pag. ${page + 1}/${totalPages}`, pageWidth - margin - 20, 13);
+    const taxpayerColumns = formatTaxpayerColumns(note.taxpayer_name);
     
-    // Separator
-    doc.setLineWidth(0.2);
-    doc.line(margin, headerHeight - 2, pageWidth - margin, headerHeight - 2);
-    
-    // Draw grid
-    const startY = headerHeight;
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const noteIndex = page * notesPerPage + (row * cols) + col;
-        
-        if (noteIndex >= notes.length) break;
-        
-        const note = notes[noteIndex];
-        const xPos = margin + (col * (boxWidth + colGap));
-        const yPos = startY + (row * (boxHeight + rowGap));
-        
-        // Box border
-        doc.setDrawColor(200, 200, 200);
-        doc.setLineWidth(0.2);
-        doc.rect(xPos, yPos, boxWidth, boxHeight);
-        
-        let lineY = yPos + 4;
-        const padding = 2;
-        
-        // Line 1: Number + Type
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        const numberText = note.number || 'N/A';
-        const typeText = note.rateation_types?.name || '';
-        const headerText = typeText ? `${numberText} ${typeText}` : numberText;
-        const truncatedHeader = headerText.length > 25 
-          ? headerText.substring(0, 22) + '...' 
-          : headerText;
-        doc.text(truncatedHeader, xPos + padding, lineY);
-        lineY += 4;
-        
-        // Line 2+: Taxpayer codes in 3 vertical columns
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'normal');
-        const taxpayerColumns = formatTaxpayerColumns(note.taxpayer_name);
-        
-        // Calculate column width (divide available space by 3)
-        const availableWidth = boxWidth - (padding * 2);
-        const columnWidth = availableWidth / 3;
-        const columnGap = 1; // Small gap between columns
-        
-        // Draw each column
-        const startLineY = lineY;
+    if (taxpayerColumns.length === 1 && taxpayerColumns[0].length === 1) {
+      // Single code: display on same line as header
+      yPos -= 6; // Go back to same line
+      const headerWidth = doc.getTextWidth(headerText);
+      doc.text(taxpayerColumns[0][0], margin + headerWidth, yPos);
+      yPos += 6;
+    } else {
+      // Multiple codes: display in 3 columns below header
+      const columnWidth = 60; // Width for each column
+      const startX = margin + 3; // Indent slightly
+      
+      const maxRows = Math.max(...taxpayerColumns.map(col => col.length));
+      
+      for (let row = 0; row < maxRows; row++) {
         taxpayerColumns.forEach((column, colIndex) => {
-          const colX = xPos + padding + (colIndex * columnWidth);
-          let colY = startLineY;
-          
-          column.forEach((code) => {
-            doc.text(code, colX, colY, { maxWidth: columnWidth - columnGap });
-            colY += 3; // 3mm spacing between codes
-          });
+          if (row < column.length) {
+            const colX = startX + (colIndex * columnWidth);
+            doc.text(column[row], colX, yPos);
+          }
         });
-        
-        // Move lineY to after the tallest column (max 4 codes = 4 * 3mm = 12mm)
-        const maxCodeHeight = Math.max(...taxpayerColumns.map(col => col.length)) * 3;
-        lineY += maxCodeHeight + 1; // +1mm extra spacing
-        
-        // Lines 3-5: Note content (max 3 lines)
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        const noteText = note.notes.length > 100 
-          ? note.notes.substring(0, 97) + '...'
-          : note.notes;
-        const splitNote = doc.splitTextToSize(noteText, boxWidth - (padding * 2));
-        const maxNoteLines = 3;
-        const noteLinestoShow = splitNote.slice(0, maxNoteLines);
-        doc.text(noteLinestoShow, xPos + padding, lineY);
-        lineY += (noteLinestoShow.length * 3.5);
-        
-        // Last line: Date (at bottom of box)
-        doc.setFontSize(5);
-        doc.setFont('helvetica', 'italic');
-        const date = new Date(note.updated_at).toLocaleDateString('it-IT', {
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit'
-        });
-        doc.text(date, xPos + padding, yPos + boxHeight - 2);
+        yPos += 5;
       }
     }
-  }
+    
+    yPos += 2;
+    
+    // Note content
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Nota: ${note.notes}`, margin + 3, yPos, { maxWidth: 180 });
+    const noteLines = doc.splitTextToSize(`Nota: ${note.notes}`, 180);
+    yPos += (noteLines.length * 5);
+    
+    yPos += 3;
+    
+    // Date
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    const formattedDate = new Date(note.updated_at).toLocaleString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    doc.text(`Modificata: ${formattedDate}`, margin + 3, yPos);
+    yPos += 8;
+    
+    // Separator
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(150, 150, 150);
+    doc.line(margin, yPos, 195, yPos);
+    yPos += 8;
+  });
   
   // Download
   const fileName = `Riepilogo_Note_${new Date().toISOString().split('T')[0]}.pdf`;
