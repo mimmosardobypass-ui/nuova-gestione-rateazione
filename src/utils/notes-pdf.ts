@@ -2,12 +2,12 @@ import jsPDF from 'jspdf';
 
 interface RateationNote {
   id: number;
-  numero: string | null;
-  tipo: string | null;
-  contribuente: string | null;
-  importo_totale: number | null;
+  number: string | null;
+  taxpayer_name: string | null;
+  total_amount: number | null;
   notes: string;
   updated_at: string;
+  rateation_types?: { name: string } | null;
 }
 
 export function generateSingleNotePDF(rateation: RateationNote) {
@@ -29,36 +29,36 @@ export function generateSingleNotePDF(rateation: RateationNote) {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   
-  if (rateation.numero) {
+  if (rateation.number) {
     doc.setFont('helvetica', 'bold');
     doc.text('Numero:', 20, yPos);
     doc.setFont('helvetica', 'normal');
-    doc.text(rateation.numero, 50, yPos);
+    doc.text(rateation.number, 50, yPos);
     yPos += 7;
   }
   
-  if (rateation.tipo) {
+  if (rateation.rateation_types?.name) {
     doc.setFont('helvetica', 'bold');
     doc.text('Tipo:', 20, yPos);
     doc.setFont('helvetica', 'normal');
-    doc.text(rateation.tipo, 50, yPos);
+    doc.text(rateation.rateation_types.name, 50, yPos);
     yPos += 7;
   }
   
-  if (rateation.contribuente) {
+  if (rateation.taxpayer_name) {
     doc.setFont('helvetica', 'bold');
     doc.text('Contribuente:', 20, yPos);
     doc.setFont('helvetica', 'normal');
-    doc.text(rateation.contribuente, 50, yPos);
+    doc.text(rateation.taxpayer_name, 50, yPos);
     yPos += 7;
   }
   
-  if (rateation.importo_totale) {
+  if (rateation.total_amount) {
     doc.setFont('helvetica', 'bold');
     doc.text('Importo totale:', 20, yPos);
     doc.setFont('helvetica', 'normal');
     doc.text(
-      `€${rateation.importo_totale.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+      `€${rateation.total_amount.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
       50,
       yPos
     );
@@ -99,7 +99,7 @@ export function generateSingleNotePDF(rateation: RateationNote) {
   doc.text(`Ultima modifica: ${formattedDate}`, 20, footerY);
   
   // Download
-  const fileName = `Nota_${rateation.numero || 'Rateazione'}.pdf`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const fileName = `Nota_${rateation.number || 'Rateazione'}.pdf`.replace(/[^a-zA-Z0-9_.-]/g, '_');
   doc.save(fileName);
 }
 
@@ -130,7 +130,7 @@ export function generateNotesPDF(notes: RateationNote[]) {
     // Note number
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${index + 1}. ${note.numero || 'N/A'} - ${note.contribuente || 'N/A'}`, 20, yPos);
+    doc.text(`${index + 1}. ${note.number || 'N/A'} - ${note.taxpayer_name || 'N/A'}`, 20, yPos);
     yPos += 7;
     
     // Note content

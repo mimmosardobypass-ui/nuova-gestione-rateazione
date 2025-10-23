@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client-resilient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { notifyRateationChanged } from "@/lib/events";
 
 interface NoteDrawerProps {
   open: boolean;
@@ -61,7 +62,13 @@ export function NoteDrawer({ open, onOpenChange, rateation, onRefresh }: NoteDra
       
       if (error) throw error;
       
+      toast({
+        title: "Nota salvata",
+        description: "La nota è stata salvata con successo.",
+      });
+      
       onRefresh?.();
+      notifyRateationChanged({ id: rateation.id, action: 'updated' });
       onOpenChange(false);
       
     } catch (error) {

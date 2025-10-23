@@ -19,12 +19,12 @@ import { generateNotesPDF } from "@/utils/notes-pdf";
 
 interface RateationNote {
   id: number;
-  numero: string | null;
-  tipo: string | null;
-  contribuente: string | null;
-  importo_totale: number | null;
+  number: string | null;
+  taxpayer_name: string | null;
+  total_amount: number | null;
   notes: string;
   updated_at: string;
+  rateation_types: { name: string } | null;
 }
 
 export function RecentNotesCard() {
@@ -44,14 +44,32 @@ export function RecentNotesCard() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('v_rateations_list_ui')
-        .select('id, numero, tipo, contribuente, importo_totale, notes, updated_at')
+        .from('rateations')
+        .select(`
+          id,
+          number,
+          taxpayer_name,
+          total_amount,
+          notes,
+          updated_at,
+          rateation_types(name)
+        `)
         .not('notes', 'is', null)
+        .eq('is_deleted', false)
         .order('updated_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
-      setNotes(data || []);
+      
+      // Map the data to fix the rateation_types structure
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        rateation_types: Array.isArray(item.rateation_types) && item.rateation_types.length > 0
+          ? item.rateation_types[0]
+          : null
+      }));
+      
+      setNotes(mappedData);
     } catch (error) {
       console.error('[RecentNotesCard] Error loading notes:', error);
     } finally {
@@ -203,7 +221,7 @@ export function RecentNotesCard() {
                   onClick={() => handleEditClick(note)}
                 >
                   <h4 className="font-medium text-sm">
-                    {note.numero} • {note.contribuente}
+                    {note.number} • {note.taxpayer_name}
                   </h4>
                 </div>
                 
@@ -254,7 +272,7 @@ export function RecentNotesCard() {
               {selectedForDelete && (
                 <>
                   <p>
-                    Rateazione: <strong>{selectedForDelete.numero}</strong> - {selectedForDelete.contribuente}
+                    Rateazione: <strong>{selectedForDelete.number}</strong> - {selectedForDelete.taxpayer_name}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
                     ⚠️ Questa azione non può essere annullata.
@@ -280,7 +298,14 @@ export function RecentNotesCard() {
         <NoteDrawer
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
-          rateation={selectedForEdit}
+          rateation={{
+            id: selectedForEdit.id,
+            numero: selectedForEdit.number,
+            tipo: selectedForEdit.rateation_types?.name || null,
+            contribuente: selectedForEdit.taxpayer_name,
+            importo_totale: selectedForEdit.total_amount,
+            notes: selectedForEdit.notes
+          }}
           onRefresh={loadNotes}
         />
       )}
