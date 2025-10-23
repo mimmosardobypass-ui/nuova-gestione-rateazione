@@ -41,6 +41,13 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         setLoading(true);
         setError(null);
 
+        if (!supabase) {
+          console.error('[usePagopaAtRisk] Supabase client not available');
+          setError('Database non disponibile');
+          setLoading(false);
+          return;
+        }
+
         const config = ALERT_CONFIG.pagopa;
 
         // Query v_rateations_list_ui for PagoPA with >= preWarningSkips unpaid overdue
@@ -55,6 +62,8 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         if (queryError) throw queryError;
         if (!mounted) return;
 
+        console.log('[usePagopaAtRisk] Found', atRiskData?.length ?? 0, 'PagoPA with >=', config.preWarningSkips, 'unpaid overdue');
+
         if (!atRiskData || atRiskData.length === 0) {
           setAtRiskPagopas([]);
           setLoading(false);
@@ -65,6 +74,8 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         const atRiskItems: PagopaAtRiskItem[] = [];
 
         for (const row of atRiskData) {
+          console.log('[usePagopaAtRisk] Processing rateation', row.number, 'with', row.installments_overdue_today, 'overdue');
+          
           // Query installments to find next unpaid
           const { data: installments, error: instError } = await supabase
             .from('installments')
@@ -90,24 +101,32 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           dueDate.setHours(0, 0, 0, 0);
           const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-          // Only include if within daysThreshold
-          if (daysRemaining > config.daysThreshold) continue;
+          console.log('[usePagopaAtRisk] Next unpaid due:', nextUnpaid.due_date, 'daysRemaining:', daysRemaining);
 
-          const skipRemaining = config.maxSkips - (row.installments_overdue_today ?? 0);
+          // IMPORTANTE: Includere scadenze passate (daysRemaining < 0) e future vicine (0 <= daysRemaining <= threshold)
+          // Escludere SOLO se troppo lontane nel futuro (> threshold)
+          if (daysRemaining > config.daysThreshold) {
+            console.log('[usePagopaAtRisk] Skipping: too far in future');
+            continue;
+          }
+
+          const skipRemaining = Math.max(0, config.maxSkips - (row.installments_overdue_today ?? 0));
 
           atRiskItems.push({
             rateationId: String(row.id),
             numero: row.number || 'N/A',
             contribuente: row.taxpayer_name,
             unpaidOverdueCount: row.installments_overdue_today ?? 0,
-            skipRemaining: Math.max(0, skipRemaining),
+            skipRemaining,
             nextDueDate: nextUnpaid.due_date,
             daysRemaining,
           });
         }
 
-        // Sort by days remaining (most urgent first)
+        // Sort by days remaining (most urgent first - negativi prima)
         atRiskItems.sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+        console.log('[usePagopaAtRisk] Final at-risk items:', atRiskItems.length, atRiskItems.map(i => i.numero).join(', '));
 
         if (mounted) {
           setAtRiskPagopas(atRiskItems);
