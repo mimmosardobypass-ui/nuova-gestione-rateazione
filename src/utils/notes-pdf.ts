@@ -128,19 +128,33 @@ export function generateNotesPDF(notes: RateationNote[]) {
   const notesPerPage = rows * cols; // 12 notes per page
   const totalPages = Math.ceil(notes.length / notesPerPage);
   
-  // Helper: Format taxpayer name with multiple references
-  const formatTaxpayer = (taxpayerName: string | null): string => {
-    if (!taxpayerName) return 'N/A';
+  // Helper: Format taxpayer codes in 3 vertical columns (max 4 codes per column)
+  const formatTaxpayerColumns = (taxpayerName: string | null): string[][] => {
+    if (!taxpayerName) return [['N/A']];
     
     const codes = taxpayerName.trim().split(/\s+/).filter(c => c.length > 0);
     
+    // Single code: return as single column
     if (codes.length === 1) {
-      return codes[0].length > 20 ? codes[0].substring(0, 17) + '...' : codes[0];
+      const code = codes[0].length > 20 ? codes[0].substring(0, 17) + '...' : codes[0];
+      return [[code]];
     }
     
-    // Multiple codes: show first truncated + counter
-    const firstCode = codes[0].substring(0, 12);
-    return `${firstCode}... +${codes.length - 1} altri`;
+    // Multiple codes: distribute in 3 columns (max 4 per column = 12 total)
+    const maxCodes = 12;
+    const codesToShow = codes.slice(0, maxCodes);
+    
+    const column1 = codesToShow.slice(0, 4).map(c => 
+      c.length > 17 ? c.substring(0, 14) + '...' : c
+    );
+    const column2 = codesToShow.slice(4, 8).map(c => 
+      c.length > 17 ? c.substring(0, 14) + '...' : c
+    );
+    const column3 = codesToShow.slice(8, 12).map(c => 
+      c.length > 17 ? c.substring(0, 14) + '...' : c
+    );
+    
+    return [column1, column2, column3].filter(col => col.length > 0);
   };
   
   // Generate pages
@@ -195,12 +209,31 @@ export function generateNotesPDF(notes: RateationNote[]) {
         doc.text(truncatedHeader, xPos + padding, lineY);
         lineY += 4;
         
-        // Line 2: Taxpayer (compact)
+        // Line 2+: Taxpayer codes in 3 vertical columns
         doc.setFontSize(6);
         doc.setFont('helvetica', 'normal');
-        const taxpayerText = formatTaxpayer(note.taxpayer_name);
-        doc.text(taxpayerText, xPos + padding, lineY);
-        lineY += 4;
+        const taxpayerColumns = formatTaxpayerColumns(note.taxpayer_name);
+        
+        // Calculate column width (divide available space by 3)
+        const availableWidth = boxWidth - (padding * 2);
+        const columnWidth = availableWidth / 3;
+        const columnGap = 1; // Small gap between columns
+        
+        // Draw each column
+        const startLineY = lineY;
+        taxpayerColumns.forEach((column, colIndex) => {
+          const colX = xPos + padding + (colIndex * columnWidth);
+          let colY = startLineY;
+          
+          column.forEach((code) => {
+            doc.text(code, colX, colY, { maxWidth: columnWidth - columnGap });
+            colY += 3; // 3mm spacing between codes
+          });
+        });
+        
+        // Move lineY to after the tallest column (max 4 codes = 4 * 3mm = 12mm)
+        const maxCodeHeight = Math.max(...taxpayerColumns.map(col => col.length)) * 3;
+        lineY += maxCodeHeight + 1; // +1mm extra spacing
         
         // Lines 3-5: Note content (max 3 lines)
         doc.setFontSize(7);
