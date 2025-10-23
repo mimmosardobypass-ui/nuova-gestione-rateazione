@@ -52,6 +52,7 @@ const Stat = ({ label, value, hint }: { label: string; value: string; hint?: str
 );
 
 export default function Dashboard() {
+  console.log('🟣 [Dashboard] Component rendering');
   const navigate = useNavigate();
   
   // SEO
@@ -125,6 +126,14 @@ export default function Dashboard() {
     calculateAlertDetails(atRiskPagopas, 'pagopa'), 
     [atRiskPagopas]
   );
+
+  // Debug: Log stato alert PagoPA
+  console.log('🟢 [Dashboard] PagoPA Alert State:', {
+    loading: loadingPagopaRisk,
+    count: atRiskPagopas.length,
+    details: pagopaDetails,
+    items: atRiskPagopas
+  });
 
   // Calcoli
   const totalDue = useMemo(
@@ -245,7 +254,9 @@ export default function Dashboard() {
         <ResidualDecadenceSection />
 
         {/* Configurable Alerts */}
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-4 border-2 border-purple-500 p-4 rounded-lg">
+          <p className="text-purple-500 text-xs font-mono">DEBUG: Alert container visible</p>
+          
           {!loadingF24Risk && (
             <ConfigurableAlert
               type="f24"
@@ -255,12 +266,44 @@ export default function Dashboard() {
             />
           )}
           
-          <ConfigurableAlert
-            type="pagopa"
-            count={atRiskPagopas.length}
-            details={pagopaDetails}
-            onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
-          />
+          {(() => {
+            try {
+              if (loadingPagopaRisk) {
+                return (
+                  <div className="border border-muted bg-muted/10 p-4 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        Caricamento alert PagoPA...
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              
+              console.log('🟡 [Dashboard] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
+              return (
+                <ConfigurableAlert
+                  type="pagopa"
+                  count={atRiskPagopas.length}
+                  details={pagopaDetails}
+                  onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
+                />
+              );
+            } catch (error) {
+              console.error('🔴 [Dashboard] Error rendering PagoPA alert:', error);
+              return (
+                <div className="border border-destructive bg-destructive/10 p-4 rounded-lg">
+                  <p className="text-sm text-destructive font-semibold">
+                    Errore visualizzazione alert PagoPA
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {String(error)}
+                  </p>
+                </div>
+              );
+            }
+          })()}
         </div>
 
         {/* Link per vedere dettagli completi */}
