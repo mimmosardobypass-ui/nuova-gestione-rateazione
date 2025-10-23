@@ -105,7 +105,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
               const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
               return { ...inst, dueDate, daysRemaining };
             })
-            .filter(inst => inst.daysRemaining <= config.daysThreshold) // Include overdue (negative) and upcoming within threshold
+            .filter(inst => inst.daysRemaining < 0 || inst.daysRemaining <= config.daysThreshold) // Include ALL overdue (negative) OR upcoming within threshold
             .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
           if (relevantUnpaid.length === 0) {
