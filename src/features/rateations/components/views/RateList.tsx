@@ -33,6 +33,7 @@ export function RateList({
   const [searchParams] = useSearchParams();
   const filterParam = searchParams.get('filter'); // NEW: Unified filter system
   const atRiskFilter = searchParams.get('at_risk') === 'true'; // LEGACY: backward compatibility
+  const pagopaIdsParam = searchParams.get('pagopa_ids'); // IDs delle PagoPA a rischio
   const tipoFromUrl = searchParams.get('tipo');
 
   // State management per i filtri
@@ -83,14 +84,18 @@ export function RateList({
         return row.is_f24 && row.f24_days_to_next_due != null && row.f24_days_to_next_due <= 20;
       });
     } else if (filterParam === 'pagopa-at-risk') {
-      // PagoPA at risk: ≥ 7 rate scadute non pagate E skip residui ≤ 1
-      filtered = filtered.filter(row => {
-        return row.is_pagopa && 
-               row.unpaid_overdue_today != null && 
-               row.unpaid_overdue_today >= 7 &&
-               row.skip_remaining != null &&
-               row.skip_remaining <= 1;
-      });
+      // PagoPA at risk: filtra per ID passati nell'URL
+      if (pagopaIdsParam) {
+        const pagopaIds = pagopaIdsParam.split(',').map(id => id.trim());
+        filtered = filtered.filter(row => row.is_pagopa && pagopaIds.includes(String(row.id)));
+      } else {
+        // Fallback: filtra solo per unpaid_overdue_today >= 7
+        filtered = filtered.filter(row => {
+          return row.is_pagopa && 
+                 row.unpaid_overdue_today != null && 
+                 row.unpaid_overdue_today >= 7;
+        });
+      }
     } else if (atRiskFilter) {
       // LEGACY: backward compatibility per vecchi link ?at_risk=true
       filtered = filtered.filter(row => {
@@ -109,7 +114,7 @@ export function RateList({
     }
     
     return filtered;
-  }, [filters, filterParam, atRiskFilter]);
+  }, [filters, filterParam, atRiskFilter, pagopaIdsParam]);
 
   const processRows = (sourceRows: RateationRow[]) => 
     sourceRows.map(row => ({

@@ -135,12 +135,13 @@ export default function HomePage() {
               }
               
               console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
+              const pagopaIds = atRiskPagopas.map(p => p.rateationId).join(',');
               return (
                 <ConfigurableAlert
                   type="pagopa"
                   count={atRiskPagopas.length}
                   details={pagopaDetails}
-                  onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
+                  onNavigate={() => navigate(`/rateazioni?filter=pagopa-at-risk&pagopa_ids=${pagopaIds}`)}
                 />
               );
             } catch (error) {
