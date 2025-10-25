@@ -254,9 +254,7 @@ export default function Dashboard() {
         <ResidualDecadenceSection />
 
         {/* Configurable Alerts */}
-        <div className="mt-6 space-y-4 border-2 border-purple-500 p-4 rounded-lg">
-          <p className="text-purple-500 text-xs font-mono">DEBUG: Alert container visible</p>
-          
+        <div className="mt-6 space-y-4">
           {!loadingF24Risk && (
             <ConfigurableAlert
               type="f24"

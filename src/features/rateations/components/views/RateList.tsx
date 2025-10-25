@@ -2,8 +2,11 @@ import React, { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
 import { RateationFilters } from "@/features/rateations/components/RateationFilters";
+import { PrintService } from "@/utils/printUtils";
 import type { RateationRowPro } from "@/features/rateations/components/RateationsTablePro";
 import type { RateationRow } from "@/features/rateations/types";
 
@@ -134,6 +137,9 @@ export function RateList({
       excluded_from_stats: row.excluded_from_stats ?? false,
     } as RateationRowPro));
 
+  // Check if at-risk filter is active
+  const isAtRiskActive = filterParam === 'f24-at-risk' || filterParam === 'pagopa-at-risk';
+
   return (
     <Card className="card-elevated min-w-0">
       <CardContent className="pt-6">
@@ -145,7 +151,21 @@ export function RateList({
           </TabsList>
           
           <TabsContent value="all" className="space-y-4">
-            <RateationFilters 
+            {/* Unified At-Risk Print Button */}
+            {isAtRiskActive && (
+              <div className="flex justify-end mb-4">
+                <Button
+                  onClick={() => PrintService.openUnifiedAtRiskPreview()}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Stampa Report Completo (F24 + PagoPA)
+                </Button>
+              </div>
+            )}
+
+            <RateationFilters
               onComparazione={() => onViewChange('annual')}
               onStats={onStats}
               onDeadlines={() => onViewChange('deadlines')}

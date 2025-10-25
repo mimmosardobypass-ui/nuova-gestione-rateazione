@@ -25,6 +25,7 @@ const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport")
 const SchedaRateazione = React.lazy(() => import("./pages/print/SchedaRateazione"));
 const AnnualMatrix = React.lazy(() => import("./pages/print/AnnualMatrix"));
 const ScadenzePrint = React.lazy(() => import("./pages/print/Scadenze"));
+const RateazioniAtRisk = React.lazy(() => import("./pages/print/RateazioniAtRisk"));
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,13 @@ const App = () => {
               <ProtectedRoute>
                 <Suspense fallback={<div>Caricamento...</div>}>
                   <ScadenzePrint />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/print/rateazioni-a-rischio" element={
+              <ProtectedRoute>
+                <Suspense fallback={<div>Caricamento...</div>}>
+                  <RateazioniAtRisk />
                 </Suspense>
               </ProtectedRoute>
             } />

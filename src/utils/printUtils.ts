@@ -156,6 +156,24 @@ export class PrintService {
     setTimeout(() => w.location.replace(`${window.location.origin}${path}`), 60);
   }
 
+  /** Anteprima report unificato rateazioni a rischio (F24 + PagoPA) */
+  static openUnifiedAtRiskPreview(options: PrintOptions = {}) {
+    const def = this.getDefaultOptions();
+    const q = this.buildQueryString({ 
+      theme: options.theme ?? def.theme,
+      density: options.density ?? def.density,
+      logo: options.logo ?? def.logo
+    });
+    const path = `/print/rateazioni-a-rischio${q}`;
+    
+    const w = this.preOpenWindow();
+    if (!w) {
+      window.location.assign(path);
+      return;
+    }
+    this.navigate(w, path);
+  }
+
   /** Anteprima report scadenze (client-side, con anti-popup) */
   static openScadenzePreview(
     filters: {
