@@ -57,29 +57,35 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           return;
         }
 
-        // Step 2: Get rateation details from v_rateations_list_ui
+        // Step 2: Get rateation details from v_rateations_list_ui (ONLY active/overdue)
         const ids = kpisData.map(d => d.rateation_id);
         const { data: rateations, error: rateationError } = await supabase
           .from('v_rateations_list_ui')
-          .select('id, number, taxpayer_name')
-          .in('id', ids);
+          .select('id, number, taxpayer_name, status')
+          .in('id', ids)
+          .in('status', ['attiva', 'in_ritardo', 'ATTIVA', 'IN_RITARDO']);
 
         if (rateationError) throw rateationError;
         if (!mounted) return;
 
-        // Step 3: Merge KPIs with rateation details
-        const atRisk: PagopaAtRiskItem[] = kpisData.map(kpi => {
-          const rat = rateations?.find(r => r.id === kpi.rateation_id);
-          return {
-            rateationId: String(kpi.rateation_id),
-            numero: rat?.number || 'N/A',
-            contribuente: rat?.taxpayer_name || null,
-            unpaidOverdueCount: kpi.unpaid_overdue_today ?? 0,
-            skipRemaining: kpi.skip_remaining ?? 0,
-            nextDueDate: null,
-            daysRemaining: 0
-          };
-        });
+        // Step 3: Merge KPIs with rateation details (filter out interrupted)
+        const atRisk: PagopaAtRiskItem[] = kpisData
+          .map(kpi => {
+            const rat = rateations?.find(r => r.id === kpi.rateation_id);
+            // Skip if not found (means it was filtered out by status)
+            if (!rat) return null;
+            
+            return {
+              rateationId: String(kpi.rateation_id),
+              numero: rat.number || 'N/A',
+              contribuente: rat.taxpayer_name || null,
+              unpaidOverdueCount: kpi.unpaid_overdue_today ?? 0,
+              skipRemaining: kpi.skip_remaining ?? 0,
+              nextDueDate: null,
+              daysRemaining: 0
+            };
+          })
+          .filter((item): item is PagopaAtRiskItem => item !== null);
 
         if (mounted) {
           setAtRiskPagopas(atRisk);
