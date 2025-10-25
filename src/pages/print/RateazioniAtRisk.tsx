@@ -21,6 +21,23 @@ export default function RateazioniAtRisk() {
     document.body.className = `theme-${theme} density-${density}`;
   }, [theme, density]);
 
+  // Auto-print when data is loaded
+  useEffect(() => {
+    if (!loading) {
+      const go = async () => {
+        try { 
+          await (document as any).fonts?.ready; 
+        } catch {}
+        // Small buffer for complete rendering
+        setTimeout(() => {
+          window.focus();
+          window.print();
+        }, 250);
+      };
+      go();
+    }
+  }, [loading]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
