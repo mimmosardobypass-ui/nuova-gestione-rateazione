@@ -28,6 +28,7 @@ import { toLocalISO } from "@/utils/date";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
+import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
 
 type Installment = {
@@ -253,14 +254,13 @@ export default function Dashboard() {
         {/* Compact KPI Cards */}
         <ResidualDecadenceSection />
 
-        {/* Configurable Alerts */}
+        {/* Configurable Alerts - Solo informativi */}
         <div className="mt-6 space-y-4">
           {!loadingF24Risk && (
             <ConfigurableAlert
               type="f24"
               count={atRiskF24s.length}
               details={f24Details}
-              onNavigate={() => navigate("/rateazioni?filter=f24-at-risk")}
             />
           )}
           
@@ -285,7 +285,6 @@ export default function Dashboard() {
                   type="pagopa"
                   count={atRiskPagopas.length}
                   details={pagopaDetails}
-                  onNavigate={() => navigate("/rateazioni?filter=pagopa-at-risk")}
                 />
               );
             } catch (error) {
@@ -302,6 +301,14 @@ export default function Dashboard() {
               );
             }
           })()}
+        </div>
+
+        {/* Global At-Risk Report Selector */}
+        <div className="mt-6">
+          <AtRiskReportSelector 
+            f24Count={atRiskF24s.length} 
+            pagopaCount={atRiskPagopas.length} 
+          />
         </div>
 
         {/* Link per vedere dettagli completi */}

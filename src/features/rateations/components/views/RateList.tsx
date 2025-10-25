@@ -99,6 +99,13 @@ export function RateList({
                  row.unpaid_overdue_today >= 7;
         });
       }
+    } else if (filterParam === 'unified-at-risk') {
+      // Unified at-risk: mostra sia F24 che PagoPA a rischio
+      filtered = filtered.filter(row => {
+        const isF24AtRisk = row.is_f24 && row.f24_days_to_next_due != null && row.f24_days_to_next_due <= 20;
+        const isPagopaAtRisk = row.is_pagopa && row.unpaid_overdue_today != null && row.unpaid_overdue_today >= 7;
+        return isF24AtRisk || isPagopaAtRisk;
+      });
     } else if (atRiskFilter) {
       // LEGACY: backward compatibility per vecchi link ?at_risk=true
       filtered = filtered.filter(row => {
@@ -137,8 +144,10 @@ export function RateList({
       excluded_from_stats: row.excluded_from_stats ?? false,
     } as RateationRowPro));
 
-  // Check if at-risk filter is active
-  const isAtRiskActive = filterParam === 'f24-at-risk' || filterParam === 'pagopa-at-risk';
+  // Determine which print buttons to show based on active filter
+  const showF24Print = filterParam === 'f24-at-risk';
+  const showPagopaAtRiskPrint = filterParam === 'pagopa-at-risk';
+  const showUnifiedPrint = filterParam === 'unified-at-risk';
 
   return (
     <Card className="card-elevated min-w-0">
@@ -151,17 +160,64 @@ export function RateList({
           </TabsList>
           
           <TabsContent value="all" className="space-y-4">
-            {/* Unified At-Risk Print Button */}
-            {isAtRiskActive && (
-              <div className="flex justify-end mb-4">
-                <Button
-                  onClick={() => PrintService.openUnifiedAtRiskPreview()}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Stampa Report Completo (F24 + PagoPA)
-                </Button>
+            {/* Conditional Print Buttons */}
+            {(showF24Print || showPagopaAtRiskPrint || showUnifiedPrint) && (
+              <div className="flex justify-end gap-2 mb-4">
+                {showF24Print && (
+                  <>
+                    <Button
+                      onClick={() => PrintService.openF24AtRiskPreview()}
+                      variant="default"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Stampa Report F24
+                    </Button>
+                    <Button
+                      onClick={() => PrintService.openUnifiedAtRiskPreview()}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Stampa Report Completo
+                    </Button>
+                  </>
+                )}
+                {showPagopaAtRiskPrint && (
+                  <>
+                    <Button
+                      onClick={() => PrintService.openPagopaAtRiskPreview()}
+                      variant="default"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Stampa Report PagoPA
+                    </Button>
+                    <Button
+                      onClick={() => PrintService.openUnifiedAtRiskPreview()}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Stampa Report Completo
+                    </Button>
+                  </>
+                )}
+                {showUnifiedPrint && (
+                  <Button
+                    onClick={() => PrintService.openUnifiedAtRiskPreview()}
+                    variant="default"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Stampa Report Completo (F24 + PagoPA)
+                  </Button>
+                )}
               </div>
             )}
 

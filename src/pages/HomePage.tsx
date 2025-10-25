@@ -14,6 +14,7 @@ import { setSEO } from "@/lib/seo";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
+import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
@@ -113,7 +114,6 @@ export default function HomePage() {
               type="f24"
               count={atRiskF24s.length}
               details={f24Details}
-              onNavigate={() => navigate("/rateazioni?filter=f24-at-risk")}
             />
           )}
           
@@ -133,13 +133,11 @@ export default function HomePage() {
               }
               
               console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
-              const pagopaIds = atRiskPagopas.map(p => p.rateationId).join(',');
               return (
                 <ConfigurableAlert
                   type="pagopa"
                   count={atRiskPagopas.length}
                   details={pagopaDetails}
-                  onNavigate={() => navigate(`/rateazioni?filter=pagopa-at-risk&pagopa_ids=${pagopaIds}`)}
                 />
               );
             } catch (error) {
@@ -156,6 +154,14 @@ export default function HomePage() {
               );
             }
           })()}
+        </div>
+
+        {/* Global At-Risk Report Selector */}
+        <div className="mt-6">
+          <AtRiskReportSelector 
+            f24Count={atRiskF24s.length} 
+            pagopaCount={atRiskPagopas.length} 
+          />
         </div>
       </section>
 

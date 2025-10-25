@@ -174,6 +174,42 @@ export class PrintService {
     this.navigate(w, path);
   }
 
+  /** Anteprima report F24 a rischio */
+  static openF24AtRiskPreview(options: PrintOptions = {}) {
+    const def = this.getDefaultOptions();
+    const q = this.buildQueryString({ 
+      theme: options.theme ?? def.theme,
+      density: options.density ?? def.density,
+      logo: options.logo ?? def.logo
+    });
+    const path = `/print/f24-a-rischio${q}`;
+    
+    const w = this.preOpenWindow();
+    if (!w) {
+      window.location.assign(path);
+      return;
+    }
+    this.navigate(w, path);
+  }
+
+  /** Anteprima report PagoPA a rischio */
+  static openPagopaAtRiskPreview(options: PrintOptions = {}) {
+    const def = this.getDefaultOptions();
+    const q = this.buildQueryString({ 
+      theme: options.theme ?? def.theme,
+      density: options.density ?? def.density,
+      logo: options.logo ?? def.logo
+    });
+    const path = `/print/pagopa-a-rischio${q}`;
+    
+    const w = this.preOpenWindow();
+    if (!w) {
+      window.location.assign(path);
+      return;
+    }
+    this.navigate(w, path);
+  }
+
   /** Anteprima report scadenze (client-side, con anti-popup) */
   static openScadenzePreview(
     filters: {

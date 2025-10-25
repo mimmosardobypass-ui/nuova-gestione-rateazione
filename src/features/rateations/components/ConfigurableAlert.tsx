@@ -7,14 +7,13 @@ interface ConfigurableAlertProps {
   type: AlertType;
   count: number;
   details: AlertDetails;
-  onNavigate?: () => void;
 }
 
 /**
  * Componente riutilizzabile per visualizzare alert configurabili
- * con messaggi dinamici e livelli di urgenza
+ * con messaggi dinamici e livelli di urgenza (solo informativo)
  */
-export function ConfigurableAlert({ type, count, details, onNavigate }: ConfigurableAlertProps) {
+export function ConfigurableAlert({ type, count, details }: ConfigurableAlertProps) {
   // Se non ci sono items a rischio, mostra success
   if (count === 0) {
     return (
@@ -74,17 +73,6 @@ export function ConfigurableAlert({ type, count, details, onNavigate }: Configur
       <AlertDescription className={descClass}>
         {message.description(details)}
       </AlertDescription>
-      {onNavigate && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onNavigate}
-          className="mt-3 w-full sm:w-auto"
-        >
-          Vedi rateazioni a rischio
-          <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
-      )}
     </Alert>
   );
 }
