@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, FileText, ArrowRight } from 'lucide-react';
+import { PrintService } from '@/utils/printUtils';
 
 interface AtRiskReportSelectorProps {
   f24Count: number;
@@ -15,16 +15,26 @@ interface AtRiskReportSelectorProps {
  */
 export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSelectorProps) {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
 
   const totalCount = f24Count + pagopaCount;
 
   // Non mostrare il pulsante se non ci sono rateazioni a rischio
   if (totalCount === 0) return null;
 
-  const handleSelection = (filter: 'f24-at-risk' | 'pagopa-at-risk' | 'unified-at-risk') => {
+  const handleSelection = (reportType: 'f24' | 'pagopa' | 'unified') => {
     setOpen(false);
-    navigate(`/rateazioni?filter=${filter}`);
+    
+    switch (reportType) {
+      case 'f24':
+        PrintService.openF24AtRiskPreview();
+        break;
+      case 'pagopa':
+        PrintService.openPagopaAtRiskPreview();
+        break;
+      case 'unified':
+        PrintService.openUnifiedAtRiskPreview();
+        break;
+    }
   };
 
   return (
@@ -57,7 +67,7 @@ export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSele
             {/* F24 Card */}
             <Card 
               className="cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handleSelection('f24-at-risk')}
+              onClick={() => handleSelection('f24')}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
@@ -81,7 +91,7 @@ export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSele
             {/* PagoPA Card */}
             <Card 
               className="cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handleSelection('pagopa-at-risk')}
+              onClick={() => handleSelection('pagopa')}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
@@ -105,7 +115,7 @@ export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSele
             {/* Unified Card */}
             <Card 
               className="cursor-pointer hover:border-primary transition-colors border-2"
-              onClick={() => handleSelection('unified-at-risk')}
+              onClick={() => handleSelection('unified')}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
