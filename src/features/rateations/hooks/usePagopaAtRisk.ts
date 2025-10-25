@@ -69,7 +69,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         if (!mounted) return;
 
         // Step 3: Merge KPIs with rateation details (filter out interrupted)
-        const atRisk: PagopaAtRiskItem[] = kpisData
+        const atRiskBase: PagopaAtRiskItem[] = kpisData
           .map(kpi => {
             const rat = rateations?.find(r => r.id === kpi.rateation_id);
             // Skip if not found (means it was filtered out by status)
@@ -87,8 +87,44 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           })
           .filter((item): item is PagopaAtRiskItem => item !== null);
 
+        // Step 3.5: For each at-risk PagoPA, fetch next due date
+        const atRiskWithDueDates = await Promise.all(
+          atRiskBase.map(async (item) => {
+            try {
+              // Query for next unpaid installment
+              const { data: nextInstallment } = await supabase
+                .from('installments')
+                .select('due_date')
+                .eq('rateation_id', Number(item.rateationId))
+                .eq('is_paid', false)
+                .gte('due_date', new Date().toISOString().split('T')[0])
+                .order('due_date', { ascending: true })
+                .limit(1)
+                .single();
+
+              if (nextInstallment?.due_date) {
+                const nextDueDate = new Date(nextInstallment.due_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysRemaining = Math.ceil((nextDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+                return {
+                  ...item,
+                  nextDueDate: nextInstallment.due_date,
+                  daysRemaining: Math.max(0, daysRemaining)
+                };
+              }
+
+              return item; // Keep null if no next due date
+            } catch (err) {
+              console.error(`[usePagopaAtRisk] Error fetching next due date for ${item.rateationId}:`, err);
+              return item;
+            }
+          })
+        );
+
         if (mounted) {
-          setAtRiskPagopas(atRisk);
+          setAtRiskPagopas(atRiskWithDueDates);
         }
       } catch (err: any) {
         console.error('[usePagopaAtRisk] Error:', err);

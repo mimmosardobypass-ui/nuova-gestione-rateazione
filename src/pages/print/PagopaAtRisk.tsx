@@ -60,10 +60,18 @@ export default function PagopaAtRisk() {
   const totalSkipPagopa = atRiskPagopas.reduce((sum, p) => sum + p.skipRemaining, 0);
   const totalOverdueCount = atRiskPagopas.reduce((sum, p) => sum + p.unpaidOverdueCount, 0);
 
-  const getRiskBadge = (skipRemaining: number) => {
-    if (skipRemaining <= 1) return { label: 'CRITICO', class: 'bg-red-100 text-red-800' };
-    if (skipRemaining === 2) return { label: 'ALTO', class: 'bg-orange-100 text-orange-800' };
-    return { label: 'MEDIO', class: 'bg-yellow-100 text-yellow-800' };
+  const avgDaysRemaining = atRiskPagopas.length > 0
+    ? Math.round(atRiskPagopas.reduce((sum, p) => sum + (p.daysRemaining || 0), 0) / atRiskPagopas.length)
+    : 0;
+
+  const getRiskBadge = (skipRemaining: number, dueDate: string | null) => {
+    const dateStr = dueDate 
+      ? ` - Entro ${new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}`
+      : '';
+    
+    if (skipRemaining <= 1) return { label: `🔴 LIMITE RAGGIUNTO${dateStr}`, class: 'bg-red-100 text-red-800' };
+    if (skipRemaining === 2) return { label: `🟠 ULTIMO SALTO${dateStr}`, class: 'bg-orange-100 text-orange-800' };
+    return { label: `🟡 ${skipRemaining} SALTI${dateStr}`, class: 'bg-yellow-100 text-yellow-800' };
   };
 
   return (
@@ -75,7 +83,7 @@ export default function PagopaAtRisk() {
       {/* KPIs */}
       <section className="mb-6">
         <h2 className="text-lg font-semibold mb-3 border-b pb-2">Riepilogo PagoPA</h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="print-kpi">
             <div className="print-kpi-label">Totale PagoPA a Rischio</div>
             <div className="print-kpi-value text-orange-600">{atRiskPagopas.length}</div>
@@ -87,6 +95,10 @@ export default function PagopaAtRisk() {
           <div className="print-kpi">
             <div className="print-kpi-label">Rate Scadute Totali</div>
             <div className="print-kpi-value">{totalOverdueCount}</div>
+          </div>
+          <div className="print-kpi">
+            <div className="print-kpi-label">Giorni Medi alla Scadenza</div>
+            <div className="print-kpi-value">{avgDaysRemaining}</div>
           </div>
         </div>
       </section>
@@ -102,18 +114,26 @@ export default function PagopaAtRisk() {
                 <th>Contribuente</th>
                 <th className="text-right">Rate Scadute</th>
                 <th className="text-right">Skip Residui</th>
+                <th className="text-right">Giorni Rimanenti</th>
+                <th>Prossima Scadenza</th>
                 <th className="text-center">Livello Rischio</th>
               </tr>
             </thead>
             <tbody>
               {atRiskPagopas.map((pagopa) => {
-                const risk = getRiskBadge(pagopa.skipRemaining);
+                const risk = getRiskBadge(pagopa.skipRemaining, pagopa.nextDueDate);
                 return (
                   <tr key={pagopa.rateationId}>
                     <td className="font-mono text-sm">{pagopa.numero}</td>
                     <td>{pagopa.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">{pagopa.unpaidOverdueCount}</td>
                     <td className="text-right font-semibold">{pagopa.skipRemaining}</td>
+                    <td className="text-right font-semibold">{pagopa.daysRemaining || 'N/D'}</td>
+                    <td className="font-medium">
+                      {pagopa.nextDueDate 
+                        ? new Date(pagopa.nextDueDate).toLocaleDateString('it-IT')
+                        : 'N/D'}
+                    </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
                         {risk.label}

@@ -65,19 +65,31 @@ export default function RateazioniAtRisk() {
     ? Math.round(f24AtRisk.reduce((sum, f) => sum + (f.daysRemaining || 0), 0) / f24AtRisk.length)
     : 0;
 
+  const avgDaysPagopa = pagopaAtRisk.length > 0
+    ? Math.round(pagopaAtRisk.reduce((sum, p) => sum + (p.daysRemaining || 0), 0) / pagopaAtRisk.length)
+    : 0;
+
   const totalSkipPagopa = pagopaAtRisk.reduce((sum, p) => sum + p.skipRemaining, 0);
 
   // Risk badge helper
-  const getRiskBadge = (type: 'f24' | 'pagopa', value: number) => {
-    if (type === 'f24') {
-      if (value <= 7) return { label: 'CRITICO', class: 'bg-red-100 text-red-800' };
-      if (value <= 14) return { label: 'ALTO', class: 'bg-orange-100 text-orange-800' };
-      return { label: 'MEDIO', class: 'bg-yellow-100 text-yellow-800' };
-    } else {
-      if (value <= 1) return { label: 'CRITICO', class: 'bg-red-100 text-red-800' };
-      if (value === 2) return { label: 'ALTO', class: 'bg-orange-100 text-orange-800' };
-      return { label: 'MEDIO', class: 'bg-yellow-100 text-yellow-800' };
-    }
+  const getRiskBadgeF24 = (days: number, dueDate: string | null) => {
+    const formattedDate = dueDate 
+      ? new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+      : 'N/D';
+    
+    if (days <= 7) return { label: `🔴 CRITICO - ${formattedDate}`, class: 'bg-red-100 text-red-800' };
+    if (days <= 14) return { label: `🟡 ALTO - ${formattedDate}`, class: 'bg-orange-100 text-orange-800' };
+    return { label: `🟢 MEDIO - ${formattedDate}`, class: 'bg-yellow-100 text-yellow-800' };
+  };
+
+  const getRiskBadgePagopa = (skipRemaining: number, dueDate: string | null) => {
+    const dateStr = dueDate 
+      ? ` - ${new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}`
+      : '';
+    
+    if (skipRemaining <= 1) return { label: `🔴 CRITICO${dateStr}`, class: 'bg-red-100 text-red-800' };
+    if (skipRemaining === 2) return { label: `🟠 ALTO${dateStr}`, class: 'bg-orange-100 text-orange-800' };
+    return { label: `🟡 MEDIO${dateStr}`, class: 'bg-yellow-100 text-yellow-800' };
   };
 
   return (
@@ -143,19 +155,25 @@ export default function RateazioniAtRisk() {
                 <th>Numero</th>
                 <th>Contribuente</th>
                 <th className="text-right">Rate Scadute</th>
-                <th className="text-right">Giorni al Prossimo</th>
+                <th className="text-right">Giorni Rimanenti</th>
+                <th>Prossima Scadenza</th>
                 <th className="text-center">Livello Rischio</th>
               </tr>
             </thead>
             <tbody>
               {f24AtRisk.map((f24) => {
-                const risk = getRiskBadge('f24', f24.daysRemaining || 0);
+                const risk = getRiskBadgeF24(f24.daysRemaining || 0, f24.nextDueDate);
                 return (
                   <tr key={f24.rateationId}>
                     <td className="font-mono text-sm">{f24.numero}</td>
                     <td>{f24.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">{f24.overdueCount}</td>
                     <td className="text-right font-semibold">{f24.daysRemaining || 0}</td>
+                    <td className="font-medium">
+                      {f24.nextDueDate 
+                        ? new Date(f24.nextDueDate).toLocaleDateString('it-IT')
+                        : 'N/D'}
+                    </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
                         {risk.label}
@@ -177,7 +195,7 @@ export default function RateazioniAtRisk() {
           </h2>
 
           {/* PagoPA KPIs */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-4 gap-4 mb-4">
             <div className="print-kpi">
               <div className="print-kpi-label">Skip Residui Totali</div>
               <div className="print-kpi-value">{totalSkipPagopa}</div>
@@ -187,6 +205,10 @@ export default function RateazioniAtRisk() {
               <div className="print-kpi-value">
                 {pagopaAtRisk.reduce((sum, p) => sum + p.unpaidOverdueCount, 0)}
               </div>
+            </div>
+            <div className="print-kpi">
+              <div className="print-kpi-label">Giorni Medi alla Scadenza</div>
+              <div className="print-kpi-value">{avgDaysPagopa}</div>
             </div>
             <div className="print-kpi">
               <div className="print-kpi-label">Totale PagoPA</div>
@@ -202,18 +224,26 @@ export default function RateazioniAtRisk() {
                 <th>Contribuente</th>
                 <th className="text-right">Rate Scadute</th>
                 <th className="text-right">Skip Residui</th>
+                <th className="text-right">Giorni Rimanenti</th>
+                <th>Prossima Scadenza</th>
                 <th className="text-center">Livello Rischio</th>
               </tr>
             </thead>
             <tbody>
               {pagopaAtRisk.map((pagopa) => {
-                const risk = getRiskBadge('pagopa', pagopa.skipRemaining);
+                const risk = getRiskBadgePagopa(pagopa.skipRemaining, pagopa.nextDueDate);
                 return (
                   <tr key={pagopa.rateationId}>
                     <td className="font-mono text-sm">{pagopa.numero}</td>
                     <td>{pagopa.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">{pagopa.unpaidOverdueCount}</td>
                     <td className="text-right font-semibold">{pagopa.skipRemaining}</td>
+                    <td className="text-right font-semibold">{pagopa.daysRemaining || 'N/D'}</td>
+                    <td className="font-medium">
+                      {pagopa.nextDueDate 
+                        ? new Date(pagopa.nextDueDate).toLocaleDateString('it-IT')
+                        : 'N/D'}
+                    </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
                         {risk.label}

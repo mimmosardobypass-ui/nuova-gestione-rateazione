@@ -61,10 +61,14 @@ export default function F24AtRisk() {
     ? Math.round(atRiskF24s.reduce((sum, f) => sum + (f.daysRemaining || 0), 0) / atRiskF24s.length)
     : 0;
 
-  const getRiskBadge = (days: number) => {
-    if (days <= 7) return { label: 'CRITICO', class: 'bg-red-100 text-red-800' };
-    if (days <= 14) return { label: 'ALTO', class: 'bg-orange-100 text-orange-800' };
-    return { label: 'MEDIO', class: 'bg-yellow-100 text-yellow-800' };
+  const getRiskBadge = (days: number, dueDate: string | null) => {
+    const formattedDate = dueDate 
+      ? new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : 'N/D';
+    
+    if (days <= 7) return { label: `🔴 CRITICO - Entro ${formattedDate}`, class: 'bg-red-100 text-red-800' };
+    if (days <= 14) return { label: `🟡 ATTENZIONE - Scad. ${formattedDate}`, class: 'bg-orange-100 text-orange-800' };
+    return { label: `🟢 MONITORARE - Scad. ${formattedDate}`, class: 'bg-yellow-100 text-yellow-800' };
   };
 
   return (
@@ -106,19 +110,25 @@ export default function F24AtRisk() {
                 <th>Numero</th>
                 <th>Contribuente</th>
                 <th className="text-right">Rate Scadute</th>
-                <th className="text-right">Giorni al Prossimo</th>
+                <th className="text-right">Giorni Rimanenti</th>
+                <th>Prossima Scadenza</th>
                 <th className="text-center">Livello Rischio</th>
               </tr>
             </thead>
             <tbody>
               {atRiskF24s.map((f24) => {
-                const risk = getRiskBadge(f24.daysRemaining || 0);
+                const risk = getRiskBadge(f24.daysRemaining || 0, f24.nextDueDate);
                 return (
                   <tr key={f24.rateationId}>
                     <td className="font-mono text-sm">{f24.numero}</td>
                     <td>{f24.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">{f24.overdueCount}</td>
                     <td className="text-right font-semibold">{f24.daysRemaining || 0}</td>
+                    <td className="font-medium">
+                      {f24.nextDueDate 
+                        ? new Date(f24.nextDueDate).toLocaleDateString('it-IT')
+                        : 'N/D'}
+                    </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
                         {risk.label}
