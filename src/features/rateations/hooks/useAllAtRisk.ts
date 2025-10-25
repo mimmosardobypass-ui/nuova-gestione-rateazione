@@ -31,6 +31,13 @@ export function useAllAtRisk(): AllAtRiskData {
         return;
       }
 
+      // Check if supabase client is available
+      if (!supabase) {
+        console.error('[useAllAtRisk] Supabase client not available');
+        setErrorResidual('Database non disponibile');
+        return;
+      }
+
       setLoadingResidual(true);
       setErrorResidual(null);
 
@@ -46,23 +53,33 @@ export function useAllAtRisk(): AllAtRiskData {
           return;
         }
 
+        console.log('[useAllAtRisk] Fetching residual for IDs:', allIds);
+
         // Fetch residual amounts from v_rateations_list_ui
+        // NOTE: Column is residual_effective_cents, not residual
         const { data, error } = await supabase
           .from('v_rateations_list_ui')
-          .select('residual')
+          .select('residual_effective_cents')
           .in('id', allIds);
 
-        if (error) throw error;
+        if (error) {
+          console.error('[useAllAtRisk] Query error:', error);
+          throw error;
+        }
+
+        console.log('[useAllAtRisk] Received data:', data);
 
         // Sum up all residuals
         const total = (data || []).reduce((sum, row) => {
-          return sum + (row.residual ? BigInt(row.residual) : BigInt(0));
+          const value = row.residual_effective_cents ? BigInt(row.residual_effective_cents) : BigInt(0);
+          return sum + value;
         }, BigInt(0));
 
+        console.log('[useAllAtRisk] Total residual calculated:', total.toString());
         setTotalResidual(total);
       } catch (err) {
         console.error('[useAllAtRisk] Error fetching residual:', err);
-        setErrorResidual(err instanceof Error ? err.message : 'Unknown error');
+        setErrorResidual(err instanceof Error ? err.message : 'Errore sconosciuto nel caricamento residuo');
       } finally {
         setLoadingResidual(false);
       }
