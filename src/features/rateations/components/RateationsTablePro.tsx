@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { formatEuro } from "@/lib/formatters";
 import { getLegacySkipRisk } from '@/features/rateations/utils/pagopaSkips';
 import { RateationRowDetailsPro } from "./RateationRowDetailsPro";
@@ -92,6 +92,38 @@ export function RateationsTablePro({
   const handleViewTarget = (targetId: string) => {
     navigateToRateation(targetId);
   };
+
+  // Calcola i totali delle colonne numeriche
+  const totals = useMemo(() => {
+    if (rows.length === 0) return null;
+    
+    return rows.reduce((acc, row) => {
+      const isPagoPA = isPagoPAPlan({ is_pagopa: row.is_pagopa, tipo: row.tipo });
+      const rateInRitardoValue = isPagoPA 
+        ? (row.unpaid_overdue_today ?? 0)
+        : (row.rateInRitardo + (row.ratePaidLate || 0));
+
+      return {
+        importoTotale: acc.importoTotale + row.importoTotale,
+        importoPagato: acc.importoPagato + row.importoPagato,
+        importoRitardo: acc.importoRitardo + row.importoRitardo,
+        residuo: acc.residuo + row.residuo,
+        rateTotali: acc.rateTotali + row.rateTotali,
+        ratePagate: acc.ratePagate + row.ratePagate,
+        rateNonPagate: acc.rateNonPagate + row.rateNonPagate,
+        rateInRitardo: acc.rateInRitardo + rateInRitardoValue,
+      };
+    }, {
+      importoTotale: 0,
+      importoPagato: 0,
+      importoRitardo: 0,
+      residuo: 0,
+      rateTotali: 0,
+      ratePagate: 0,
+      rateNonPagate: 0,
+      rateInRitardo: 0,
+    });
+  }, [rows]);
 
   if (loading) {
     return <div className="p-6 text-center text-muted-foreground">Caricamento...</div>;
@@ -368,6 +400,44 @@ export function RateationsTablePro({
               );
             })}
           </TableBody>
+
+          {/* Riga Totali */}
+          {totals && rows.length > 1 && (
+            <TableBody>
+              <TableRow className="bg-muted/50 font-semibold border-t-2 border-primary/20">
+                <TableCell colSpan={4} className="text-right">
+                  TOTALI ({rows.length} rateazioni)
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatEuro(totals.importoTotale)}
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatEuro(totals.importoPagato)}
+                </TableCell>
+                <TableCell className={`text-right font-bold ${totals.importoRitardo > 0 ? "text-destructive" : ""}`}>
+                  {formatEuro(totals.importoRitardo)}
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatEuro(totals.residuo)}
+                </TableCell>
+                <TableCell className="text-center font-bold">
+                  {totals.rateTotali}
+                </TableCell>
+                <TableCell className="text-center font-bold text-green-600">
+                  {totals.ratePagate}
+                </TableCell>
+                <TableCell className="text-center font-bold">
+                  {totals.rateNonPagate}
+                </TableCell>
+                <TableCell className={`text-center font-bold ${totals.rateInRitardo > 0 ? "text-destructive" : ""}`}>
+                  {totals.rateInRitardo}
+                </TableCell>
+                <TableCell>
+                  {/* Colonna azioni vuota */}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          )}
         </Table>
       </div>
 
