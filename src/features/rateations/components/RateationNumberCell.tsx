@@ -4,6 +4,7 @@ import { useNavigateToRateation } from "../hooks/useNavigateToRateation";
 import { useF24LinkedPagopa } from "../hooks/useF24LinkedPagopa";
 import { FileText } from "lucide-react";
 import { NoteDrawer } from "./NoteDrawer";
+import { DecadenceStatusBadge } from "./DecadenceStatusBadge";
 
 interface RateationNumberCellProps {
   row: {
@@ -91,39 +92,16 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
         </div>
 
       {/* Sub-row: Badge Status + Links */}
-      {(isInterrotta || isDecaduta || isCompletata || hasLinks || isF24Linked) && (
+      {(isInterrotta || isDecaduta || isCompletata || hasLinks || isF24Linked || isF24) && (
         <div className="flex flex-col gap-1">
-          {/* Riga 1: Badge + Conteggio */}
+          {/* Riga 1: Badge Status + Conteggio */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {/* Badge "Interrotta" */}
-            {isInterrotta && (
-              <Badge 
-                variant="outline" 
-                className="bg-amber-50 text-amber-800 border-amber-200 text-xs px-1.5 py-0"
-              >
-                Interrotta
-              </Badge>
-            )}
-
-            {/* Badge "Decaduta" */}
-            {isDecaduta && (
-              <Badge 
-                variant="destructive" 
-                className="text-xs px-1.5 py-0 animate-pulse"
-              >
-                Decaduta
-              </Badge>
-            )}
-
-            {/* Badge "Completata" */}
-            {isCompletata && (
-              <Badge 
-                variant="outline" 
-                className="bg-green-50 text-green-700 border-green-200 text-xs px-1.5 py-0"
-              >
-                Completata
-              </Badge>
-            )}
+            {/* Badge Status Unificato */}
+            <DecadenceStatusBadge 
+              status={row.status}
+              decadenceAt={null}
+              isF24={isF24}
+            />
 
             {/* Conteggio RQ collegate (PagoPA) */}
             {hasLinks && (

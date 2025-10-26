@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, Skull } from "lucide-react";
+import { AlertTriangle, Clock, Skull, CheckCircle } from "lucide-react";
 import { RateationStatus } from "../types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -56,6 +56,16 @@ export function DecadenceStatusBadge({
       <Badge variant="destructive">
         <Skull className="h-3 w-3 mr-1" />
         Estinta
+      </Badge>
+    );
+  }
+
+  // Completed status
+  if (status === 'COMPLETATA') {
+    return (
+      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Completata
       </Badge>
     );
   }
