@@ -122,7 +122,7 @@ export function DeadlineKPICards({ kpis, loading = false }: DeadlineKPICardsProp
                       rate
                     </Badge>
                   </div>
-                  <p className={`text-sm font-medium ${config.textClass}`}>
+                  <p className={`text-sm font-semibold ${config.key === 'in_ritardo' ? 'text-red-700 dark:text-red-400' : config.textClass}`}>
                     {formatEuro(amount)}
                   </p>
                 </div>
