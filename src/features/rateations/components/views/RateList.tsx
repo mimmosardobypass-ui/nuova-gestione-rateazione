@@ -73,7 +73,17 @@ export function RateList({
     
     // Filtro per stato
     if (filters.stato === 'active') {
-      filtered = filtered.filter(row => row.residuo > 0 && (row.rateInRitardo === 0 || row.rateInRitardo === null));
+      // Attiva = residuo > 0 E non completata/decaduta/estinta/interrotta
+      // Include anche rateazioni con rate in ritardo (sono ancora attive, non decadute)
+      // Esclude INTERROTTA perché sono state sostituite da nuove rateazioni RQ
+      filtered = filtered.filter(row => {
+        const status = row.status?.toUpperCase();
+        return row.residuo > 0 && 
+               status !== 'COMPLETATA' && 
+               status !== 'DECADUTA' && 
+               status !== 'ESTINTA' &&
+               status !== 'INTERROTTA';
+      });
     } else if (filters.stato === 'late') {
       filtered = filtered.filter(row => (row.rateInRitardo ?? 0) > 0 || (row.importoRitardo ?? 0) > 0);
     } else if (filters.stato === 'completed') {
