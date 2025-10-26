@@ -94,18 +94,43 @@ export function RecentNotesCard() {
   const handleDeleteConfirm = async () => {
     if (!selectedForDelete) return;
 
+    // Verify authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Errore di autenticazione",
+        description: "Devi essere autenticato per cancellare note.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('rateations')
         .update({ notes: null })
-        .eq('id', selectedForDelete.id);
+        .eq('id', selectedForDelete.id)
+        .eq('owner_uid', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[RecentNotesCard] Delete error:', error);
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile cancellare la nota. Riprova.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // Refresh list (card will disappear)
-      loadNotes();
+      // Success - refresh list and show confirmation
+      await loadNotes();
       setDeleteDialogOpen(false);
       setSelectedForDelete(null);
+
+      toast({
+        title: "Nota cancellata",
+        description: "La nota è stata rimossa con successo.",
+      });
 
     } catch (error) {
       console.error('[RecentNotesCard] Error deleting note:', error);
