@@ -92,16 +92,16 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
         </div>
 
       {/* Sub-row: Badge Status + Links */}
-      {(isInterrotta || isDecaduta || isCompletata || hasLinks || isF24Linked || isF24) && (
-        <div className="flex flex-col gap-1">
-          {/* Riga 1: Badge Status + Conteggio */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {/* Badge Status Unificato */}
-            <DecadenceStatusBadge 
-              status={row.status}
-              decadenceAt={null}
-              isF24={isF24}
-            />
+      <div className="flex flex-col gap-1">
+        {/* Riga 1: Badge Status + Conteggio */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {/* Badge Status Unificato */}
+          <DecadenceStatusBadge 
+            status={row.status}
+            decadenceAt={null}
+            isF24={isF24}
+            isPagopa={isPagopa}
+          />
 
             {/* Conteggio RQ collegate (PagoPA) */}
             {hasLinks && (
@@ -156,7 +156,6 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
             </div>
           )}
         </div>
-      )}
       </div>
 
       {/* Note Drawer */}

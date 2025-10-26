@@ -8,16 +8,28 @@ interface DecadenceStatusBadgeProps {
   status: RateationStatus;
   decadenceAt?: string | null;
   isF24?: boolean;
+  isPagopa?: boolean;
 }
 
 export function DecadenceStatusBadge({ 
   status, 
   decadenceAt, 
-  isF24 = false 
+  isF24 = false,
+  isPagopa = false
 }: DecadenceStatusBadgeProps) {
-  // Don't show anything for regular active plans
-  if (status === 'ATTIVA' && !isF24) {
+  // Don't show anything for regular active plans (not PagoPA or F24)
+  if (status === 'ATTIVA' && !isF24 && !isPagopa) {
     return null;
+  }
+
+  // PagoPA Active badge
+  if (status === 'ATTIVA' && isPagopa) {
+    return (
+      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Attiva
+      </Badge>
+    );
   }
 
   // F24 Active badge
