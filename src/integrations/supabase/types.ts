@@ -4534,6 +4534,12 @@ export type Database = {
           seq: number
           status: string | null
         }
+        SetofOptions: {
+          from: "*"
+          to: "installments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cancel_installment_payment: {
         Args: { p_installment_id: number }
@@ -4567,6 +4573,12 @@ export type Database = {
           seq: number
           status: string | null
         }
+        SetofOptions: {
+          from: "*"
+          to: "installments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       compute_ravvedimento: {
         Args: {
@@ -4592,16 +4604,13 @@ export type Database = {
         }[]
       }
       debug_rateations_count: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           rateations_count: number
           user_id: string
         }[]
       }
-      delete_rateation_safely: {
-        Args: { p_id: number }
-        Returns: Json
-      }
+      delete_rateation_safely: { Args: { p_id: number }; Returns: Json }
       fn_create_rateation_auto: {
         Args: {
           p_amount_per_installment: number
@@ -4624,7 +4633,7 @@ export type Database = {
         Returns: number
       }
       fn_detect_orphaned_migrations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           debt_id: string
           details: Json
@@ -4632,7 +4641,7 @@ export type Database = {
         }[]
       }
       fn_detect_payment_inconsistencies: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           details: Json
           installment_id: number
@@ -4644,10 +4653,19 @@ export type Database = {
         Args: { p_new_due: string; p_rateation_id: number; p_seq: number }
         Returns: undefined
       }
-      fn_realign_rateation_totals: {
-        Args: { p_rateation_id: number } | { p_rateation_id: string }
-        Returns: Json
-      }
+      fn_realign_rateation_totals:
+        | {
+            Args: { p_rateation_id: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.fn_realign_rateation_totals(p_rateation_id => int8), public.fn_realign_rateation_totals(p_rateation_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { p_rateation_id: number }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.fn_realign_rateation_totals(p_rateation_id => int8), public.fn_realign_rateation_totals(p_rateation_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       fn_recalc_rateation_status: {
         Args: { p_rateation_id: number }
         Returns: undefined
@@ -4662,7 +4680,7 @@ export type Database = {
         Returns: undefined
       }
       fn_verify_kpi_coherence: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           details: Json
           is_coherent: boolean
@@ -4694,9 +4712,9 @@ export type Database = {
         }
         Returns: Json
       }
-      get_filtered_stats: {
-        Args:
-          | {
+      get_filtered_stats:
+        | {
+            Args: {
               p_end_date: string
               p_include_closed: boolean
               p_owner_only: boolean
@@ -4705,7 +4723,10 @@ export type Database = {
               p_taxpayer_search: string
               p_types: string[]
             }
-          | {
+            Returns: Json
+          }
+        | {
+            Args: {
               p_end_date?: string
               p_owner_only?: boolean
               p_start_date?: string
@@ -4713,8 +4734,8 @@ export type Database = {
               p_taxpayer_search?: string
               p_type_labels?: string[]
             }
-        Returns: Json
-      }
+            Returns: Json
+          }
       get_pagopa_available_for_f24: {
         Args: { p_f24_id: number }
         Returns: {
@@ -4764,10 +4785,7 @@ export type Database = {
         Args: { p_installment_id: number; p_reason?: string }
         Returns: undefined
       }
-      is_rq_reason: {
-        Args: { txt: string }
-        Returns: boolean
-      }
+      is_rq_reason: { Args: { txt: string }; Returns: boolean }
       link_f24_to_pagopa_atomic: {
         Args: { p_f24_id: number; p_pagopa_id: number; p_reason?: string }
         Returns: {
@@ -4837,14 +4855,8 @@ export type Database = {
         }
         Returns: undefined
       }
-      norm_lower_arr: {
-        Args: { arr: string[] }
-        Returns: string[]
-      }
-      norm_upper_arr: {
-        Args: { arr: string[] }
-        Returns: string[]
-      }
+      norm_lower_arr: { Args: { arr: string[] }; Returns: string[] }
+      norm_upper_arr: { Args: { arr: string[] }; Returns: string[] }
       pagopa_link_rq_v2: {
         Args: { payload: Json }
         Returns: {
@@ -4852,10 +4864,7 @@ export type Database = {
           riam_quater_id: number
         }[]
       }
-      pagopa_lock_for_rq: {
-        Args: { p_pagopa_id: number }
-        Returns: undefined
-      }
+      pagopa_lock_for_rq: { Args: { p_pagopa_id: number }; Returns: undefined }
       pagopa_quota_info: {
         Args: { p_pagopa_id: number }
         Returns: {
@@ -4880,10 +4889,7 @@ export type Database = {
           pagopa_total_cents: number
         }[]
       }
-      rateation_auto_flag_predecadence: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      rateation_auto_flag_predecadence: { Args: never; Returns: undefined }
       rateation_confirm_decadence: {
         Args: {
           p_installment_id?: number
@@ -4908,10 +4914,7 @@ export type Database = {
         Args: { p_debt_ids: string[]; p_source_rateation_id: number }
         Returns: undefined
       }
-      sanitize_legacy_interruption_reasons: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      sanitize_legacy_interruption_reasons: { Args: never; Returns: number }
       stats_per_tipologia_effective: {
         Args: {
           p_end_date?: string
@@ -4954,14 +4957,7 @@ export type Database = {
         }
         Returns: Json
       }
-      unaccent: {
-        Args: { "": string }
-        Returns: string
-      }
-      unaccent_init: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
+      unaccent: { Args: { "": string }; Returns: string }
       unlink_f24_from_pagopa: {
         Args: { p_f24_id: number; p_reason?: string }
         Returns: {
