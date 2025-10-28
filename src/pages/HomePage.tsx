@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Plus, Eye, BarChart3 } from "lucide-react";
+import { Plus, Eye, BarChart3, Calendar } from "lucide-react";
 import { CollapsibleKpiSection } from "@/components/kpi/CollapsibleKpiSection";
 import { FinancialBalanceCard } from "@/components/kpi/FinancialBalanceCard";
 import { ResidualDecadenceRow } from "@/components/kpi/CompactKpiCards";
@@ -100,6 +100,15 @@ export default function HomePage() {
               >
                 <BarChart3 className="h-4 w-4" />
                 Statistiche
+              </Button>
+              <Button 
+                onClick={() => navigate("/scadenze-matrix")}
+                variant="outline"
+                size="lg"
+                className="gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                Scadenze Matrix
               </Button>
             </div>
           </div>

@@ -16,6 +16,7 @@ import Rateations from "./pages/Rateations";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
 import StatsV3 from "./pages/StatsV3";
+import ScadenzeMatrix from "./pages/ScadenzeMatrix";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
@@ -72,6 +73,11 @@ const App = () => {
             <Route path="/statistiche-v3" element={
               <ProtectedRoute>
                 <StatsV3 />
+              </ProtectedRoute>
+            } />
+            <Route path="/scadenze-matrix" element={
+              <ProtectedRoute>
+                <ScadenzeMatrix />
               </ProtectedRoute>
             } />
             <Route path="/print/riepilogo" element={

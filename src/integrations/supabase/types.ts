@@ -2597,6 +2597,21 @@ export type Database = {
         }
         Relationships: []
       }
+      v_monthly_metrics_by_type: {
+        Row: {
+          due_amount_cents: number | null
+          extra_ravv_amount_cents: number | null
+          installments_count: number | null
+          month: number | null
+          overdue_amount_cents: number | null
+          owner_uid: string | null
+          paid_amount_cents: number | null
+          paid_count: number | null
+          type_label: string | null
+          year: number | null
+        }
+        Relationships: []
+      }
       v_monthly_totals: {
         Row: {
           amount_due: number | null
