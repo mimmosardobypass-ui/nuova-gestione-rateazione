@@ -86,6 +86,34 @@ export function RateList({
       });
     } else if (filters.stato === 'late') {
       filtered = filtered.filter(row => (row.rateInRitardo ?? 0) > 0 || (row.importoRitardo ?? 0) > 0);
+    } else if (filters.stato === 'decayed') {
+      // Solo F24 decadute (tutte: sia in attesa che già agganciate)
+      filtered = filtered.filter(row => {
+        const status = row.status?.toUpperCase();
+        // Status DECADUTA o F24 INTERROTTA (ex-decaduta agganciata)
+        return status === 'DECADUTA' || 
+               (row.is_f24 && status === 'INTERROTTA');
+      });
+    } else if (filters.stato === 'active_with_pending_decayed') {
+      // Debito effettivo: Attive + F24 Decadute non ancora agganciate
+      filtered = filtered.filter(row => {
+        const status = row.status?.toUpperCase();
+        
+        // CASO A: Rateazioni ATTIVE (PagoPA, F24, RQ in corso)
+        const isActive = row.residuo > 0 && 
+                         status !== 'COMPLETATA' && 
+                         status !== 'DECADUTA' && 
+                         status !== 'ESTINTA' &&
+                         status !== 'INTERROTTA';
+        
+        // CASO B: F24 DECADUTE in attesa di cartella (non ancora agganciate)
+        // Una F24 è "in attesa" se ha status DECADUTA e residuo > 0
+        const isPendingDecayed = row.is_f24 && 
+                                 status === 'DECADUTA' &&
+                                 row.residuo > 0;
+        
+        return isActive || isPendingDecayed;
+      });
     } else if (filters.stato === 'completed') {
       filtered = filtered.filter(row => row.residuo === 0);
     }

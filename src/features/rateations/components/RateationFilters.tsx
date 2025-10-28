@@ -70,7 +70,9 @@ export function RateationFilters({
               <SelectContent>
                 <SelectItem value="all">Tutti gli stati</SelectItem>
                 <SelectItem value="active">Attiva</SelectItem>
+                <SelectItem value="active_with_pending_decayed">Attiva + Decadute non agganciate</SelectItem>
                 <SelectItem value="late">In ritardo</SelectItem>
+                <SelectItem value="decayed">Decadute</SelectItem>
                 <SelectItem value="completed">Completata</SelectItem>
               </SelectContent>
             </Select>
