@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Plus, Eye, BarChart3, Calendar } from "lucide-react";
 import { CollapsibleKpiSection } from "@/components/kpi/CollapsibleKpiSection";
@@ -177,6 +178,39 @@ export default function HomePage() {
       {/* Recent Notes Section */}
       <section className="container mx-auto px-4 pt-8">
         <RecentNotesCard />
+      </section>
+
+      {/* Comparazione Annuale V2 - Beta Card */}
+      <section className="container mx-auto px-4 pt-4">
+        <Card 
+          className="card-elevated cursor-pointer hover:shadow-lg transition-shadow border-primary/30"
+          onClick={() => navigate("/rateazioni?view=annual-comparison-v2")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm text-muted-foreground">
+                  Comparazione Annuale V2
+                </CardTitle>
+              </div>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                Beta
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-semibold tracking-tight">
+              Confronto Anno su Anno
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              🧪 Versione sperimentale con filtri anno e dati reali (sostituirà la V1)
+            </p>
+            <Button variant="ghost" className="mt-2 w-full" size="sm">
+              Prova la Beta →
+            </Button>
+          </CardContent>
+        </Card>
       </section>
 
       {/* Main KPI Section - Effective KPIs */}
