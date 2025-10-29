@@ -67,10 +67,19 @@ export default function ScadenzeMatrix() {
     );
   }, [data, yearFilter, currentYear]);
 
-  // Auto-populate typeFilter when data arrives
+  // Auto-populate and sync typeFilter with available types
   useEffect(() => {
-    if (availableTypes.length > 0 && typeFilter.length === 0) {
-      setTypeFilter(availableTypes);
+    if (availableTypes.length > 0) {
+      setTypeFilter(prev => {
+        // First time: select all
+        if (prev.length === 0) {
+          return availableTypes;
+        }
+        // Keep existing selections that are still valid + add new types
+        const existingSelected = prev.filter(t => availableTypes.includes(t));
+        const newTypes = availableTypes.filter(t => !prev.includes(t));
+        return [...existingSelected, ...newTypes];
+      });
     }
   }, [availableTypes]);
 
