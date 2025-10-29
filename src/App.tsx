@@ -21,9 +21,6 @@ import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
 
-// Lazy load analytics and print components
-const ResidualEvolution = React.lazy(() => import("./pages/ResidualEvolution"));
-
 // Lazy load print components
 const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport"));
 const SchedaRateazione = React.lazy(() => import("./pages/print/SchedaRateazione"));
@@ -135,13 +132,6 @@ const App = () => {
             <Route path="/risparmio-rq" element={
               <ProtectedRoute>
                 <RisparmiRQ />
-              </ProtectedRoute>
-            } />
-            <Route path="/evoluzione-debito-residuo" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <ResidualEvolution />
-                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/test" element={

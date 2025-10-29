@@ -11,7 +11,6 @@ import {
   LineChart,
   Plus,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 import {
   Bar,
@@ -251,32 +250,6 @@ export default function Dashboard() {
           <Stat label="In ritardo" value={euro(totalOverdue)} />
           <Stat label="Rate pagate/da pagare" value={`${paidCount} / ${totalCount}`} />
         </div>
-
-        {/* Evoluzione Debito Residuo Card */}
-        <Card 
-          className="card-elevated cursor-pointer hover:shadow-lg transition-shadow mt-6"
-          onClick={() => navigate("/evoluzione-debito-residuo")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm text-muted-foreground">
-                Evoluzione Debito Residuo
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold tracking-tight">
-              Analisi Mensile per Tipo
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Visualizza l'evoluzione del debito mese per mese con dettagli per tipologia
-            </p>
-            <Button variant="ghost" className="mt-2 w-full" size="sm">
-              Vai alla Dashboard →
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Compact KPI Cards */}
         <ResidualDecadenceSection />
