@@ -4925,6 +4925,19 @@ export type Database = {
         Args: { p_rateation_id: number }
         Returns: undefined
       }
+      residual_evolution_by_type: {
+        Args: {
+          p_pay_filter?: string
+          p_year_from?: number
+          p_year_to?: number
+        }
+        Returns: {
+          amount_cents: number
+          month: number
+          type_label: string
+          year: number
+        }[]
+      }
       rollback_debt_migration: {
         Args: { p_debt_ids: string[]; p_source_rateation_id: number }
         Returns: undefined
