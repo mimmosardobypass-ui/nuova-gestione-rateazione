@@ -65,7 +65,7 @@ export function useMonthlyMatrixByType(filters: MatrixByTypeFilters) {
     return () => {
       abortController.abort();
     };
-  }, [session?.user?.id, filters.payFilter, filters.typeFilter.join(','), filters.yearFilter]);
+  }, [session?.user?.id, filters.payFilter, filters.yearFilter]);
 
   return { data, years, loading, error };
 }
@@ -83,15 +83,6 @@ function processMetrics(
 
   // Get all unique types from data
   const allTypes = [...new Set(filteredMetrics.map(m => m.type_label))];
-  
-  // Filter by type if specified
-  const typesToInclude = filters.typeFilter.length > 0 
-    ? filters.typeFilter 
-    : allTypes;
-  
-  filteredMetrics = filteredMetrics.filter(m => 
-    typesToInclude.includes(m.type_label)
-  );
 
   // Get all years
   const allYears = [...new Set(filteredMetrics.map(m => m.year))].sort();
@@ -103,7 +94,7 @@ function processMetrics(
     };
 
     // Initialize all types for this year
-    for (const type of typesToInclude) {
+    for (const type of allTypes) {
       yearData[type] = {};
       for (let month = 1; month <= 12; month++) {
         yearData[type][month] = 0;
@@ -127,7 +118,7 @@ function processMetrics(
     for (let month = 1; month <= 12; month++) {
       let monthTotal = 0;
       
-      for (const type of typesToInclude) {
+      for (const type of allTypes) {
         monthTotal += yearData[type]?.[month] || 0;
       }
       
