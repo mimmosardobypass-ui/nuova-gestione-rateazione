@@ -18,7 +18,7 @@ interface RateListProps {
   onRefresh: () => void;
   onDataChanged: () => void;
   refreshKey: number;
-  onViewChange: (view: 'annual' | 'deadlines') => void;
+  onViewChange: (view: 'annual' | 'annual-v2' | 'deadlines') => void;
   onStats: () => void;
 }
 
