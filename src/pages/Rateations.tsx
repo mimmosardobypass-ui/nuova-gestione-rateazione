@@ -28,7 +28,6 @@ import type { DecadenceDashboard, DecadenceDetail } from "@/features/rateations/
 // View components
 import { RateList } from "@/features/rateations/components/views/RateList";
 import { AnnualComparison } from "@/features/rateations/components/views/AnnualComparison";
-import { AnnualComparisonV2 } from "@/features/rateations/components/views/AnnualComparisonV2";
 import { Deadlines } from "@/features/rateations/components/views/Deadlines";
 import { RateationsHealthBanner } from "@/components/RateationsHealthBanner";
 
@@ -132,7 +131,7 @@ export default function Rateations() {
     // setShowHomeBack(true);
   };
 
-  type View = 'list' | 'annual' | 'annual-v2' | 'deadlines' | 'decadenze';
+  type View = 'list' | 'annual' | 'deadlines' | 'decadenze';
   const [currentView, setCurrentView] = React.useState<View>('list');
 
   // Initialize view from URL on mount
@@ -140,14 +139,12 @@ export default function Rateations() {
     const viewParam = params.get('view');
     if (viewParam === 'annual-comparison') {
       setCurrentView('annual');
-    } else if (viewParam === 'annual-comparison-v2') {
-      setCurrentView('annual-v2');
     } else if (viewParam === 'deadlines') {
       setCurrentView('deadlines');
     }
   }, []);
 
-  const handleViewChange = (view: 'annual' | 'annual-v2' | 'deadlines') => {
+  const handleViewChange = (view: 'annual' | 'deadlines') => {
     setCurrentView(view);
   };
 
@@ -292,14 +289,6 @@ export default function Rateations() {
 
       {currentView === 'annual' && (
         <AnnualComparison 
-          rows={rows}
-          loading={loading}
-          onBack={() => setCurrentView('list')}
-        />
-      )}
-
-      {currentView === 'annual-v2' && (
-        <AnnualComparisonV2 
           rows={rows}
           loading={loading}
           onBack={() => setCurrentView('list')}
