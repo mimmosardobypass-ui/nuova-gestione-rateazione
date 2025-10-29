@@ -261,119 +261,102 @@ export default function ResidualEvolution() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {years.map((year) => (
-                    <React.Fragment key={year}>
-                      {/* Year Header Row */}
-                      <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
-                        <TableCell colSpan={years.length + 1} className="text-lg">
-                          {year}
-                        </TableCell>
-                      </TableRow>
+                  {/* Iterate through 12 months as primary rows */}
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+                    const key = `month-${month}`;
+                    const isOpen = openMonths[key];
 
-                      {/* 12 Months */}
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
-                        const key = `${year}-${month}`;
-                        const isOpen = openMonths[key];
-                        const monthData = data[year]?.[month];
+                    return (
+                      <Collapsible key={key} open={isOpen} onOpenChange={() => toggleMonth(key)}>
+                        {/* Month Name Row (Trigger) */}
+                        <TableRow className="border-b">
+                          <TableCell className="sticky left-0 bg-background">
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
+                                {isOpen ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                <span className="font-semibold">{MONTH_NAMES[month - 1]}</span>
+                              </Button>
+                            </CollapsibleTrigger>
+                          </TableCell>
+                          {/* Empty cells for each year */}
+                          {years.map((year) => (
+                            <TableCell key={year} className="text-center" />
+                          ))}
+                        </TableRow>
 
-                        return (
-                          <Collapsible key={key} open={isOpen} onOpenChange={() => toggleMonth(key)}>
-                            {/* Month Name Row (Trigger) */}
-                            <TableRow className="border-b">
-                              <TableCell className="sticky left-0 bg-background">
-                                <CollapsibleTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
-                                    {isOpen ? (
-                                      <ChevronDown className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronRight className="h-4 w-4" />
-                                    )}
-                                    <span className="font-semibold">{MONTH_NAMES[month - 1]}</span>
-                                  </Button>
-                                </CollapsibleTrigger>
-                              </TableCell>
-                              {years.map((y) => (
-                                <TableCell key={y} className="text-center" />
-                              ))}
-                            </TableRow>
+                        {/* Totale Mensile Row - shows data for all years */}
+                        <TableRow className="bg-muted/10">
+                          <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground">
+                            Totale Mensile
+                          </TableCell>
+                          {years.map((year) => (
+                            <TableCell key={year} className="text-center font-mono">
+                              {formatEuroFromCents(data[year]?.[month]?.total || 0)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
 
-                            {/* Totale Mensile Row */}
-                            <TableRow className="bg-muted/10">
-                              <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground">
-                                Totale Mensile
-                              </TableCell>
-                              {years.map((y) => (
-                                <TableCell key={y} className="text-center font-mono">
-                                  {y === year
-                                    ? formatEuroFromCents(monthData?.total || 0)
-                                    : '-'}
+                        {/* Scad. Progressive Row - shows data for all years */}
+                        <TableRow className="bg-muted/10">
+                          <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground">
+                            Scad. Progressive
+                          </TableCell>
+                          {years.map((year) => (
+                            <TableCell key={year} className="text-center font-mono text-primary">
+                              {formatEuroFromCents(data[year]?.progressive[month] || 0)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+
+                        {/* Expanded Content: Type Rows - shows data for all years */}
+                        <CollapsibleContent asChild>
+                          <>
+                            {filters.selectedTypes.map((type) => (
+                              <TableRow key={type} className="bg-background">
+                                <TableCell className="sticky left-0 bg-background pl-12">
+                                  <Badge
+                                    style={{ backgroundColor: TYPE_COLORS[type] }}
+                                    className="text-white"
+                                  >
+                                    {type}
+                                  </Badge>
                                 </TableCell>
-                              ))}
-                            </TableRow>
-
-                            {/* Scad. Progressive Row */}
-                            <TableRow className="bg-muted/10">
-                              <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground">
-                                Scad. Progressive
-                              </TableCell>
-                              {years.map((y) => (
-                                <TableCell key={y} className="text-center font-mono text-primary">
-                                  {y === year
-                                    ? formatEuroFromCents(data[year]?.progressive[month] || 0)
-                                    : '-'}
-                                </TableCell>
-                              ))}
-                            </TableRow>
-
-                            {/* Expanded Content: Type Rows */}
-                            <CollapsibleContent asChild>
-                              <>
-                                {filters.selectedTypes.map((type) => (
-                                  <TableRow key={type} className="bg-background">
-                                    <TableCell className="sticky left-0 bg-background pl-12">
-                                      <Badge
-                                        style={{ backgroundColor: TYPE_COLORS[type] }}
-                                        className="text-white"
-                                      >
-                                        {type}
-                                      </Badge>
-                                    </TableCell>
-                                    {years.map((y) => (
-                                      <TableCell key={y} className="text-center font-mono text-sm">
-                                        {y === year
-                                          ? formatEuroFromCents(monthData?.[type] || 0)
-                                          : '-'}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
+                                {years.map((year) => (
+                                  <TableCell key={year} className="text-center font-mono text-sm">
+                                    {formatEuroFromCents(data[year]?.[month]?.[type] || 0)}
+                                  </TableCell>
                                 ))}
-                              </>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        );
-                      })}
+                              </TableRow>
+                            ))}
+                          </>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })}
 
-                      {/* TOTALE ANNO Row */}
-                      <TableRow className="bg-primary/10 font-bold border-t-2">
-                        <TableCell className="sticky left-0 bg-primary/10">TOTALE ANNO</TableCell>
-                        {years.map((y) => (
-                          <TableCell key={y} className="text-center font-mono">
-                            {y === year ? formatEuroFromCents(data[year]?.totalYear || 0) : '-'}
-                          </TableCell>
-                        ))}
-                      </TableRow>
+                  {/* TOTALE ANNO Row - single row with all years */}
+                  <TableRow className="bg-primary/10 font-bold border-t-2">
+                    <TableCell className="sticky left-0 bg-primary/10">TOTALE ANNO</TableCell>
+                    {years.map((year) => (
+                      <TableCell key={year} className="text-center font-mono">
+                        {formatEuroFromCents(data[year]?.totalYear || 0)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
 
-                      {/* MEDIA MENSILE Row */}
-                      <TableRow className="bg-primary/5 font-semibold border-b-4">
-                        <TableCell className="sticky left-0 bg-primary/5">MEDIA MENSILE</TableCell>
-                        {years.map((y) => (
-                          <TableCell key={y} className="text-center font-mono text-primary">
-                            {y === year ? formatEuroFromCents(data[year]?.averageMonth || 0) : '-'}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </React.Fragment>
-                  ))}
+                  {/* MEDIA MENSILE Row - single row with all years */}
+                  <TableRow className="bg-primary/5 font-semibold border-b-4">
+                    <TableCell className="sticky left-0 bg-primary/5">MEDIA MENSILE</TableCell>
+                    {years.map((year) => (
+                      <TableCell key={year} className="text-center font-mono text-primary">
+                        {formatEuroFromCents(data[year]?.averageMonth || 0)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
                 </TableBody>
               </Table>
             </div>
