@@ -56,6 +56,18 @@ export default function ScadenzeMatrix() {
     yearFilter,
   });
 
+  // DEBUG: Log completo dei dati ricevuti dall'hook
+  console.log('🔍 [ScadenzeMatrix] Raw data from hook:', data);
+  console.log('🔍 [ScadenzeMatrix] Years:', years);
+  console.log('🔍 [ScadenzeMatrix] Current yearFilter:', yearFilter);
+  console.log('🔍 [ScadenzeMatrix] Current payFilter:', payFilter);
+  if (data && yearFilter) {
+    console.log(`🔍 [ScadenzeMatrix] data[${yearFilter}]:`, data[yearFilter]);
+    if (data[yearFilter]) {
+      console.log(`🔍 [ScadenzeMatrix] Keys in data[${yearFilter}]:`, Object.keys(data[yearFilter]));
+    }
+  }
+
   // Extract available types from data
   const availableTypes = useMemo(() => {
     if (!data || Object.keys(data).length === 0) return [];
