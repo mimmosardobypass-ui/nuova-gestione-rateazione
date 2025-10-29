@@ -254,6 +254,32 @@ export default function Dashboard() {
         {/* Compact KPI Cards */}
         <ResidualDecadenceSection />
 
+        {/* Comparazione Annuale Card */}
+        <Card 
+          className="card-elevated cursor-pointer hover:shadow-lg transition-shadow mt-6"
+          onClick={() => navigate("/rateazioni?view=annual-comparison")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm text-muted-foreground">
+                Comparazione Annuale
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-semibold tracking-tight">
+              Confronto Anno su Anno (KPI)
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Visualizza 4 card KPI con confronto 2024 vs 2025: Totale Rateazioni, Importo Totale, Pagato, Residuo
+            </p>
+            <Button variant="ghost" className="mt-2 w-full" size="sm">
+              Visualizza →
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Configurable Alerts - Solo informativi */}
         <div className="mt-6 space-y-4">
           {!loadingF24Risk && (
