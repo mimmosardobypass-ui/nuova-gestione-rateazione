@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Plus, Eye, BarChart3, Calendar } from "lucide-react";
+import { Plus, Eye, BarChart3, Calendar, TrendingUp } from "lucide-react";
 import { CollapsibleKpiSection } from "@/components/kpi/CollapsibleKpiSection";
 import { FinancialBalanceCard } from "@/components/kpi/FinancialBalanceCard";
 import { ResidualDecadenceRow } from "@/components/kpi/CompactKpiCards";
@@ -255,6 +255,32 @@ export default function HomePage() {
             </div>
           </CollapsibleKpiSection>
         </div>
+      </section>
+
+      {/* Evoluzione Debito Residuo Section */}
+      <section className="container mx-auto px-4 pb-8">
+        <Card 
+          className="card-elevated cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate("/evoluzione-debito-residuo")}
+        >
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Evoluzione Debito Residuo</h3>
+                <p className="text-sm text-muted-foreground">Analisi Mensile per Tipo</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Visualizza l'evoluzione del debito mese per mese con dettagli per tipologia (F24, PagoPa, Rottamazione Quater, Riam. Quater)
+            </p>
+            <Button variant="outline" className="w-full" size="sm">
+              Vai alla Dashboard →
+            </Button>
+          </div>
+        </Card>
       </section>
 
       {/* Quick Actions */}
