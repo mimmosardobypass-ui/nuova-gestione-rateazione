@@ -62,23 +62,32 @@ export default function ScadenzeMatrix() {
     const year = yearFilter || currentYear;
     const yearData = data[year];
     if (!yearData) return [];
-    return Object.keys(yearData).filter(
+    const types = Object.keys(yearData).filter(
       key => key !== 'totals' && key !== 'progressive'
     );
+    console.log('🔍 [ScadenzeMatrix] availableTypes:', types);
+    console.log('🔍 [ScadenzeMatrix] yearData keys:', Object.keys(yearData));
+    return types;
   }, [data, yearFilter, currentYear]);
 
   // Auto-populate and sync typeFilter with available types
   useEffect(() => {
     if (availableTypes.length > 0) {
       setTypeFilter(prev => {
+        console.log('🔍 [ScadenzeMatrix] prev typeFilter:', prev);
+        console.log('🔍 [ScadenzeMatrix] availableTypes:', availableTypes);
+        
         // First time: select all
         if (prev.length === 0) {
+          console.log('🔍 [ScadenzeMatrix] Setting typeFilter to:', availableTypes);
           return availableTypes;
         }
         // Keep existing selections that are still valid + add new types
         const existingSelected = prev.filter(t => availableTypes.includes(t));
         const newTypes = availableTypes.filter(t => !prev.includes(t));
-        return [...existingSelected, ...newTypes];
+        const result = [...existingSelected, ...newTypes];
+        console.log('🔍 [ScadenzeMatrix] Updated typeFilter to:', result);
+        return result;
       });
     }
   }, [availableTypes]);
@@ -339,6 +348,17 @@ function MatrixTable({
   typeFilter: string[];
 }) {
   const yearData = data[yearFilter];
+  
+  console.log('🔍 [MatrixTable] yearFilter:', yearFilter);
+  console.log('🔍 [MatrixTable] typeFilter:', typeFilter);
+  console.log('🔍 [MatrixTable] yearData keys:', yearData ? Object.keys(yearData) : 'null');
+  
+  if (yearData) {
+    typeFilter.forEach(type => {
+      const hasData = yearData[type] && Object.values(yearData[type]).some(v => (v as number) > 0);
+      console.log(`🔍 [MatrixTable] Type "${type}" has data:`, hasData, yearData[type]);
+    });
+  }
 
   if (!yearData) {
     return (
