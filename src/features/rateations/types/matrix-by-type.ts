@@ -14,7 +14,6 @@ export interface MonthlyMetricByType {
 
 export interface MatrixByTypeFilters {
   payFilter: PayFilterType;
-  typeFilter: string[];
   yearFilter: number | null;
 }
 

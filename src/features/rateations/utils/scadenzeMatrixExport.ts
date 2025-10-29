@@ -13,12 +13,13 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function exportMatrixToExcel(
   data: MatrixByTypeData,
-  filters: MatrixByTypeFilters
+  filters: MatrixByTypeFilters,
+  typeFilter: string[]
 ) {
   const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Matrice Mensile
-  const matrixSheet = createMatrixSheet(data, filters);
+  const matrixSheet = createMatrixSheet(data, filters, typeFilter);
   XLSX.utils.book_append_sheet(workbook, matrixSheet, "Matrice Mensile");
 
   // Sheet 2: KPI Summary
@@ -34,13 +35,13 @@ export function exportMatrixToExcel(
   XLSX.writeFile(workbook, filename);
 }
 
-function createMatrixSheet(data: MatrixByTypeData, filters: MatrixByTypeFilters) {
+function createMatrixSheet(data: MatrixByTypeData, filters: MatrixByTypeFilters, typeFilter: string[]) {
   const rows: any[] = [];
 
   // Header row with filters
   rows.push([`Statistica Scadenze - Anno ${filters.yearFilter || 'Tutti gli anni'}`]);
   rows.push([`Filtro Pagamento: ${getPayFilterLabel(filters.payFilter)}`]);
-  rows.push([`Tipologie: ${filters.typeFilter.map(t => TYPE_LABELS[t] || t).join(', ')}`]);
+  rows.push([`Tipologie: ${typeFilter.map(t => TYPE_LABELS[t] || t).join(', ')}`]);
   rows.push([]); // Empty row
 
   // Data for each year
@@ -54,7 +55,7 @@ function createMatrixSheet(data: MatrixByTypeData, filters: MatrixByTypeFilters)
     rows.push(headerRow);
 
     // Type rows
-    for (const type of filters.typeFilter) {
+    for (const type of typeFilter) {
       const typeRow = [TYPE_LABELS[type] || type];
       let yearTotal = 0;
 
