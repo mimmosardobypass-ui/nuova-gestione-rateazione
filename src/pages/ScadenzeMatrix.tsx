@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Download, FileSpreadsheet, Printer, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,6 +30,7 @@ const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "
 const TYPE_COLORS: Record<string, string> = {
   'F24': "#ef4444",
   'PagoPA': "#3b82f6",
+  'Rottamazione Quater': "#10b981",
   'Riam. Quater': "#06b6d4",
   'Altro': "#8b5cf6",
 };
@@ -37,7 +38,8 @@ const TYPE_COLORS: Record<string, string> = {
 const TYPE_LABELS: Record<string, string> = {
   'F24': "F24",
   'PagoPA': "PagoPA",
-  'Riam. Quater': "Riam. Quater",
+  'Rottamazione Quater': "Rottamazione Quater",
+  'Riam. Quater': "Riammissione Quater",
   'Altro': "Altro",
 };
 
@@ -45,7 +47,7 @@ export default function ScadenzeMatrix() {
   const currentYear = new Date().getFullYear();
   
   const [payFilter, setPayFilter] = useState<PayFilterType>('unpaid');
-  const [typeFilter, setTypeFilter] = useState<string[]>(['F24', 'PagoPA', 'Riam. Quater', 'Altro']);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [yearFilter, setYearFilter] = useState<number | null>(currentYear);
 
   const { data, years, loading, error } = useMonthlyMatrixByType({
@@ -53,6 +55,24 @@ export default function ScadenzeMatrix() {
     typeFilter,
     yearFilter,
   });
+
+  // Extract available types from data
+  const availableTypes = useMemo(() => {
+    if (!data || Object.keys(data).length === 0) return [];
+    const year = yearFilter || currentYear;
+    const yearData = data[year];
+    if (!yearData) return [];
+    return Object.keys(yearData).filter(
+      key => key !== 'totals' && key !== 'progressive'
+    );
+  }, [data, yearFilter, currentYear]);
+
+  // Auto-populate typeFilter when data arrives
+  useEffect(() => {
+    if (availableTypes.length > 0 && typeFilter.length === 0) {
+      setTypeFilter(availableTypes);
+    }
+  }, [availableTypes]);
 
   const handleTypeToggle = (type: string) => {
     setTypeFilter(prev => 
@@ -155,7 +175,7 @@ export default function ScadenzeMatrix() {
           <div className="space-y-3">
             <Label>Tipologia</Label>
             <div className="flex flex-wrap gap-4">
-              {Object.keys(TYPE_LABELS).map(type => (
+              {availableTypes.map(type => (
                 <div key={type} className="flex items-center space-x-2">
                   <Checkbox
                     id={`type-${type}`}
@@ -163,7 +183,7 @@ export default function ScadenzeMatrix() {
                     onCheckedChange={() => handleTypeToggle(type)}
                   />
                   <Label htmlFor={`type-${type}`} className="cursor-pointer font-normal">
-                    {TYPE_LABELS[type]}
+                    {TYPE_LABELS[type] || type}
                   </Label>
                 </div>
               ))}

@@ -9,8 +9,6 @@ import type {
   YearMonthlyData 
 } from "../types/matrix-by-type";
 
-const DEFAULT_TYPES = ['F24', 'PagoPA', 'Riam. Quater', 'Altro'];
-
 export function useMonthlyMatrixByType(filters: MatrixByTypeFilters) {
   const { session } = useAuth();
   const [data, setData] = useState<MatrixByTypeData>({});
@@ -83,10 +81,13 @@ function processMetrics(
     ? metrics.filter(m => m.year === filters.yearFilter)
     : metrics;
 
-  // Filter by type
+  // Get all unique types from data
+  const allTypes = [...new Set(filteredMetrics.map(m => m.type_label))];
+  
+  // Filter by type if specified
   const typesToInclude = filters.typeFilter.length > 0 
     ? filters.typeFilter 
-    : DEFAULT_TYPES;
+    : allTypes;
   
   filteredMetrics = filteredMetrics.filter(m => 
     typesToInclude.includes(m.type_label)
