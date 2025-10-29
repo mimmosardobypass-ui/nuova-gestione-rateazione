@@ -46,8 +46,8 @@ export default function ResidualEvolution() {
   const currentYear = new Date().getFullYear();
 
   const [filters, setFilters] = useState<ResidualEvolutionFilters>({
-    yearFrom: currentYear,
-    yearTo: currentYear + 3,
+    yearFrom: Math.max(2022, currentYear - 1),
+    yearTo: Math.min(2032, currentYear + 2),
     payFilter: 'unpaid',
     selectedTypes: ALL_TYPES,
   });
@@ -127,7 +127,7 @@ export default function ResidualEvolution() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => currentYear - 5 + i).map((year) => (
+                  {Array.from({ length: 11 }, (_, i) => 2022 + i).map((year) => (
                     <SelectItem key={year} value={year.toString()}>
                       {year}
                     </SelectItem>
@@ -145,7 +145,7 @@ export default function ResidualEvolution() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => currentYear - 5 + i).map((year) => (
+                  {Array.from({ length: 11 }, (_, i) => 2022 + i).map((year) => (
                     <SelectItem key={year} value={year.toString()}>
                       {year}
                     </SelectItem>
