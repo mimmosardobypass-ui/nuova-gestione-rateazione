@@ -28,13 +28,16 @@ export function AnnualComparisonV2({ rows, loading, onBack }: AnnualComparisonV2
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
 
-  // Calculate statistics by year
+  // Calculate statistics by year using real created_at field
   const calculateYearStats = (year: number) => {
-    // For this mock implementation, we'll use creation date to filter by year
-    // In a real implementation, you might have actual year data in your rateations
     const yearRows = rows.filter(row => {
-      // Since we don't have explicit year data, we'll distribute randomly for demo
-      return Math.random() > 0.5; // Mock year filtering
+      // Extract year from created_at or start_due_date
+      if (!row.created_at && !row.start_due_date) return false;
+      
+      const dateStr = row.created_at || row.start_due_date;
+      const rowYear = new Date(dateStr).getFullYear();
+      
+      return rowYear === year;
     });
 
     return {

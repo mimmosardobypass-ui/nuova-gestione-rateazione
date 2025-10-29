@@ -32,6 +32,8 @@ export interface RateationRow {
   number?: string | null;
   taxpayer_name?: string | null;
   total_amount?: number | null;
+  created_at?: string | null;     // Creation date for year filtering
+  start_due_date?: string | null; // Fallback date for year filtering
   // F24 Decadence fields
   is_f24?: boolean;
   status: RateationStatus;
