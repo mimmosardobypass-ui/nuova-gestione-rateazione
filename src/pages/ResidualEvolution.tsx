@@ -254,7 +254,7 @@ export default function ResidualEvolution() {
                       Mese
                     </TableHead>
                     {years.map((year) => (
-                      <TableHead key={year} className="text-center min-w-[100px] border-r">
+                      <TableHead key={year} className="text-center min-w-[100px] border-r bg-background z-10 relative">
                         {year}
                       </TableHead>
                     ))}
