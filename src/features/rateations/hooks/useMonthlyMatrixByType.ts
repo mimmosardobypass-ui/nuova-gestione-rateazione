@@ -76,13 +76,13 @@ function processMetrics(
 ): MatrixByTypeData {
   const result: MatrixByTypeData = {};
 
+  // Get all unique types from ALL data (before year filtering)
+  const allTypes = [...new Set(metrics.map(m => m.type_label))];
+
   // Filter by year if specified
   let filteredMetrics = filters.yearFilter 
     ? metrics.filter(m => m.year === filters.yearFilter)
     : metrics;
-
-  // Get all unique types from data
-  const allTypes = [...new Set(filteredMetrics.map(m => m.type_label))];
 
   // Get all years
   const allYears = [...new Set(filteredMetrics.map(m => m.year))].sort();
