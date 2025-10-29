@@ -9,7 +9,7 @@ import type {
   YearMonthlyData 
 } from "../types/matrix-by-type";
 
-const DEFAULT_TYPES = ['F24', 'PAGOPA', 'ROTTAMAZIONE_QUATER', 'RIAMMISSIONE_QUATER'];
+const DEFAULT_TYPES = ['F24', 'PagoPA', 'Riam. Quater', 'Altro'];
 
 export function useMonthlyMatrixByType(filters: MatrixByTypeFilters) {
   const { session } = useAuth();

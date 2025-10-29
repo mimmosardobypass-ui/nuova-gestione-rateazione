@@ -28,24 +28,24 @@ import { exportMatrixToExcel, printMatrix } from "@/features/rateations/utils/sc
 const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
 const TYPE_COLORS: Record<string, string> = {
-  F24: "#ef4444",
-  PAGOPA: "#3b82f6",
-  ROTTAMAZIONE_QUATER: "#10b981",
-  RIAMMISSIONE_QUATER: "#06b6d4",
+  'F24': "#ef4444",
+  'PagoPA': "#3b82f6",
+  'Riam. Quater': "#06b6d4",
+  'Altro': "#8b5cf6",
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  F24: "F24",
-  PAGOPA: "PagoPA",
-  ROTTAMAZIONE_QUATER: "Rottamazione Quater",
-  RIAMMISSIONE_QUATER: "Riammissione Quater",
+  'F24': "F24",
+  'PagoPA': "PagoPA",
+  'Riam. Quater': "Riam. Quater",
+  'Altro': "Altro",
 };
 
 export default function ScadenzeMatrix() {
   const currentYear = new Date().getFullYear();
   
   const [payFilter, setPayFilter] = useState<PayFilterType>('unpaid');
-  const [typeFilter, setTypeFilter] = useState<string[]>(['F24', 'PAGOPA', 'ROTTAMAZIONE_QUATER', 'RIAMMISSIONE_QUATER']);
+  const [typeFilter, setTypeFilter] = useState<string[]>(['F24', 'PagoPA', 'Riam. Quater', 'Altro']);
   const [yearFilter, setYearFilter] = useState<number | null>(currentYear);
 
   const { data, years, loading, error } = useMonthlyMatrixByType({
