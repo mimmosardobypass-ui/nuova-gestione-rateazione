@@ -270,7 +270,7 @@ export default function ResidualEvolution() {
                       <Collapsible key={key} open={isOpen} onOpenChange={() => toggleMonth(key)}>
                         {/* Month Name Row (Trigger) */}
                         <TableRow className="border-b">
-                          <TableCell className="sticky left-0 bg-background">
+                          <TableCell className="sticky left-0 bg-background min-w-[200px]">
                             <CollapsibleTrigger asChild>
                               <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
                                 {isOpen ? (
@@ -284,17 +284,17 @@ export default function ResidualEvolution() {
                           </TableCell>
                           {/* Empty cells for each year */}
                           {years.map((year) => (
-                            <TableCell key={year} className="text-center border-r" />
+                            <TableCell key={year} className="text-center border-r min-w-[100px]" />
                           ))}
                         </TableRow>
 
                         {/* Totale Mensile Row - shows data for all years */}
                         <TableRow className="bg-muted/10">
-                          <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground">
+                          <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground min-w-[200px]">
                             Totale Mensile
                           </TableCell>
                           {years.map((year) => (
-                            <TableCell key={year} className="text-center font-mono border-r">
+                            <TableCell key={year} className="text-center font-mono border-r min-w-[100px]">
                               {formatEuroFromCents(data[year]?.[month]?.total || 0)}
                             </TableCell>
                           ))}
@@ -302,11 +302,11 @@ export default function ResidualEvolution() {
 
                         {/* Scad. Progressive Row - shows data for all years */}
                         <TableRow className="bg-muted/10">
-                          <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground">
+                          <TableCell className="sticky left-0 bg-muted/10 pl-8 text-sm text-muted-foreground min-w-[200px]">
                             Scad. Progressive
                           </TableCell>
                           {years.map((year) => (
-                            <TableCell key={year} className="text-center font-mono text-primary border-r">
+                            <TableCell key={year} className="text-center font-mono text-primary border-r min-w-[100px]">
                               {formatEuroFromCents(data[year]?.progressive[month] || 0)}
                             </TableCell>
                           ))}
@@ -317,7 +317,7 @@ export default function ResidualEvolution() {
                           <>
                             {filters.selectedTypes.map((type) => (
                               <TableRow key={type} className="bg-background">
-                                <TableCell className="sticky left-0 bg-background pl-12">
+                                <TableCell className="sticky left-0 bg-background pl-12 min-w-[200px]">
                                   <Badge
                                     style={{ backgroundColor: TYPE_COLORS[type] }}
                                     className="text-white"
@@ -326,7 +326,7 @@ export default function ResidualEvolution() {
                                   </Badge>
                                 </TableCell>
                                 {years.map((year) => (
-                                  <TableCell key={year} className="text-center font-mono text-sm border-r">
+                                  <TableCell key={year} className="text-center font-mono text-sm border-r min-w-[100px]">
                                     {formatEuroFromCents(data[year]?.[month]?.[type] || 0)}
                                   </TableCell>
                                 ))}
@@ -340,9 +340,9 @@ export default function ResidualEvolution() {
 
                   {/* TOTALE ANNO Row - single row with all years */}
                   <TableRow className="bg-primary/10 font-bold border-t-2">
-                    <TableCell className="sticky left-0 bg-primary/10">TOTALE ANNO</TableCell>
+                    <TableCell className="sticky left-0 bg-primary/10 min-w-[200px]">TOTALE ANNO</TableCell>
                     {years.map((year) => (
-                      <TableCell key={year} className="text-center font-mono border-r">
+                      <TableCell key={year} className="text-center font-mono border-r min-w-[100px]">
                         {formatEuroFromCents(data[year]?.totalYear || 0)}
                       </TableCell>
                     ))}
@@ -350,9 +350,9 @@ export default function ResidualEvolution() {
 
                   {/* MEDIA MENSILE Row - single row with all years */}
                   <TableRow className="bg-primary/5 font-semibold border-b-4">
-                    <TableCell className="sticky left-0 bg-primary/5">MEDIA MENSILE</TableCell>
+                    <TableCell className="sticky left-0 bg-primary/5 min-w-[200px]">MEDIA MENSILE</TableCell>
                     {years.map((year) => (
-                      <TableCell key={year} className="text-center font-mono text-primary border-r">
+                      <TableCell key={year} className="text-center font-mono text-primary border-r min-w-[100px]">
                         {formatEuroFromCents(data[year]?.averageMonth || 0)}
                       </TableCell>
                     ))}
