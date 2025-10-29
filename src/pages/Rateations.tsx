@@ -27,7 +27,7 @@ import type { DecadenceDashboard, DecadenceDetail } from "@/features/rateations/
 
 // View components
 import { RateList } from "@/features/rateations/components/views/RateList";
-import AnnualMatrixCard from "@/features/rateations/components/AnnualMatrixCard";
+import { AnnualComparison } from "@/features/rateations/components/views/AnnualComparison";
 import { AnnualComparisonV2 } from "@/features/rateations/components/views/AnnualComparisonV2";
 import { Deadlines } from "@/features/rateations/components/views/Deadlines";
 import { RateationsHealthBanner } from "@/components/RateationsHealthBanner";
@@ -291,7 +291,9 @@ export default function Rateations() {
       )}
 
       {currentView === 'annual' && (
-        <AnnualMatrixCard 
+        <AnnualComparison 
+          rows={rows}
+          loading={loading}
           onBack={() => setCurrentView('list')}
         />
       )}
