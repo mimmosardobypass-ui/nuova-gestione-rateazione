@@ -53,9 +53,27 @@ export function getTypeColor(type: string): string {
   const colors: Record<string, string> = {
     'F24': '#e03131',
     'PAGOPA': '#2f6ee5',
+    'PagoPa': '#2f6ee5',
     'ROTTAMAZIONE_QUATER': '#2b8a3e',
+    'Rottamazione Quater': '#2b8a3e',
     'RIAMMISSIONE_QUATER': '#0ca678',
+    'Riammissione Quater': '#0ca678',
     'ALTRO': '#868e96',
+    'Altro': '#868e96',
   };
   return colors[type] || '#868e96';
+}
+
+export function formatCurrencyCompact(cents: number): string {
+  const eur = formatCentsToEur(cents);
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(eur);
+}
+
+export function formatMonthName(monthNum: number): string {
+  const months = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  return months[monthNum - 1] || "";
 }

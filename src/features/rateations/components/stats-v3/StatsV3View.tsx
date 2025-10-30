@@ -10,6 +10,8 @@ import { StatsV3Filters as FiltersComponent } from "./StatsV3Filters";
 import { StatsV3Charts } from "./StatsV3Charts";
 import { StatsV3Table } from "./StatsV3Table";
 import { StatsV3Export } from "./StatsV3Export";
+import { MonthlyTrendMatrix } from "./MonthlyTrendMatrix";
+import { MonthBreakdownDrawer } from "./MonthBreakdownDrawer";
 
 const DEFAULT_FILTERS: StatsV3Filters = {
   dateFrom: null,
@@ -24,6 +26,13 @@ const DEFAULT_FILTERS: StatsV3Filters = {
 export default function StatsV3View() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // Monthly breakdown drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<{ y: number | null; m: number | null }>({ 
+    y: null, 
+    m: null 
+  });
   
   // Initialize filters from URL
   const [filters, setFilters] = useState<StatsV3Filters>(() => {
@@ -64,6 +73,11 @@ export default function StatsV3View() {
   const handleResetFilters = () => {
     setFilters(DEFAULT_FILTERS);
   };
+
+  // Calculate year range for monthly matrix
+  const currentYear = new Date().getFullYear();
+  const yearFrom = filters.dateFrom ? new Date(filters.dateFrom).getFullYear() : 2021;
+  const yearTo = filters.dateTo ? new Date(filters.dateTo).getFullYear() : currentYear;
 
   if (error) {
     return (
@@ -137,6 +151,28 @@ export default function StatsV3View() {
       ) : data ? (
         <StatsV3Charts byType={data.by_type} series={data.series} />
       ) : null}
+
+      {/* Monthly Trend Matrix */}
+      {loading ? (
+        <Skeleton className="h-[500px]" />
+      ) : data ? (
+        <MonthlyTrendMatrix
+          yearFrom={yearFrom}
+          yearTo={yearTo}
+          onSelectMonth={(y, m) => {
+            setSelectedMonth({ y, m });
+            setDrawerOpen(true);
+          }}
+        />
+      ) : null}
+
+      {/* Month Breakdown Drawer */}
+      <MonthBreakdownDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        year={selectedMonth.y}
+        month={selectedMonth.m}
+      />
 
       {/* Table */}
       {loading ? (
