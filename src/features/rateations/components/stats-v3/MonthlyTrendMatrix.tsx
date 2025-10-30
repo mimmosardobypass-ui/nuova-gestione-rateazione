@@ -116,10 +116,10 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                           💶 {formatCurrencyCompact(total)}
                         </div>
                         <div className="text-right text-green-600 text-xs">
-                          🟢 {formatCurrencyCompact(paid)}
+                          Pagato: {formatCurrencyCompact(paid)}
                         </div>
                         <div className="text-right text-red-500 text-xs">
-                          🔴 {formatCurrencyCompact(unpaid)}
+                          Residuo: {formatCurrencyCompact(unpaid)}
                         </div>
                       </td>
                     );
