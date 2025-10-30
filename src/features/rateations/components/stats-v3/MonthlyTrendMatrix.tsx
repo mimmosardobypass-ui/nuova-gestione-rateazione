@@ -38,50 +38,33 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
     );
   }
 
-  // Calcolo min/max per heatmap
-  const totals = Array.from(matrix.cells.values()).map((c) => c.total_cents);
-  const min = Math.min(...totals, 0);
-  const max = Math.max(...totals, 1);
-
-  const bgFor = (v: number) => {
-    if (v === 0) return "bg-slate-50";
-    const t = (v - min) / (max - min);
-    const steps = [
-      "bg-slate-50",
-      "bg-blue-50",
-      "bg-blue-100",
-      "bg-blue-200",
-      "bg-blue-300",
-      "bg-blue-400/40",
-    ];
-    return steps[Math.min(steps.length - 1, Math.max(0, Math.floor(t * steps.length)))];
-  };
+  // Nessuna heatmap - sfondo uniforme bianco
 
   return (
-    <div className="rounded-2xl border bg-card p-4 shadow-sm">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-semibold">📆 Andamento Mensile — Completo</h3>
       </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-[980px] w-full table-fixed border-collapse text-sm">
-          <thead className="sticky top-0 z-10 bg-card">
-            <tr className="text-muted-foreground">
-              <th className="w-16 px-2 py-2 text-left font-medium">Anno</th>
+          <thead className="sticky top-0 z-10 bg-white border-b-2 border-gray-200">
+            <tr className="text-gray-500">
+              <th className="w-16 px-3 py-3 text-left font-medium text-xs">Anno</th>
               {MONTHS.map((m) => (
-                <th key={m} className="px-2 py-2 text-right font-medium">
+                <th key={m} className="px-3 py-3 text-right font-medium text-xs border-r border-gray-100">
                   {m}
                 </th>
               ))}
-              <th className="w-24 px-2 py-2 text-right font-medium">Totale</th>
+              <th className="w-24 px-3 py-3 text-right font-medium text-xs">Totale</th>
             </tr>
           </thead>
           <tbody>
             {years.map((y) => {
               let rowTotal = 0;
               return (
-                <tr key={y} className="border-t">
-                  <td className="px-2 py-1 font-medium text-foreground">{y}</td>
+                <tr key={y} className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium text-gray-900 text-sm">{y}</td>
                   {MONTHS.map((_, i) => {
                     const m = i + 1;
                     const cell = matrix.cells.get(`${y}-${m}`);
@@ -89,7 +72,6 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                     const paid = cell?.paid_cents ?? 0;
                     const unpaid = cell?.unpaid_cents ?? 0;
                     rowTotal += total;
-                    const bg = bgFor(total);
 
                     return (
                       <td
@@ -105,26 +87,25 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                           }
                         }}
                         className={cn(
-                          "select-none px-2 py-1 align-top transition-colors",
-                          bg,
+                          "select-none px-3 py-2 align-top transition-colors border-r border-gray-100",
                           total > 0
-                            ? "cursor-pointer hover:outline hover:outline-1 hover:outline-primary focus:outline focus:outline-2 focus:outline-primary"
-                            : "opacity-60 cursor-default"
+                            ? "cursor-pointer hover:bg-gray-50 bg-white"
+                            : "opacity-40 cursor-default bg-white"
                         )}
                       >
-                        <div className="text-right font-semibold text-foreground text-xs">
-                          💶 {formatCurrencyCompact(total)}
+                        <div className="text-right font-semibold text-gray-900 text-xs mb-0.5">
+                          {formatCurrencyCompact(total)}
                         </div>
-                        <div className="text-right text-green-600 text-xs">
-                          Pagato: {formatCurrencyCompact(paid)}
+                        <div className="text-right text-gray-600 text-[11px]">
+                          Pag: {formatCurrencyCompact(paid)}
                         </div>
-                        <div className="text-right text-red-500 text-xs">
-                          Residuo: {formatCurrencyCompact(unpaid)}
+                        <div className="text-right text-gray-600 text-[11px]">
+                          Res: {formatCurrencyCompact(unpaid)}
                         </div>
                       </td>
                     );
                   })}
-                  <td className="px-2 py-1 text-right font-semibold text-foreground">
+                  <td className="px-3 py-2 text-right font-semibold text-gray-900 text-sm">
                     {formatCurrencyCompact(rowTotal)}
                   </td>
                 </tr>
@@ -132,8 +113,8 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
             })}
 
             {/* Riga TOT */}
-            <tr className="border-t bg-muted/50">
-              <td className="px-2 py-1 font-semibold">TOT</td>
+            <tr className="border-t-2 border-gray-300 bg-gray-50">
+              <td className="px-3 py-2 font-semibold text-gray-900 text-xs">TOT</td>
               {MONTHS.map((_, i) => {
                 const m = i + 1;
                 const sum = years.reduce((acc, y) => {
@@ -141,12 +122,12 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                   return acc + (c?.total_cents ?? 0);
                 }, 0);
                 return (
-                  <td key={m} className="px-2 py-1 text-right font-semibold text-sm">
+                  <td key={m} className="px-3 py-2 text-right font-semibold text-gray-900 text-sm border-r border-gray-200">
                     {formatCurrencyCompact(sum)}
                   </td>
                 );
               })}
-              <td className="px-2 py-1 text-right font-bold">
+              <td className="px-3 py-2 text-right font-bold text-gray-900 text-sm">
                 {formatCurrencyCompact(
                   Array.from(matrix.cells.values()).reduce((a, c) => a + c.total_cents, 0)
                 )}
@@ -154,8 +135,8 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
             </tr>
 
             {/* Riga MEDIA */}
-            <tr className="border-t">
-              <td className="px-2 py-1 text-muted-foreground">MEDIA</td>
+            <tr className="border-t border-gray-200 bg-white">
+              <td className="px-3 py-2 text-gray-600 text-xs">MEDIA</td>
               {MONTHS.map((_, i) => {
                 const m = i + 1;
                 const sum = years.reduce((acc, y) => {
@@ -164,12 +145,12 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                 }, 0);
                 const avg = years.length ? sum / years.length : 0;
                 return (
-                  <td key={m} className="px-2 py-1 text-right text-muted-foreground text-sm">
+                  <td key={m} className="px-3 py-2 text-right text-gray-600 text-sm border-r border-gray-100">
                     {formatCurrencyCompact(avg)}
                   </td>
                 );
               })}
-              <td className="px-2 py-1 text-right text-muted-foreground">—</td>
+              <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
             </tr>
           </tbody>
         </table>
