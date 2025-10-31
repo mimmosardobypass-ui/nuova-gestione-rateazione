@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStatsV3, type StatsV3Filters } from "../../hooks/useStatsV3";
 import { StatsV3KPIs } from "./StatsV3KPIs";
@@ -156,14 +156,28 @@ export default function StatsV3View() {
       {loading ? (
         <Skeleton className="h-[500px]" />
       ) : data ? (
-        <MonthlyTrendMatrix
-          yearFrom={yearFrom}
-          yearTo={yearTo}
-          onSelectMonth={(y, m) => {
-            setSelectedMonth({ y, m });
-            setDrawerOpen(true);
-          }}
-        />
+        <>
+          <MonthlyTrendMatrix
+            yearFrom={yearFrom}
+            yearTo={yearTo}
+            onSelectMonth={(y, m) => {
+              setSelectedMonth({ y, m });
+              setDrawerOpen(true);
+            }}
+          />
+          
+          {/* Link to full-screen evolution chart */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/evoluzione-mensile?from=${yearFrom}&to=${yearTo}`)}
+              className="gap-2"
+            >
+              <TrendingUp className="h-4 w-4" />
+              Vedi Evoluzione Mensile Full-Screen
+            </Button>
+          </div>
+        </>
       ) : null}
 
       {/* Month Breakdown Drawer */}
