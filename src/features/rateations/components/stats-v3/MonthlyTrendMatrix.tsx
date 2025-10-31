@@ -47,7 +47,7 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[980px] w-full table-fixed border-collapse text-sm">
+        <table className="min-w-[1180px] w-full table-fixed border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-white border-b-2 border-gray-200">
             <tr className="text-gray-500">
               <th className="w-16 px-3 py-3 text-left font-medium text-xs">Anno</th>
@@ -56,12 +56,15 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                   {m}
                 </th>
               ))}
-              <th className="w-24 px-3 py-3 text-right font-medium text-xs">Totale</th>
+              <th className="w-32 px-3 py-3 text-right font-medium text-xs border-r border-gray-100">Totale</th>
+              <th className="w-32 px-3 py-3 text-right font-medium text-xs">Media Mensile</th>
             </tr>
           </thead>
           <tbody>
             {years.map((y) => {
               let rowTotal = 0;
+              let rowPaid = 0;
+              let rowUnpaid = 0;
               return (
                 <tr key={y} className="border-t border-gray-100">
                   <td className="px-3 py-2 font-medium text-gray-900 text-sm">{y}</td>
@@ -72,6 +75,8 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                     const paid = cell?.paid_cents ?? 0;
                     const unpaid = cell?.unpaid_cents ?? 0;
                     rowTotal += total;
+                    rowPaid += paid;
+                    rowUnpaid += unpaid;
 
                     return (
                       <td
@@ -105,8 +110,24 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                       </td>
                     );
                   })}
-                  <td className="px-3 py-2 text-right font-semibold text-gray-900 text-sm">
-                    {formatCurrencyCompact(rowTotal)}
+                  <td className="px-3 py-2 align-top border-r border-gray-100">
+                    <div className="text-right font-semibold text-gray-900 text-sm">
+                      {formatCurrencyCompact(rowTotal)}
+                    </div>
+                    <div className="text-right text-gray-600 text-[11px]">
+                      Pag: {formatCurrencyCompact(rowPaid)}
+                    </div>
+                    <div className="text-right text-gray-600 text-[11px]">
+                      Res: {formatCurrencyCompact(rowUnpaid)}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <div className="text-right text-blue-600 text-xs font-medium">
+                      Media Tot: {formatCurrencyCompact(rowTotal / 12)}
+                    </div>
+                    <div className="text-right text-green-600 text-xs">
+                      Media Pag: {formatCurrencyCompact(rowPaid / 12)}
+                    </div>
                   </td>
                 </tr>
               );
@@ -127,11 +148,12 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                   </td>
                 );
               })}
-              <td className="px-3 py-2 text-right font-bold text-gray-900 text-sm">
+              <td className="px-3 py-2 text-right font-bold text-gray-900 text-sm border-r border-gray-100">
                 {formatCurrencyCompact(
                   Array.from(matrix.cells.values()).reduce((a, c) => a + c.total_cents, 0)
                 )}
               </td>
+              <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
             </tr>
 
             {/* Riga MEDIA */}
@@ -150,6 +172,7 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth }: Props) {
                   </td>
                 );
               })}
+              <td className="px-3 py-2 text-right text-gray-600 text-sm border-r border-gray-100">—</td>
               <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
             </tr>
           </tbody>
