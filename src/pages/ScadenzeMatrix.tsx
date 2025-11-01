@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Download, FileSpreadsheet, Printer, Calendar } from "lucide-react";
+import { Download, FileSpreadsheet, Printer, Calendar, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function ScadenzeMatrix() {
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   
   const [payFilter, setPayFilter] = useState<PayFilterType>('unpaid');
@@ -136,6 +138,25 @@ export default function ScadenzeMatrix() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Navigation */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => navigate("/")}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Torna alla Home
+        </Button>
+        
+        <div className="text-sm text-muted-foreground">
+          <span className="cursor-pointer hover:text-foreground" onClick={() => navigate("/")}>Home</span>
+          <span className="mx-2">/</span>
+          <span className="font-medium text-foreground">Statistica Scadenze</span>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
