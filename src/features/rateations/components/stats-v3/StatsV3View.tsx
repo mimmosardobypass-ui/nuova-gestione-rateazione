@@ -105,12 +105,6 @@ export default function StatsV3View() {
           <ArrowLeft className="h-4 w-4" />
           Torna alla Home
         </Button>
-        
-        <div className="text-sm text-muted-foreground">
-          <span className="cursor-pointer hover:text-foreground" onClick={() => navigate("/")}>Home</span>
-          <span className="mx-2">/</span>
-          <span className="font-medium text-foreground">Statistiche Avanzate V3</span>
-        </div>
       </div>
 
       {/* Header */}
