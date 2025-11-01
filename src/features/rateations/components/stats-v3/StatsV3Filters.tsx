@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
 import type { StatsV3Filters } from "../../hooks/useStatsV3";
 
 interface StatsV3FiltersProps {
@@ -32,6 +33,54 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function StatsV3Filters({ filters, onApply, onReset }: StatsV3FiltersProps) {
   const [localFilters, setLocalFilters] = useState<StatsV3Filters>(filters);
+  const [loadingRange, setLoadingRange] = useState(false);
+
+  const handleQuickRange = async (range: string) => {
+    setLoadingRange(true);
+    const today = new Date();
+    let dateFrom: string | null = null;
+    let dateTo: string | null = null;
+
+    try {
+      switch(range) {
+        case 'last12':
+          dateFrom = new Date(today.getFullYear(), today.getMonth() - 12, 1)
+            .toISOString().split('T')[0];
+          dateTo = today.toISOString().split('T')[0];
+          break;
+        case 'thisYear':
+          dateFrom = `${today.getFullYear()}-01-01`;
+          dateTo = `${today.getFullYear()}-12-31`;
+          break;
+        case 'last2Years':
+          dateFrom = `${today.getFullYear() - 2}-01-01`;
+          dateTo = today.toISOString().split('T')[0];
+          break;
+        case 'all':
+          const { data: minData } = await supabase
+            .from('v_rateation_installments')
+            .select('due_date')
+            .order('due_date', { ascending: true })
+            .limit(1);
+          
+          const { data: maxData } = await supabase
+            .from('v_rateation_installments')
+            .select('due_date')
+            .order('due_date', { ascending: false })
+            .limit(1);
+          
+          dateFrom = minData?.[0]?.due_date || null;
+          dateTo = maxData?.[0]?.due_date || null;
+          break;
+      }
+
+      const newFilters = { ...localFilters, dateFrom, dateTo };
+      setLocalFilters(newFilters);
+      onApply(newFilters);
+    } finally {
+      setLoadingRange(false);
+    }
+  };
 
   const handleTypeToggle = (type: string) => {
     const currentTypes = localFilters.types || [];
@@ -105,11 +154,58 @@ export function StatsV3Filters({ filters, onApply, onReset }: StatsV3FiltersProp
         </div>
 
         {/* Periodo */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="dateFrom" className="text-sm font-medium mb-2 block">
-              Data Inizio
-            </Label>
+        <div>
+          <Label className="text-sm font-medium mb-2 block">Periodo</Label>
+          
+          {/* Range Rapidi */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickRange('last12')}
+              disabled={loadingRange}
+            >
+              Ultimi 12 mesi
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickRange('thisYear')}
+              disabled={loadingRange}
+            >
+              Anno corrente
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickRange('last2Years')}
+              disabled={loadingRange}
+            >
+              Ultimi 2 anni
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickRange('all')}
+              disabled={loadingRange}
+            >
+              📊 Tutto il periodo
+            </Button>
+          </div>
+
+          {/* Indicatore Range Attivo */}
+          {localFilters.dateFrom && localFilters.dateTo && (
+            <div className="text-xs text-muted-foreground mb-3 px-2 py-1 bg-muted/30 rounded">
+              📅 Range: {new Date(localFilters.dateFrom).toLocaleDateString('it-IT')} - {new Date(localFilters.dateTo).toLocaleDateString('it-IT')}
+            </div>
+          )}
+
+          {/* Date Personalizzate */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="dateFrom" className="text-sm font-medium mb-2 block">
+                Data Inizio (personalizzata)
+              </Label>
             <Input
               id="dateFrom"
               type="date"
@@ -119,10 +215,10 @@ export function StatsV3Filters({ filters, onApply, onReset }: StatsV3FiltersProp
               }
             />
           </div>
-          <div>
-            <Label htmlFor="dateTo" className="text-sm font-medium mb-2 block">
-              Data Fine
-            </Label>
+            <div>
+              <Label htmlFor="dateTo" className="text-sm font-medium mb-2 block">
+                Data Fine (personalizzata)
+              </Label>
             <Input
               id="dateTo"
               type="date"
@@ -130,7 +226,8 @@ export function StatsV3Filters({ filters, onApply, onReset }: StatsV3FiltersProp
               onChange={(e) =>
                 setLocalFilters({ ...localFilters, dateTo: e.target.value || null })
               }
-            />
+              />
+            </div>
           </div>
         </div>
 
