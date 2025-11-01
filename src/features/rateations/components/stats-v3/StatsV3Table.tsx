@@ -24,6 +24,32 @@ export function StatsV3Table({ details }: StatsV3TableProps) {
     navigate(`/rateazioni?highlight=${id}`);
   };
 
+  // Calculate totals
+  const totals = details.slice(0, 50).reduce(
+    (acc, detail) => ({
+      total_cents: acc.total_cents + detail.total_cents,
+      paid_cents: acc.paid_cents + detail.paid_cents,
+      residual_cents: acc.residual_cents + detail.residual_cents,
+      overdue_cents: acc.overdue_cents + detail.overdue_cents,
+      installments_total: acc.installments_total + detail.installments_total,
+      installments_paid: acc.installments_paid + detail.installments_paid,
+    }),
+    {
+      total_cents: 0,
+      paid_cents: 0,
+      residual_cents: 0,
+      overdue_cents: 0,
+      installments_total: 0,
+      installments_paid: 0,
+    }
+  );
+
+  const avgCompletion = totals.total_cents > 0
+    ? (totals.paid_cents / totals.total_cents) * 100
+    : 0;
+
+  const shownCount = Math.min(details.length, 50);
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -90,6 +116,31 @@ export function StatsV3Table({ details }: StatsV3TableProps) {
                     </TableCell>
                   </TableRow>
                 ))
+              )}
+              {details.length > 0 && (
+                <TableRow className="bg-muted/50 font-bold border-t-2 border-border hover:bg-muted/50">
+                  <TableCell colSpan={4}>
+                    TOTALI ({shownCount} {shownCount === 1 ? "mostrato" : "mostrati"})
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatEuroFromCents(totals.total_cents)}
+                  </TableCell>
+                  <TableCell className="text-right text-green-600">
+                    {formatEuroFromCents(totals.paid_cents)}
+                  </TableCell>
+                  <TableCell className="text-right text-amber-600">
+                    {formatEuroFromCents(totals.residual_cents)}
+                  </TableCell>
+                  <TableCell className="text-right text-orange-600">
+                    {formatEuroFromCents(totals.overdue_cents)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {totals.installments_paid} / {totals.installments_total}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatPercentage(avgCompletion)}
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
