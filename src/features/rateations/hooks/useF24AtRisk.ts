@@ -45,10 +45,12 @@ export function useF24AtRisk(): UseF24AtRiskResult {
 
         // Query v_rateations_list_ui with server-side filtering
         // Only F24s with OVERDUE installments AND f24_days_to_next_due <= 20 AND status = 'attiva'
+        //防御层: Exclude PagoPA even if is_f24 flag is incorrectly set
         const { data: atRiskData, error: queryError } = await supabase
           .from('v_rateations_list_ui')
           .select('id, number, taxpayer_name, f24_days_to_next_due, installments_total, installments_paid, installments_overdue_today')
           .eq('is_f24', true)
+          .eq('is_pagopa', false) //防御: Prevent PagoPA from appearing in F24 alerts
           .eq('status', 'attiva')
           .not('f24_days_to_next_due', 'is', null)
           .lte('f24_days_to_next_due', 20)
