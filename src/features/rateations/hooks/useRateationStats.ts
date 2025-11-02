@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client-resilient";
-import { fetchResidualEuro, fetchOverdueEffectiveEuro } from "@/features/rateations/api/kpi";
+import { fetchResidualEuro, fetchOverdueEffectiveEuro, fetchTotalDueEuro, fetchTotalPaidEuro } from "@/features/rateations/api/kpi";
 
 type Stats = { 
   total_due: number; 
@@ -90,11 +90,6 @@ export function useRateationStats() {
 
       const rateationIds = activeRateations.map(x => x.id);
       
-      // Calculate total_due from DB (sum of total_amount_cents from filtered rateations)
-      const totalDue = activeRateations.reduce((sum, r) => {
-        return sum + ((r.total_amount_cents ?? 0) / 100);
-      }, 0);
-      
       // Generate last 12 months (from 11 months ago to current month)
       const last12Months: string[] = [];
       const monthlyPaid: number[] = [];
@@ -174,20 +169,19 @@ export function useRateationStats() {
         }
       }
       
-      // Use DB views for effective KPIs (now correctly filtered)
+      // Use DB views for ALL effective KPIs (centralized DB logic with consistent filtering)
+      const totalDueEuro = await fetchTotalDueEuro(controller.signal);
+      const totalPaidEuro = await fetchTotalPaidEuro(controller.signal);
       const residualEuro = await fetchResidualEuro(controller.signal);
       const overdueEuro = await fetchOverdueEffectiveEuro(controller.signal);
       
       if (controller.signal.aborted) return;
       
-      // Calculate total_paid as totalDue - residual (perfect alignment with DB)
-      const totalPaid = totalDue - residualEuro;
-      
       setStats({
-        total_due: totalDue, 
-        total_paid: totalPaid, 
-        total_late: overdueEuro, 
-        total_residual: residualEuro,
+        total_due: totalDueEuro,      // ✅ From DB view
+        total_paid: totalPaidEuro,    // ✅ From DB view
+        total_late: overdueEuro,      // ✅ From DB view
+        total_residual: residualEuro, // ✅ From DB view
         paid_count: 0, // Not used in UI
         total_count: rateationIds.length,
         series: {

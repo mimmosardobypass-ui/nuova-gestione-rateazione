@@ -2426,6 +2426,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_kpi_total_due_effective: {
+        Row: {
+          effective_total_due_cents: number | null
+        }
+        Relationships: []
+      }
+      v_kpi_total_paid_effective: {
+        Row: {
+          effective_total_paid_cents: number | null
+        }
+        Relationships: []
+      }
       v_migrable_pagopa: {
         Row: {
           allocatable_cents: number | null
