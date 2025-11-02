@@ -153,14 +153,14 @@ export function RateationsTablePro({
               <TableHead>Contribuente</TableHead>
               <TableHead className="text-right">
                 <div className="flex flex-col items-end leading-tight">
-                  <span className="text-xs">Importo</span>
-                  <span className="text-xs font-semibold">totale</span>
+                  <span className="text-xs">Totale</span>
+                  <span className="text-xs font-semibold">Dovuto</span>
                 </div>
               </TableHead>
               <TableHead className="text-right">
                 <div className="flex flex-col items-end leading-tight">
-                  <span className="text-xs">Importo</span>
-                  <span className="text-xs font-semibold">pagato</span>
+                  <span className="text-xs">Totale</span>
+                  <span className="text-xs font-semibold">Pagato</span>
                 </div>
               </TableHead>
               <TableHead className="text-right">
