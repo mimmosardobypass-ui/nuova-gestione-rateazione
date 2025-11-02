@@ -1,5 +1,12 @@
 import { supabase } from "@/integrations/supabase/client-resilient";
 
+export type KpiBreakdownItem = {
+  type_label: string;
+  amount_cents: number;
+};
+
+export type KpiBreakdown = KpiBreakdownItem[];
+
 /**
  * Totale residuo EFFETTIVO in euro (esclude PagoPA interrotte).
  * Legge la vista v_kpi_rateations_effective che ritorna sempre 1 riga.
@@ -86,4 +93,84 @@ export async function fetchTotalPaidEuro(signal?: AbortSignal): Promise<number> 
   }
 
   return (data?.effective_total_paid_cents ?? 0) / 100;
+}
+
+/**
+ * Breakdown TOTALE DOVUTO per tipo di rateazione
+ */
+export async function fetchDueByType(signal?: AbortSignal): Promise<KpiBreakdown> {
+  if (!supabase) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from("v_kpi_due_by_type")
+    .select("type_label, amount_cents")
+    .abortSignal(signal);
+
+  if (error) {
+    throw new Error(`fetchDueByType: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Breakdown TOTALE PAGATO per tipo di rateazione
+ */
+export async function fetchPaidByType(signal?: AbortSignal): Promise<KpiBreakdown> {
+  if (!supabase) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from("v_kpi_paid_by_type")
+    .select("type_label, amount_cents")
+    .abortSignal(signal);
+
+  if (error) {
+    throw new Error(`fetchPaidByType: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Breakdown RESIDUO per tipo di rateazione
+ */
+export async function fetchResidualByType(signal?: AbortSignal): Promise<KpiBreakdown> {
+  if (!supabase) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from("v_kpi_residual_by_type")
+    .select("type_label, amount_cents")
+    .abortSignal(signal);
+
+  if (error) {
+    throw new Error(`fetchResidualByType: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Breakdown IN RITARDO per tipo di rateazione
+ */
+export async function fetchOverdueByType(signal?: AbortSignal): Promise<KpiBreakdown> {
+  if (!supabase) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from("v_kpi_overdue_by_type")
+    .select("type_label, amount_cents")
+    .abortSignal(signal);
+
+  if (error) {
+    throw new Error(`fetchOverdueByType: ${error.message}`);
+  }
+
+  return data ?? [];
 }

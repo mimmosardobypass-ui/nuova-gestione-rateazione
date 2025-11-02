@@ -1,6 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client-resilient";
-import { fetchResidualEuro, fetchOverdueEffectiveEuro, fetchTotalDueEuro, fetchTotalPaidEuro } from "@/features/rateations/api/kpi";
+import { 
+  fetchResidualEuro, 
+  fetchOverdueEffectiveEuro, 
+  fetchTotalDueEuro, 
+  fetchTotalPaidEuro,
+  fetchDueByType,
+  fetchPaidByType,
+  fetchResidualByType,
+  fetchOverdueByType,
+  type KpiBreakdown
+} from "@/features/rateations/api/kpi";
 
 type Stats = { 
   total_due: number; 
@@ -9,6 +19,12 @@ type Stats = {
   total_residual: number;
   paid_count: number;
   total_count: number;
+  breakdown_by_type: {
+    due: KpiBreakdown;
+    paid: KpiBreakdown;
+    residual: KpiBreakdown;
+    overdue: KpiBreakdown;
+  };
   series: {
     last12: {
       months: string[];
@@ -28,6 +44,12 @@ export function useRateationStats() {
     total_residual: 0,
     paid_count: 0,
     total_count: 0,
+    breakdown_by_type: {
+      due: [],
+      paid: [],
+      residual: [],
+      overdue: []
+    },
     series: {
       last12: {
         months: [],
@@ -170,10 +192,16 @@ export function useRateationStats() {
       }
       
       // Use DB views for ALL effective KPIs (centralized DB logic with consistent filtering)
-      const totalDueEuro = await fetchTotalDueEuro(controller.signal);
-      const totalPaidEuro = await fetchTotalPaidEuro(controller.signal);
-      const residualEuro = await fetchResidualEuro(controller.signal);
-      const overdueEuro = await fetchOverdueEffectiveEuro(controller.signal);
+      const [totalDueEuro, totalPaidEuro, residualEuro, overdueEuro, dueByType, paidByType, residualByType, overdueByType] = await Promise.all([
+        fetchTotalDueEuro(controller.signal),
+        fetchTotalPaidEuro(controller.signal),
+        fetchResidualEuro(controller.signal),
+        fetchOverdueEffectiveEuro(controller.signal),
+        fetchDueByType(controller.signal),
+        fetchPaidByType(controller.signal),
+        fetchResidualByType(controller.signal),
+        fetchOverdueByType(controller.signal),
+      ]);
       
       if (controller.signal.aborted) return;
       
@@ -184,6 +212,12 @@ export function useRateationStats() {
         total_residual: residualEuro, // ✅ From DB view
         paid_count: 0, // Not used in UI
         total_count: rateationIds.length,
+        breakdown_by_type: {
+          due: dueByType,
+          paid: paidByType,
+          residual: residualByType,
+          overdue: overdueByType,
+        },
         series: {
           last12: {
             months: last12Months,
@@ -208,6 +242,12 @@ export function useRateationStats() {
         total_residual: 0,
         paid_count: 0,
         total_count: 0,
+        breakdown_by_type: {
+          due: [],
+          paid: [],
+          residual: [],
+          overdue: []
+        },
         series: {
           last12: {
             months: [],
