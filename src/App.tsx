@@ -22,9 +22,16 @@ import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
 
-const queryClient = new QueryClient();
-
 function App() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5,
+        retry: 1,
+      },
+    },
+  });
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
