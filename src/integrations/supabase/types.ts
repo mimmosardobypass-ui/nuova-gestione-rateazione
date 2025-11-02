@@ -2408,27 +2408,6 @@ export type Database = {
           },
         ]
       }
-      v_kpi_due_by_type: {
-        Row: {
-          amount_cents: number | null
-          type_label: string | null
-        }
-        Relationships: []
-      }
-      v_kpi_overdue_by_type: {
-        Row: {
-          amount_cents: number | null
-          type_label: string | null
-        }
-        Relationships: []
-      }
-      v_kpi_paid_by_type: {
-        Row: {
-          amount_cents: number | null
-          type_label: string | null
-        }
-        Relationships: []
-      }
       v_kpi_rateations: {
         Row: {
           residual_amount_cents: number | null
@@ -2444,13 +2423,6 @@ export type Database = {
       v_kpi_rateations_overdue_effective: {
         Row: {
           effective_overdue_amount_cents: number | null
-        }
-        Relationships: []
-      }
-      v_kpi_residual_by_type: {
-        Row: {
-          amount_cents: number | null
-          type_label: string | null
         }
         Relationships: []
       }
@@ -4791,6 +4763,34 @@ export type Database = {
             }
             Returns: Json
           }
+      get_kpi_due_by_type: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          type_label: string
+        }[]
+      }
+      get_kpi_overdue_by_type: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          type_label: string
+        }[]
+      }
+      get_kpi_paid_by_type: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          type_label: string
+        }[]
+      }
+      get_kpi_residual_by_type: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          type_label: string
+        }[]
+      }
       get_pagopa_available_for_f24: {
         Args: { p_f24_id: number }
         Returns: {

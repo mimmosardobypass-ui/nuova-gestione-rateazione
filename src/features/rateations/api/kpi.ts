@@ -104,8 +104,7 @@ export async function fetchDueByType(signal?: AbortSignal): Promise<KpiBreakdown
   }
   
   const { data, error } = await supabase
-    .from("v_kpi_due_by_type")
-    .select("type_label, amount_cents")
+    .rpc('get_kpi_due_by_type')
     .abortSignal(signal);
 
   if (error) {
@@ -124,8 +123,7 @@ export async function fetchPaidByType(signal?: AbortSignal): Promise<KpiBreakdow
   }
   
   const { data, error } = await supabase
-    .from("v_kpi_paid_by_type")
-    .select("type_label, amount_cents")
+    .rpc('get_kpi_paid_by_type')
     .abortSignal(signal);
 
   if (error) {
@@ -144,8 +142,7 @@ export async function fetchResidualByType(signal?: AbortSignal): Promise<KpiBrea
   }
   
   const { data, error } = await supabase
-    .from("v_kpi_residual_by_type")
-    .select("type_label, amount_cents")
+    .rpc('get_kpi_residual_by_type')
     .abortSignal(signal);
 
   if (error) {
@@ -164,8 +161,7 @@ export async function fetchOverdueByType(signal?: AbortSignal): Promise<KpiBreak
   }
   
   const { data, error } = await supabase
-    .from("v_kpi_overdue_by_type")
-    .select("type_label, amount_cents")
+    .rpc('get_kpi_overdue_by_type')
     .abortSignal(signal);
 
   if (error) {
