@@ -28,31 +28,19 @@ export function FreeNotesCard() {
   const [selectedNote, setSelectedNote] = useState<FreeNote | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
-  const [hasError, setHasError] = useState(false);
 
-  let notes: FreeNote[] = [];
-  let isLoading = false;
-  let create: any;
-  let update: any;
-  let deleteNote: any;
-  let isCreating = false;
-  let isUpdating = false;
-  let isDeleting = false;
-
-  try {
-    const hookResult = useFreeNotes();
-    notes = hookResult.notes;
-    isLoading = hookResult.isLoading;
-    create = hookResult.create;
-    update = hookResult.update;
-    deleteNote = hookResult.delete;
-    isCreating = hookResult.isCreating;
-    isUpdating = hookResult.isUpdating;
-    isDeleting = hookResult.isDeleting;
-  } catch (error) {
-    console.error('Error in useFreeNotes:', error);
-    setHasError(true);
-  }
+  // Chiamare hook direttamente senza try-catch (React Rules of Hooks)
+  const { 
+    notes, 
+    isLoading, 
+    error,
+    create, 
+    update, 
+    delete: deleteNote, 
+    isCreating, 
+    isUpdating, 
+    isDeleting 
+  } = useFreeNotes();
 
   const handleCreate = () => {
     setDialogMode('create');
@@ -115,7 +103,7 @@ export function FreeNotesCard() {
             )}
           </div>
           <div className="flex gap-2">
-            {notes.length > 0 && !hasError && (
+            {notes.length > 0 && !error && (
               <Button
                 variant="outline"
                 size="sm"
@@ -126,7 +114,7 @@ export function FreeNotesCard() {
                 Stampa tutte
               </Button>
             )}
-            <Button onClick={handleCreate} size="sm" className="gap-2" disabled={hasError}>
+            <Button onClick={handleCreate} size="sm" className="gap-2" disabled={!!error}>
               <Plus className="h-4 w-4" />
               Promemoria
             </Button>
@@ -134,7 +122,7 @@ export function FreeNotesCard() {
         </CardHeader>
 
         <CardContent>
-          {hasError ? (
+          {error ? (
             <div className="text-center py-8 text-muted-foreground">
               <p className="mb-2">⚠️ Errore nel caricamento</p>
               <p className="text-xs">Verifica la connessione al database</p>
