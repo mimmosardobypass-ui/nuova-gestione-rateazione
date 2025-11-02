@@ -18,7 +18,6 @@ import { it } from 'date-fns/locale';
 import { useFreeNotes } from '@/hooks/useFreeNotes';
 import { FreeNoteDialog } from './FreeNoteDialog';
 import { generateFreeNotesPDF } from '@/utils/notes-pdf';
-import type { FreeNoteFormData } from '@/schemas/FreeNote.schema';
 import type { Database } from '@/integrations/supabase/types';
 
 type FreeNote = Database['public']['Tables']['free_notes']['Row'];
