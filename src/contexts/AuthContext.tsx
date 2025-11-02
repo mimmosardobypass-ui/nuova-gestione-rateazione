@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase, safeSupabaseOperation } from '@/integrations/supabase/client-resilient';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -12,15 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  loading: true,
-  authReady: false,
-  signUp: async () => ({ error: null }),
-  signIn: async () => ({ error: null }),
-  signOut: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -30,7 +22,11 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,18 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
     let initialized = false;
 
-    // Funzione per gestire il bootstrap della sessione
     const initializeAuth = async () => {
       try {
-        if (!supabase) {
-          console.warn('Supabase client not available during auth initialization');
-          if (!mounted) return;
-          initialized = true;
-          setAuthReady(true);
-          setLoading(false);
-          return;
-        }
-        
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
         
@@ -69,40 +55,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Set up auth state listener
-    let subscription: any = null;
-    if (supabase) {
-      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (!mounted) return;
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          // Only set loading to false if we've completed initialization
-          // This prevents premature false negatives during app startup
-          if (initialized) {
-            setAuthReady(true);
-            setLoading(false);
-          }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (initialized) {
+          setAuthReady(true);
+          setLoading(false);
         }
-      );
-      subscription = sub;
-    }
+      }
+    );
 
-    // Initialize auth
     initializeAuth();
 
     return () => {
       mounted = false;
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: { message: 'Supabase non disponibile' } };
-    }
-    
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -116,10 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: { message: 'Supabase non disponibile' } };
-    }
-    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -128,16 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    if (!supabase) {
-      console.warn('Cannot sign out: Supabase not available');
-      return;
-    }
-    
     await supabase.auth.signOut();
-    // Il redirect verrà gestito automaticamente da onAuthStateChange
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     loading,
@@ -148,4 +112,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}
