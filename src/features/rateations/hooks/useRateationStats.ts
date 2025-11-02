@@ -62,7 +62,7 @@ export function useRateationStats() {
       // Fetch all rateations for the user with full data for filtering
       const { data: rateations } = await supabase
         .from("rateations")
-        .select("id, total_amount, status, is_f24, residual_amount_cents, paid_amount_cents")
+        .select("id, total_amount_cents, status, is_f24, residual_amount_cents")
         .eq("owner_uid", user.id)
         .eq("is_deleted", false);
 
@@ -90,9 +90,9 @@ export function useRateationStats() {
 
       const rateationIds = activeRateations.map(x => x.id);
       
-      // Calculate total_paid from DB (sum of paid_amount_cents from filtered rateations)
-      const totalPaid = activeRateations.reduce((sum, r) => {
-        return sum + ((r.paid_amount_cents ?? 0) / 100);
+      // Calculate total_due from DB (sum of total_amount_cents from filtered rateations)
+      const totalDue = activeRateations.reduce((sum, r) => {
+        return sum + ((r.total_amount_cents ?? 0) / 100);
       }, 0);
       
       // Generate last 12 months (from 11 months ago to current month)
@@ -174,16 +174,16 @@ export function useRateationStats() {
         }
       }
       
-      // Use DB views for effective KPIs (excludes interrupted PagoPA)
+      // Use DB views for effective KPIs (now correctly filtered)
       const residualEuro = await fetchResidualEuro(controller.signal);
       const overdueEuro = await fetchOverdueEffectiveEuro(controller.signal);
       
       if (controller.signal.aborted) return;
       
-      // Calculate total_due as paid + residual for coherence with DB
-      const totalDue = totalPaid + residualEuro;
+      // Calculate total_paid as totalDue - residual (perfect alignment with DB)
+      const totalPaid = totalDue - residualEuro;
       
-      setStats({ 
+      setStats({
         total_due: totalDue, 
         total_paid: totalPaid, 
         total_late: overdueEuro, 
