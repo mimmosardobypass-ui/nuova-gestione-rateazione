@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client-resilient";
+import { fetchResidualEuro, fetchOverdueEffectiveEuro } from "@/features/rateations/api/kpi";
 
 type Stats = { 
   total_due: number; 
@@ -69,7 +70,6 @@ export function useRateationStats() {
       const rateationIds = (rateations ?? []).map(x => x.id);
       
       let paid = 0;
-      let late = 0;
       let paidCount = 0;
       let totalCount = 0;
       
@@ -159,31 +159,17 @@ export function useRateationStats() {
             paid += amount;
             paidCount++;
           }
-          
-          if (!inst.is_paid && inst.due_date) {
-            const dueDate = new Date(inst.due_date);
-            dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
-            if (dueDate < today) {
-              late += amount;
-            }
-          }
-          
-          // Also count paid installments that were paid late
-          if (inst.is_paid && inst.due_date && inst.paid_at) {
-            const dueDate = new Date(inst.due_date);
-            const paidDate = new Date(inst.paid_at);
-            dueDate.setHours(0, 0, 0, 0);
-            paidDate.setHours(0, 0, 0, 0);
-            if (paidDate > dueDate) {
-              late += amount;
-            }
-          }
         }
       }
       
-      const total = (rateations ?? []).reduce((sum, r) => sum + Number(r.total_amount || 0), 0);
+      // Use DB views for effective KPIs (excludes interrupted PagoPA)
+      const residual = await fetchResidualEuro(controller.signal);
+      const late = await fetchOverdueEffectiveEuro(controller.signal);
       
       if (controller.signal.aborted) return;
+      
+      // Calculate total_due as paid + residual_effective for coherence
+      const total = paid + residual;
       
       setStats({ 
         total_due: total, 

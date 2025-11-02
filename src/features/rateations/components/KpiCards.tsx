@@ -1,21 +1,39 @@
 import React from "react";
 import { formatEuro } from "@/lib/formatters";
 import { Sparkline } from "@/components/ui/sparkline";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 function Kpi({ 
   label, 
   value, 
   loading, 
-  sparklineData 
+  sparklineData,
+  tooltip
 }: { 
   label: string; 
   value: number; 
   loading: boolean; 
   sparklineData?: Array<{ month: string; paid: number; due: number }>;
+  tooltip?: string;
 }) {
   return (
     <div className="rounded-lg border p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span>{label}</span>
+        {tooltip && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
       <div className="mt-2 text-xl font-semibold">
         {loading ? "—" : formatEuro(value)}
       </div>
@@ -82,6 +100,7 @@ export function KpiCards({
         value={display.total_due} 
         loading={showLoading} 
         sparklineData={sparklineData}
+        tooltip="Totale dovuto effettivo (esclude PagoPA interrotte già migrate a Rottamazione Quater)"
       />
       <Kpi 
         label="Totale pagato" 
@@ -94,12 +113,14 @@ export function KpiCards({
         value={display.total_residual} 
         loading={showLoading} 
         sparklineData={sparklineData}
+        tooltip="Residuo effettivo da pagare (esclude PagoPA interrotte già migrate a Rottamazione Quater)"
       />
       <Kpi 
         label="In ritardo" 
         value={display.total_late} 
         loading={showLoading} 
         sparklineData={sparklineData}
+        tooltip="Importo in ritardo effettivo (esclude rate di PagoPA già migrate a Rottamazione Quater)"
       />
     </section>
   );
