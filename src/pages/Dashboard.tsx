@@ -30,6 +30,8 @@ import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
+import { FreeNotesCard } from "@/components/FreeNotesCard";
+import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
 type Installment = {
   id: number;
@@ -253,6 +255,12 @@ export default function Dashboard() {
 
         {/* Compact KPI Cards */}
         <ResidualDecadenceSection />
+
+        {/* Note e Promemoria Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <RecentNotesCard />
+          <FreeNotesCard />
+        </div>
 
         {/* Comparazione Annuale Card */}
         <Card 

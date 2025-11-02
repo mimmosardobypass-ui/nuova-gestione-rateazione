@@ -224,3 +224,80 @@ export function generateNotesPDF(notes: RateationNote[]) {
   const fileName = `Riepilogo_Note_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }
+
+interface FreeNote {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function generateFreeNotesPDF(notes: FreeNote[]) {
+  const doc = new jsPDF();
+  const margin = 15;
+  let yPos = 20;
+  
+  // Header principale
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  const today = new Date().toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  doc.text(`RIEPILOGO PROMEMORIA - ${today}`, margin, yPos);
+  yPos += 10;
+  
+  // Separator dopo header
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, 195, yPos);
+  yPos += 10;
+  
+  // Render each note
+  notes.forEach((note, index) => {
+    // Check if we need a new page
+    if (yPos > 260) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Note number and title
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${index + 1}. ${note.title}`, margin, yPos);
+    yPos += 7;
+    
+    // Note content
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const splitContent = doc.splitTextToSize(note.content, 180);
+    doc.text(splitContent, margin + 3, yPos);
+    yPos += (splitContent.length * 5);
+    
+    yPos += 3;
+    
+    // Date
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    const formattedDate = new Date(note.updated_at).toLocaleString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    doc.text(`Modificato: ${formattedDate}`, margin + 3, yPos);
+    yPos += 8;
+    
+    // Separator
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(150, 150, 150);
+    doc.line(margin, yPos, 195, yPos);
+    yPos += 8;
+  });
+  
+  // Download
+  const fileName = `Riepilogo_Promemoria_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
+}
