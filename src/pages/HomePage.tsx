@@ -18,6 +18,7 @@ import { ConfigurableAlert } from "@/features/rateations/components/Configurable
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
+import { FreeNotesCard } from "@/components/FreeNotesCard";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -175,9 +176,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Recent Notes Section */}
+      {/* Recent Notes & Promemoria Section */}
       <section className="container mx-auto px-4 pt-8">
-        <RecentNotesCard />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RecentNotesCard />
+          <FreeNotesCard />
+        </div>
       </section>
 
       {/* Comparazione Annuale Card */}
