@@ -31,6 +31,7 @@ import { ConfigurableAlert } from "@/features/rateations/components/Configurable
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
 import { FreeNotesCard } from "@/components/FreeNotesCard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
 type Installment = {
@@ -260,7 +261,9 @@ export default function Dashboard() {
         <div className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <RecentNotesCard />
-            <FreeNotesCard />
+            <ErrorBoundary>
+              <FreeNotesCard />
+            </ErrorBoundary>
           </div>
         </div>
 

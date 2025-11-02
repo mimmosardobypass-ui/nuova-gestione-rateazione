@@ -23,12 +23,36 @@ import type { Database } from '@/integrations/supabase/types';
 type FreeNote = Database['public']['Tables']['free_notes']['Row'];
 
 export function FreeNotesCard() {
-  const { notes, isLoading, create, update, delete: deleteNote, isCreating, isUpdating, isDeleting } = useFreeNotes();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
   const [selectedNote, setSelectedNote] = useState<FreeNote | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+
+  let notes: FreeNote[] = [];
+  let isLoading = false;
+  let create: any;
+  let update: any;
+  let deleteNote: any;
+  let isCreating = false;
+  let isUpdating = false;
+  let isDeleting = false;
+
+  try {
+    const hookResult = useFreeNotes();
+    notes = hookResult.notes;
+    isLoading = hookResult.isLoading;
+    create = hookResult.create;
+    update = hookResult.update;
+    deleteNote = hookResult.delete;
+    isCreating = hookResult.isCreating;
+    isUpdating = hookResult.isUpdating;
+    isDeleting = hookResult.isDeleting;
+  } catch (error) {
+    console.error('Error in useFreeNotes:', error);
+    setHasError(true);
+  }
 
   const handleCreate = () => {
     setDialogMode('create');
@@ -79,6 +103,7 @@ export function FreeNotesCard() {
     return content;
   };
 
+  // Sempre renderizzare la card, anche in caso di errore
   return (
     <>
       <Card>
@@ -90,7 +115,7 @@ export function FreeNotesCard() {
             )}
           </div>
           <div className="flex gap-2">
-            {notes.length > 0 && (
+            {notes.length > 0 && !hasError && (
               <Button
                 variant="outline"
                 size="sm"
@@ -101,7 +126,7 @@ export function FreeNotesCard() {
                 Stampa tutte
               </Button>
             )}
-            <Button onClick={handleCreate} size="sm" className="gap-2">
+            <Button onClick={handleCreate} size="sm" className="gap-2" disabled={hasError}>
               <Plus className="h-4 w-4" />
               Promemoria
             </Button>
@@ -109,7 +134,12 @@ export function FreeNotesCard() {
         </CardHeader>
 
         <CardContent>
-          {isLoading ? (
+          {hasError ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="mb-2">⚠️ Errore nel caricamento</p>
+              <p className="text-xs">Verifica la connessione al database</p>
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
