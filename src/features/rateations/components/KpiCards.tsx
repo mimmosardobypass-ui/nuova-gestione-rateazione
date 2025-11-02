@@ -46,7 +46,18 @@ function Kpi({
         <div className="mt-3 space-y-1 text-xs border-t pt-2">
           {breakdown
             .filter(item => item.amount_cents > 0)
-            .sort((a, b) => b.amount_cents - a.amount_cents)
+            .sort((a, b) => {
+              const typeOrder: Record<string, number> = {
+                'F24': 1,
+                'PagoPa': 2,
+                'Rottamazione Quater': 3,
+                'Riam. Quater': 4,
+                'Altro': 5,
+              };
+              const orderA = typeOrder[a.type_label] ?? 999;
+              const orderB = typeOrder[b.type_label] ?? 999;
+              return orderA - orderB;
+            })
             .map(item => (
               <div key={item.type_label} className="flex justify-between items-center">
                 <span className="text-muted-foreground">{item.type_label}:</span>
