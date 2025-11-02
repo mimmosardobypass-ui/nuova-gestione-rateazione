@@ -42,7 +42,7 @@ export function RateList({
   // State management per i filtri
   const [filters, setFilters] = useState({
     tipo: tipoFromUrl || 'all',
-    stato: 'all',
+    stato: 'active_with_pending_decayed', // Default: mostra solo debito "reale"
     mese: '',
     anno: ''
   });

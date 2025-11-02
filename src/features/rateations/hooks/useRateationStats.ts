@@ -62,7 +62,7 @@ export function useRateationStats() {
       // Fetch all rateations for the user with full data for filtering
       const { data: rateations } = await supabase
         .from("rateations")
-        .select("id, total_amount, status, is_f24, residual_amount_cents")
+        .select("id, total_amount, status, is_f24, residual_amount_cents, paid_amount_cents")
         .eq("owner_uid", user.id)
         .eq("is_deleted", false);
 
@@ -90,9 +90,10 @@ export function useRateationStats() {
 
       const rateationIds = activeRateations.map(x => x.id);
       
-      let paid = 0;
-      let paidCount = 0;
-      let totalCount = 0;
+      // Calculate total_paid from DB (sum of paid_amount_cents from filtered rateations)
+      const totalPaid = activeRateations.reduce((sum, r) => {
+        return sum + ((r.paid_amount_cents ?? 0) / 100);
+      }, 0);
       
       // Generate last 12 months (from 11 months ago to current month)
       const last12Months: string[] = [];
@@ -102,14 +103,14 @@ export function useRateationStats() {
       const monthlyLate: number[] = [];
       
       if (rateationIds.length > 0) {
-        // Fetch all installments for these rateations
+        // Fetch all installments for these rateations (only for series calculation)
         const { data: installments } = await supabase
           .from("installments")
           .select("amount, is_paid, due_date, paid_at")
           .in("rateation_id", rateationIds);
 
         if (controller.signal.aborted) return;
-
+        
         // Use normalized Date objects for timezone-safe comparison
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalize to start of day
@@ -171,34 +172,24 @@ export function useRateationStats() {
           monthlyResidual.push(Math.max(0, monthDue - monthPaid));
           monthlyLate.push(monthLate);
         }
-        
-        for (const inst of (installments ?? [])) {
-          const amount = Number(inst.amount || 0);
-          totalCount++;
-          
-          if (inst.is_paid) {
-            paid += amount;
-            paidCount++;
-          }
-        }
       }
       
       // Use DB views for effective KPIs (excludes interrupted PagoPA)
-      const residual = await fetchResidualEuro(controller.signal);
-      const late = await fetchOverdueEffectiveEuro(controller.signal);
+      const residualEuro = await fetchResidualEuro(controller.signal);
+      const overdueEuro = await fetchOverdueEffectiveEuro(controller.signal);
       
       if (controller.signal.aborted) return;
       
-      // Calculate total_due as paid + residual_effective for coherence
-      const total = paid + residual;
+      // Calculate total_due as paid + residual for coherence with DB
+      const totalDue = totalPaid + residualEuro;
       
       setStats({ 
-        total_due: total, 
-        total_paid: paid, 
-        total_late: late, 
-        total_residual: Math.max(0, total - paid),
-        paid_count: paidCount,
-        total_count: totalCount,
+        total_due: totalDue, 
+        total_paid: totalPaid, 
+        total_late: overdueEuro, 
+        total_residual: residualEuro,
+        paid_count: 0, // Not used in UI
+        total_count: rateationIds.length,
         series: {
           last12: {
             months: last12Months,
