@@ -59,15 +59,36 @@ export function useRateationStats() {
 
       if (controller.signal.aborted) return;
 
-      // Fetch all rateations for the user
+      // Fetch all rateations for the user with full data for filtering
       const { data: rateations } = await supabase
         .from("rateations")
-        .select("id, total_amount")
-        .eq("owner_uid", user.id);
+        .select("id, total_amount, status, is_f24, residual_amount_cents")
+        .eq("owner_uid", user.id)
+        .eq("is_deleted", false);
 
       if (controller.signal.aborted) return;
 
-      const rateationIds = (rateations ?? []).map(x => x.id);
+      // Filter rateations exactly like the table does (active + pending decayed F24)
+      const activeRateations = (rateations ?? []).filter(r => {
+        const status = r.status?.toUpperCase();
+        const residualCents = r.residual_amount_cents ?? 0;
+        
+        // CASO A: Rateazioni ATTIVE (PagoPA, F24, RQ in corso)
+        const isActive = residualCents > 0 && 
+                         status !== 'COMPLETATA' && 
+                         status !== 'DECADUTA' && 
+                         status !== 'ESTINTA' &&
+                         status !== 'INTERROTTA';
+        
+        // CASO B: F24 DECADUTE in attesa di cartella (non ancora agganciate)
+        const isPendingDecayed = r.is_f24 && 
+                                 status === 'DECADUTA' &&
+                                 residualCents > 0;
+        
+        return isActive || isPendingDecayed;
+      });
+
+      const rateationIds = activeRateations.map(x => x.id);
       
       let paid = 0;
       let paidCount = 0;

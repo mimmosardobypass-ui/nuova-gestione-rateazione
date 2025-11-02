@@ -100,7 +100,7 @@ export function KpiCards({
         value={display.total_due} 
         loading={showLoading} 
         sparklineData={sparklineData}
-        tooltip="Totale dovuto effettivo (esclude PagoPA interrotte già migrate a Rottamazione Quater)"
+        tooltip="Totale dovuto delle rateazioni attive e F24 decadute in attesa di cartella (esclude PagoPA interrotte già migrate a RQ)"
       />
       <Kpi 
         label="Totale pagato" 
@@ -113,14 +113,14 @@ export function KpiCards({
         value={display.total_residual} 
         loading={showLoading} 
         sparklineData={sparklineData}
-        tooltip="Residuo effettivo da pagare (esclude PagoPA interrotte già migrate a Rottamazione Quater)"
+        tooltip="Residuo da pagare su rateazioni attive e F24 decadute non agganciate (esclude PagoPA interrotte già migrate a RQ)"
       />
       <Kpi 
         label="In ritardo" 
         value={display.total_late} 
         loading={showLoading} 
         sparklineData={sparklineData}
-        tooltip="Importo in ritardo effettivo (esclude rate di PagoPA già migrate a Rottamazione Quater)"
+        tooltip="Importo in ritardo su rateazioni attive (esclude PagoPA interrotte già migrate a RQ)"
       />
     </section>
   );
