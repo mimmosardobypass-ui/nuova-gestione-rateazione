@@ -1,9 +1,9 @@
-import React, { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -22,144 +22,80 @@ import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
 
-// Lazy load print components
-const RiepilogoReport = React.lazy(() => import("./pages/print/RiepilogoReport"));
-const SchedaRateazione = React.lazy(() => import("./pages/print/SchedaRateazione"));
-const AnnualMatrix = React.lazy(() => import("./pages/print/AnnualMatrix"));
-const ScadenzePrint = React.lazy(() => import("./pages/print/Scadenze"));
-const RateazioniAtRisk = React.lazy(() => import("./pages/print/RateazioniAtRisk"));
-const F24AtRisk = React.lazy(() => import("./pages/print/F24AtRisk"));
-const PagopaAtRisk = React.lazy(() => import("./pages/print/PagopaAtRisk"));
-
 const queryClient = new QueryClient();
 
-const App = () => {
-  // Pre-warm PDF.js per eliminare ritardo al primo uso
-  useEffect(() => {
-    import('@/lib/pdfjs').then(m => m.ensurePdfjsReady()).catch(() => {});
-  }, []);
-
+function App() {
   return (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <ErrorBoundary>
-          <SupabaseOutageBanner />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppLayout>
-              <Routes>
-              <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/rateazioni-complete" element={
-              <ProtectedRoute>
-                <RateationsGross />
-              </ProtectedRoute>
-            } />
-            <Route path="/rateazioni" element={
-              <ProtectedRoute>
-                <Rateations />
-              </ProtectedRoute>
-            } />
-            <Route path="/statistiche-v3" element={
-              <ProtectedRoute>
-                <StatsV3 />
-              </ProtectedRoute>
-            } />
-            <Route path="/evoluzione-mensile" element={
-              <ProtectedRoute>
-                <EvoluzioneRateazioni />
-              </ProtectedRoute>
-            } />
-            <Route path="/scadenze-matrix" element={
-              <ProtectedRoute>
-                <ScadenzeMatrix />
-              </ProtectedRoute>
-            } />
-            <Route path="/print/riepilogo" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <RiepilogoReport />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/print/rateazione/:id" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <SchedaRateazione />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/print/annual-matrix" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <AnnualMatrix />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/print/scadenze" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <ScadenzePrint />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/print/rateazioni-a-rischio" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <RateazioniAtRisk />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/print/f24-a-rischio" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <F24AtRisk />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/print/pagopa-a-rischio" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div>Caricamento...</div>}>
-                  <PagopaAtRisk />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/risparmio-rq" element={
-              <ProtectedRoute>
-                <RisparmiRQ />
-              </ProtectedRoute>
-            } />
-            <Route path="/test" element={
-              <ProtectedRoute>
-                <Test />
-              </ProtectedRoute>
-            } />
-            <Route path="/debug" element={
-              <ProtectedRoute>
-                <RateationsDebug />
-              </ProtectedRoute>
-            } />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
-        </BrowserRouter>
-        </ErrorBoundary>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <ErrorBoundary>
+            <SupabaseOutageBanner />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppLayout>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <HomePage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/rateazioni-complete" element={
+                    <ProtectedRoute>
+                      <RateationsGross />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/rateazioni" element={
+                    <ProtectedRoute>
+                      <Rateations />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/statistiche-v3" element={
+                    <ProtectedRoute>
+                      <StatsV3 />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/evoluzione-mensile" element={
+                    <ProtectedRoute>
+                      <EvoluzioneRateazioni />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/scadenze-matrix" element={
+                    <ProtectedRoute>
+                      <ScadenzeMatrix />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/risparmio-rq" element={
+                    <ProtectedRoute>
+                      <RisparmiRQ />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/test" element={
+                    <ProtectedRoute>
+                      <Test />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/debug" element={
+                    <ProtectedRoute>
+                      <RateationsDebug />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AppLayout>
+            </BrowserRouter>
+          </ErrorBoundary>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
-};
+}
 
 export default App;
