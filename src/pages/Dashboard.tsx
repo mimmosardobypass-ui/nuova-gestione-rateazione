@@ -30,7 +30,7 @@ import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
-// import { FreeNotesCard } from "@/components/FreeNotesCard";
+import { FreeNotesCard } from "@/components/FreeNotesCard";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
 type Installment = {
@@ -258,13 +258,10 @@ export default function Dashboard() {
 
         {/* Note e Promemoria Section */}
         <div className="mt-6">
-          <RecentNotesCard />
-          {/* Temporaneamente disabilitato per debugging
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <RecentNotesCard />
             <FreeNotesCard />
           </div>
-          */}
         </div>
 
         {/* Comparazione Annuale Card */}
