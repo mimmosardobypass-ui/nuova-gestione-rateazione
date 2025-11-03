@@ -162,69 +162,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Comparazione Annuale Card */}
-      <section className="container mx-auto px-4 pt-4">
-        <Card 
-          className="card-elevated cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => navigate("/rateazioni?view=annual-comparison")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm text-muted-foreground">
-                Comparazione Annuale
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold tracking-tight">
-              Confronto Anno su Anno (KPI)
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Visualizza 4 card KPI con confronto 2024 vs 2025: Totale Rateazioni, Importo Totale, Pagato, Residuo
-            </p>
-            <Button variant="ghost" className="mt-2 w-full" size="sm">
-              Visualizza →
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
 
-      {/* Quick Actions */}
-      <section className="container mx-auto px-4 pb-8">
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Azioni Rapide</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-auto p-4 flex flex-col gap-2"
-              onClick={() => navigate("/rateazioni?status=attiva")}
-            >
-              <Eye className="h-6 w-6" />
-              <span>Rateazioni Attive</span>
-              <span className="text-xs text-muted-foreground">Visualizza solo pratiche attive</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto p-4 flex flex-col gap-2"
-              onClick={() => navigate("/rateazioni?status=in_ritardo")}
-            >
-              <BarChart3 className="h-6 w-6" />
-              <span>In Ritardo</span>
-              <span className="text-xs text-muted-foreground">Rate scadute non pagate</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto p-4 flex flex-col gap-2"
-              onClick={() => navigate("/rateazioni/import")}
-            >
-              <Plus className="h-6 w-6" />
-              <span>Importa PDF</span>
-              <span className="text-xs text-muted-foreground">Carica nuove rateazioni</span>
-            </Button>
-          </div>
-        </Card>
-      </section>
     </main>
   );
 }
