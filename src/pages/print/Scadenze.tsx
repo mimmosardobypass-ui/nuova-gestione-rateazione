@@ -72,6 +72,39 @@ export default function ScadenzePrint() {
           />
         </div>
 
+        {/* Breakdown per Tipo Rateazione */}
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">
+            Dettaglio Saldo per Tipo Rateazione
+          </h3>
+          <div className="grid grid-cols-4 gap-3">
+            <div className="flex items-center justify-between bg-red-50 p-3 rounded border border-red-200">
+              <span className="text-xs font-semibold text-red-700">F24</span>
+              <span className="text-sm font-bold text-red-900">
+                {formatEuro(kpis.saldo_per_tipo?.f24 || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between bg-blue-50 p-3 rounded border border-blue-200">
+              <span className="text-xs font-semibold text-blue-700">PagoPA</span>
+              <span className="text-sm font-bold text-blue-900">
+                {formatEuro(kpis.saldo_per_tipo?.pagopa || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between bg-green-50 p-3 rounded border border-green-200">
+              <span className="text-xs font-semibold text-green-700">Rott. Quater</span>
+              <span className="text-sm font-bold text-green-900">
+                {formatEuro(kpis.saldo_per_tipo?.rottamazione_quater || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between bg-emerald-50 p-3 rounded border border-emerald-200">
+              <span className="text-xs font-semibold text-emerald-700">Riam. Quater</span>
+              <span className="text-sm font-bold text-emerald-900">
+                {formatEuro(kpis.saldo_per_tipo?.riammissione_quater || 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-5 gap-4">
           <PrintKpi label="In Ritardo" value={`${kpis.in_ritardo_count} (${formatEuro(kpis.in_ritardo_amount)})`} />
           <PrintKpi label="Entro 7 giorni" value={`${kpis.entro_7_count} (${formatEuro(kpis.entro_7_amount)})`} />
