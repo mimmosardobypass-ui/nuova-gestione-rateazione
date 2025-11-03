@@ -47,6 +47,12 @@ export interface DeadlineKPIs {
   futuro_amount: number;
   pagata_count: number;
   pagata_amount: number;
+  saldo_per_tipo: {
+    f24: number;
+    pagopa: number;
+    rottamazione_quater: number;
+    riammissione_quater: number;
+  };
 }
 
 export interface MonthlyTrend {
@@ -102,7 +108,7 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
   return useQuery({
     queryKey: ['deadline-kpis', filters],
     queryFn: async (): Promise<DeadlineKPIs> => {
-      let query = supabase.from('v_scadenze').select('bucket, amount, is_paid, rateation_number, taxpayer_name, rateation_status, type_id');
+      let query = supabase.from('v_scadenze').select('bucket, amount, is_paid, rateation_number, taxpayer_name, rateation_status, type_id, type_name');
 
       if (filters.startDate && filters.endDate) {
         query = query.gte('due_date', filters.startDate).lte('due_date', filters.endDate);
@@ -147,6 +153,12 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
         futuro_amount: 0,
         pagata_count: 0,
         pagata_amount: 0,
+        saldo_per_tipo: {
+          f24: 0,
+          pagopa: 0,
+          rottamazione_quater: 0,
+          riammissione_quater: 0,
+        },
       };
 
       data?.forEach((item) => {
@@ -155,6 +167,19 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
 
         if (!item.is_paid) {
           kpis.saldo_da_pagare += item.amount;
+          
+          // Classificazione per tipo
+          const typeName = (item.type_name || '').toLowerCase().trim();
+          
+          if (typeName.includes('f24')) {
+            kpis.saldo_per_tipo.f24 += item.amount;
+          } else if (typeName.includes('pagopa') || typeName.includes('pago pa')) {
+            kpis.saldo_per_tipo.pagopa += item.amount;
+          } else if (typeName.includes('rottamazione') && typeName.includes('quater')) {
+            kpis.saldo_per_tipo.rottamazione_quater += item.amount;
+          } else if (typeName.includes('riam') && typeName.includes('quater')) {
+            kpis.saldo_per_tipo.riammissione_quater += item.amount;
+          }
         }
 
         switch (item.bucket) {

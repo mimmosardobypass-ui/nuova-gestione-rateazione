@@ -83,20 +83,58 @@ export function DeadlineKPICards({ kpis, loading = false }: DeadlineKPICardsProp
 
   return (
     <div className="space-y-4">
-      {/* Saldo Da Pagare - Prominente */}
+      {/* Saldo Da Pagare - Layout 2 Colonne con Breakdown */}
       <Card className="relative overflow-hidden bg-primary/10 border-primary/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-lg font-semibold">Saldo Totale Da Pagare</CardTitle>
           <AlertCircle className="h-6 w-6 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="space-y-1">
-            <p className="text-4xl font-bold text-primary">
-              {formatEuro(kpis.saldo_da_pagare)}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Include tutte le rate non pagate nel periodo selezionato
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-center">
+            {/* Colonna Sinistra: Breakdown Verticale */}
+            <div className="space-y-2">
+              {/* F24 */}
+              <div className="flex items-center justify-between bg-red-50 dark:bg-red-950/30 p-2.5 rounded-md border border-red-200 dark:border-red-800">
+                <span className="text-xs font-semibold text-red-700 dark:text-red-400">F24</span>
+                <span className="text-sm font-bold text-red-900 dark:text-red-300">
+                  {formatEuro(kpis.saldo_per_tipo?.f24 || 0)}
+                </span>
+              </div>
+              
+              {/* PagoPA */}
+              <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950/30 p-2.5 rounded-md border border-blue-200 dark:border-blue-800">
+                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">PagoPA</span>
+                <span className="text-sm font-bold text-blue-900 dark:text-blue-300">
+                  {formatEuro(kpis.saldo_per_tipo?.pagopa || 0)}
+                </span>
+              </div>
+              
+              {/* Rottamazione Quater */}
+              <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/30 p-2.5 rounded-md border border-green-200 dark:border-green-800">
+                <span className="text-xs font-semibold text-green-700 dark:text-green-400">Rott. Quater</span>
+                <span className="text-sm font-bold text-green-900 dark:text-green-300">
+                  {formatEuro(kpis.saldo_per_tipo?.rottamazione_quater || 0)}
+                </span>
+              </div>
+              
+              {/* Riammissione Quater */}
+              <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Riam. Quater</span>
+                <span className="text-sm font-bold text-emerald-900 dark:text-emerald-300">
+                  {formatEuro(kpis.saldo_per_tipo?.riammissione_quater || 0)}
+                </span>
+              </div>
+            </div>
+            
+            {/* Colonna Destra: Totale Principale */}
+            <div className="space-y-1 text-center md:text-left">
+              <p className="text-4xl font-bold text-primary">
+                {formatEuro(kpis.saldo_da_pagare)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Include tutte le rate non pagate nel periodo selezionato
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
