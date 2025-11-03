@@ -102,7 +102,7 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
   return useQuery({
     queryKey: ['deadline-kpis', filters],
     queryFn: async (): Promise<DeadlineKPIs> => {
-      let query = supabase.from('v_scadenze').select('bucket, amount, is_paid');
+      let query = supabase.from('v_scadenze').select('bucket, amount, is_paid, rateation_number, taxpayer_name, rateation_status, type_id');
 
       if (filters.startDate && filters.endDate) {
         query = query.gte('due_date', filters.startDate).lte('due_date', filters.endDate);
@@ -110,6 +110,21 @@ export function useDeadlineKPIs(filters: DeadlineFilters = {}) {
 
       if (filters.typeIds?.length) {
         query = query.in('type_id', filters.typeIds);
+      }
+
+      if (filters.bucket && filters.bucket !== 'all') {
+        query = query.eq('bucket', filters.bucket as BucketValue);
+      }
+
+      if (filters.search) {
+        query = query.or(`rateation_number.ilike.%${filters.search}%,taxpayer_name.ilike.%${filters.search}%`);
+      }
+
+      // Apply payFilter
+      if (filters.payFilter === 'paid') {
+        query = query.eq('is_paid', true);
+      } else if (filters.payFilter === 'unpaid') {
+        query = query.eq('is_paid', false).neq('rateation_status', 'ESTINTA');
       }
 
       const { data, error } = await query;
