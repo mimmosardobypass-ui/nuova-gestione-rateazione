@@ -21,6 +21,13 @@ import ScadenzeMatrix from "./pages/ScadenzeMatrix";
 import RateationsDebug from "./pages/RateationsDebug";
 import NotFound from "./pages/NotFound";
 import RisparmiRQ from "./pages/RisparmiRQ";
+import ScadenzePrint from "./pages/print/Scadenze";
+import RiepilogoReport from "./pages/print/RiepilogoReport";
+import SchedaRateazione from "./pages/print/SchedaRateazione";
+import AnnualMatrix from "./pages/print/AnnualMatrix";
+import RateazioniAtRisk from "./pages/print/RateazioniAtRisk";
+import F24AtRisk from "./pages/print/F24AtRisk";
+import PagopaAtRisk from "./pages/print/PagopaAtRisk";
 
 function App() {
   const queryClient = new QueryClient({
@@ -92,6 +99,41 @@ function App() {
                   <Route path="/debug" element={
                     <ProtectedRoute>
                       <RateationsDebug />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/scadenze" element={
+                    <ProtectedRoute>
+                      <ScadenzePrint />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/riepilogo" element={
+                    <ProtectedRoute>
+                      <RiepilogoReport />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/rateazione/:id" element={
+                    <ProtectedRoute>
+                      <SchedaRateazione />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/annual-matrix" element={
+                    <ProtectedRoute>
+                      <AnnualMatrix />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/rateazioni-a-rischio" element={
+                    <ProtectedRoute>
+                      <RateazioniAtRisk />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/f24-a-rischio" element={
+                    <ProtectedRoute>
+                      <F24AtRisk />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/pagopa-a-rischio" element={
+                    <ProtectedRoute>
+                      <PagopaAtRisk />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />
