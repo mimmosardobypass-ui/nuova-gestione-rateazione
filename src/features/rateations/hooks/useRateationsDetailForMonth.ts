@@ -74,13 +74,18 @@ export function useRateationsDetailForMonth(
 
         const { data: rateations, error: ratError } = await supabase
           .from("v_rateations_with_kpis")
-          .select("*")
+          .select(`
+            *,
+            v_rateation_type_label!inner(type_label)
+          `)
           .in("id", rateationIds) as any;
 
         if (ratError) throw ratError;
 
         // Filtra per tipo
-        const filteredRateations = (rateations || []).filter((r: any) => r.tipo === typeLabel);
+        const filteredRateations = (rateations || []).filter((r: any) => 
+          r.v_rateation_type_label?.type_label === typeLabel
+        );
 
         const paidList: RateationDetail[] = [];
         const unpaidList: RateationDetail[] = [];
