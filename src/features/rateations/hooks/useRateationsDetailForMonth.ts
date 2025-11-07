@@ -72,20 +72,33 @@ export function useRateationsDetailForMonth(
           return;
         }
 
+        // Query 1: Ottieni le rateazioni base
         const { data: rateations, error: ratError } = await supabase
           .from("v_rateations_with_kpis")
-          .select(`
-            *,
-            v_rateation_type_label!inner(type_label)
-          `)
-          .in("id", rateationIds) as any;
+          .select("*")
+          .in("id", rateationIds);
 
         if (ratError) throw ratError;
 
-        // Filtra per tipo
-        const filteredRateations = (rateations || []).filter((r: any) => 
-          r.v_rateation_type_label?.type_label === typeLabel
-        );
+        // Query 2: Ottieni i type_label per queste rateazioni
+        const { data: typeLabels, error: typeError } = await supabase
+          .from("v_rateation_type_label")
+          .select("id, type_label")
+          .in("id", rateationIds);
+
+        if (typeError) throw typeError;
+
+        // Crea una Map per lookup rapido: rateation_id -> type_label
+        const typeLabelMap = new Map<number, string>();
+        (typeLabels || []).forEach((tl: any) => {
+          typeLabelMap.set(tl.id, tl.type_label);
+        });
+
+        // Filtra per tipo usando la Map
+        const filteredRateations = (rateations || []).filter((r: any) => {
+          const rateationType = typeLabelMap.get(r.id);
+          return rateationType === typeLabel;
+        });
 
         const paidList: RateationDetail[] = [];
         const unpaidList: RateationDetail[] = [];
