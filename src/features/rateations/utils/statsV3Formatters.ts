@@ -58,6 +58,7 @@ export function getTypeColor(type: string): string {
     'Rottamazione Quater': '#2b8a3e',
     'RIAMMISSIONE_QUATER': '#0ca678',
     'Riammissione Quater': '#0ca678',
+    'Riam. Quater': '#0ca678',
     'ALTRO': '#868e96',
     'Altro': '#868e96',
   };
