@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -47,11 +47,73 @@ function ExpandableTypeRow({
   month: number | null;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // State per ordinamento (unpaid table)
+  const [unpaidSortField, setUnpaidSortField] = useState<'number' | 'taxpayer' | 'amount'>('amount');
+  const [unpaidSortDir, setUnpaidSortDir] = useState<'asc' | 'desc'>('desc');
+
+  // State per ordinamento (paid table)
+  const [paidSortField, setPaidSortField] = useState<'number' | 'taxpayer' | 'amount'>('amount');
+  const [paidSortDir, setPaidSortDir] = useState<'asc' | 'desc'>('desc');
+
   const { loading, paid, unpaid } = useRateationsDetailForMonth(
     isOpen ? year : null,
     isOpen ? month : null,
     isOpen ? row.type : null
   );
+
+  // Funzione per gestire il click sul column header
+  const handleSort = (
+    table: 'paid' | 'unpaid',
+    field: 'number' | 'taxpayer' | 'amount'
+  ) => {
+    if (table === 'unpaid') {
+      if (unpaidSortField === field) {
+        setUnpaidSortDir(unpaidSortDir === 'asc' ? 'desc' : 'asc');
+      } else {
+        setUnpaidSortField(field);
+        setUnpaidSortDir('desc');
+      }
+    } else {
+      if (paidSortField === field) {
+        setPaidSortDir(paidSortDir === 'asc' ? 'desc' : 'asc');
+      } else {
+        setPaidSortField(field);
+        setPaidSortDir('desc');
+      }
+    }
+  };
+
+  // Funzione per ordinare array
+  const sortRateations = (
+    list: typeof paid,
+    field: 'number' | 'taxpayer' | 'amount',
+    dir: 'asc' | 'desc',
+    amountKey: 'residual_cents' | 'amount_cents'
+  ) => {
+    return [...list].sort((a, b) => {
+      let comparison = 0;
+      
+      if (field === 'number') {
+        comparison = (a.number || '').localeCompare(b.number || '');
+      } else if (field === 'taxpayer') {
+        comparison = (a.taxpayer_name || '').localeCompare(b.taxpayer_name || '');
+      } else {
+        // amount
+        comparison = (a[amountKey] || 0) - (b[amountKey] || 0);
+      }
+      
+      return dir === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  // Ordinare i dati
+  const sortedUnpaid = sortRateations(unpaid, unpaidSortField, unpaidSortDir, 'residual_cents');
+  const sortedPaid = sortRateations(paid, paidSortField, paidSortDir, 'amount_cents');
+
+  // Calcolare i totali
+  const unpaidTotal = unpaid.reduce((sum, r) => sum + (r.residual_cents || 0), 0);
+  const paidTotal = paid.reduce((sum, r) => sum + (r.amount_cents || 0), 0);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -95,13 +157,32 @@ function ExpandableTypeRow({
                       <table className="w-full text-xs">
                         <thead className="bg-muted/30">
                           <tr>
-                            <th className="px-2 py-1 text-left">N. Rateazione</th>
-                            <th className="px-2 py-1 text-left">Contribuente</th>
-                            <th className="px-2 py-1 text-right">Residuo</th>
+                            <SortableHeader
+                              label="N. Rateazione"
+                              field="number"
+                              currentField={unpaidSortField}
+                              currentDir={unpaidSortDir}
+                              onClick={() => handleSort('unpaid', 'number')}
+                            />
+                            <SortableHeader
+                              label="Contribuente"
+                              field="taxpayer"
+                              currentField={unpaidSortField}
+                              currentDir={unpaidSortDir}
+                              onClick={() => handleSort('unpaid', 'taxpayer')}
+                            />
+                            <SortableHeader
+                              label="Residuo"
+                              field="amount"
+                              currentField={unpaidSortField}
+                              currentDir={unpaidSortDir}
+                              onClick={() => handleSort('unpaid', 'amount')}
+                              align="right"
+                            />
                           </tr>
                         </thead>
                         <tbody>
-                          {unpaid.map((r) => (
+                          {sortedUnpaid.map((r) => (
                             <tr key={r.id} className="border-t hover:bg-muted/30">
                               <td className="px-2 py-1.5">
                                 <a
@@ -119,6 +200,16 @@ function ExpandableTypeRow({
                             </tr>
                           ))}
                         </tbody>
+                        <tfoot className="border-t-2 bg-muted/50 font-semibold">
+                          <tr>
+                            <td className="px-2 py-1.5" colSpan={2}>
+                              Totale ({unpaid.length} rate)
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-red-600">
+                              {formatCurrencyCompact(unpaidTotal)}
+                            </td>
+                          </tr>
+                        </tfoot>
                       </table>
                     </div>
                   </div>
@@ -134,13 +225,32 @@ function ExpandableTypeRow({
                       <table className="w-full text-xs">
                         <thead className="bg-muted/30">
                           <tr>
-                            <th className="px-2 py-1 text-left">N. Rateazione</th>
-                            <th className="px-2 py-1 text-left">Contribuente</th>
-                            <th className="px-2 py-1 text-right">Importo</th>
+                            <SortableHeader
+                              label="N. Rateazione"
+                              field="number"
+                              currentField={paidSortField}
+                              currentDir={paidSortDir}
+                              onClick={() => handleSort('paid', 'number')}
+                            />
+                            <SortableHeader
+                              label="Contribuente"
+                              field="taxpayer"
+                              currentField={paidSortField}
+                              currentDir={paidSortDir}
+                              onClick={() => handleSort('paid', 'taxpayer')}
+                            />
+                            <SortableHeader
+                              label="Importo"
+                              field="amount"
+                              currentField={paidSortField}
+                              currentDir={paidSortDir}
+                              onClick={() => handleSort('paid', 'amount')}
+                              align="right"
+                            />
                           </tr>
                         </thead>
                         <tbody>
-                          {paid.map((r) => (
+                          {sortedPaid.map((r) => (
                             <tr key={r.id} className="border-t hover:bg-muted/30">
                               <td className="px-2 py-1.5">
                                 <a
@@ -158,6 +268,16 @@ function ExpandableTypeRow({
                             </tr>
                           ))}
                         </tbody>
+                        <tfoot className="border-t-2 bg-muted/50 font-semibold">
+                          <tr>
+                            <td className="px-2 py-1.5" colSpan={2}>
+                              Totale ({paid.length} rate)
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-green-600">
+                              {formatCurrencyCompact(paidTotal)}
+                            </td>
+                          </tr>
+                        </tfoot>
                       </table>
                     </div>
                   </div>
@@ -174,6 +294,38 @@ function ExpandableTypeRow({
         </tr>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+function SortableHeader({
+  label,
+  field,
+  currentField,
+  currentDir,
+  onClick,
+  align = 'left'
+}: {
+  label: string;
+  field: 'number' | 'taxpayer' | 'amount';
+  currentField: 'number' | 'taxpayer' | 'amount';
+  currentDir: 'asc' | 'desc';
+  onClick: () => void;
+  align?: 'left' | 'right';
+}) {
+  const isActive = currentField === field;
+  
+  return (
+    <th
+      className={`px-2 py-1 text-${align} cursor-pointer hover:bg-muted/50 transition-colors select-none`}
+      onClick={onClick}
+    >
+      <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+        <span>{label}</span>
+        {!isActive && <ArrowUpDown size={12} className="text-muted-foreground" />}
+        {isActive && currentDir === 'asc' && <ArrowUp size={12} className="text-primary" />}
+        {isActive && currentDir === 'desc' && <ArrowDown size={12} className="text-primary" />}
+      </div>
+    </th>
   );
 }
 
