@@ -72,11 +72,12 @@ export function useRateationsDetailForMonth(
           return;
         }
 
-        // Query 1: Ottieni le rateazioni base
+        // Query 1: Ottieni le rateazioni base (escludi INTERROTTA)
         const { data: rateations, error: ratError } = await supabase
           .from("v_rateations_with_kpis")
           .select("*")
-          .in("id", rateationIds);
+          .in("id", rateationIds)
+          .neq("status", "INTERROTTA");
 
         if (ratError) throw ratError;
 
