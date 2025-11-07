@@ -30,6 +30,27 @@ type Props = {
 
 const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
+function buildDeepLinkForType(year: number, month: number, type: string): string {
+  const dateFrom = `${year}-${String(month).padStart(2, "0")}-01`;
+  const dateTo = `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`;
+  
+  // Mappa type_label → parametro URL `types`
+  const typeMap: Record<string, string> = {
+    "F24": "F24",
+    "PagoPa": "PAGOPA",
+    "PagoPA": "PAGOPA",
+    "Rottamazione Quater": "ROTTAMAZIONE_QUATER",
+    "Rott. Quater": "ROTTAMAZIONE_QUATER",
+    "Riammissione Quater": "RIAMMISSIONE_QUATER",
+    "Riam. Quater": "RIAMMISSIONE_QUATER",
+    "Altro": "ALTRO",
+  };
+  
+  const typeParam = typeMap[type] || type;
+  
+  return `/rateazioni?dateFrom=${dateFrom}&dateTo=${dateTo}&types=${typeParam}`;
+}
+
 export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props) {
   const { loading, rows, kpis } = useMonthBreakdown(year, month);
 
@@ -110,30 +131,47 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props)
                     </tr>
                   )}
                   {!loading &&
-                    rows.map((r) => (
-                      <tr key={r.type} className="border-t">
-                        <td className="px-3 py-2 flex items-center gap-2">
-                          <span
-                            className="inline-block w-3 h-3 rounded-full"
-                            style={{ backgroundColor: getTypeColor(r.type) }}
-                          />
-                          {labelForType(r.type)}
-                        </td>
-                        <td className="px-3 py-2 text-right text-green-600">
-                          {formatCurrencyCompact(r.paid_cents)}
-                        </td>
-                        <td className="px-3 py-2 text-right text-red-500">
-                          {formatCurrencyCompact(r.unpaid_cents)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-medium">
-                          {formatCurrencyCompact(r.total_cents)}
-                        </td>
-                        <td className="px-3 py-2 text-right">{formatPercentage(r.paid_pct * 100)}</td>
-                      </tr>
-                    ))}
+                    rows.map((r) => {
+                      const typeLink = year && month ? buildDeepLinkForType(year, month, r.type) : "/rateazioni";
+                      
+                      return (
+                        <tr 
+                          key={r.type} 
+                          className="border-t hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => window.location.href = typeLink}
+                          title={`Vedi rateazioni ${labelForType(r.type)} del mese`}
+                        >
+                          <td className="px-3 py-2 flex items-center gap-2">
+                            <span
+                              className="inline-block w-3 h-3 rounded-full"
+                              style={{ backgroundColor: getTypeColor(r.type) }}
+                            />
+                            {labelForType(r.type)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-green-600">
+                            {formatCurrencyCompact(r.paid_cents)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-red-500">
+                            {formatCurrencyCompact(r.unpaid_cents)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium">
+                            {formatCurrencyCompact(r.total_cents)}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <span>{formatPercentage(r.paid_pct * 100)}</span>
+                              <ExternalLink size={14} className="text-muted-foreground" />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
+            <p className="text-xs text-muted-foreground mt-2 italic">
+              💡 Clicca su una riga per vedere le rateazioni di quel tipo
+            </p>
           </div>
 
           {/* Grafico barre impilate */}
