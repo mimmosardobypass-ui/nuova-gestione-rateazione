@@ -11,7 +11,13 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, FileDown, FileSpreadsheet, Printer } from "lucide-react";
+import { 
+  exportMonthBreakdownToExcel, 
+  exportMonthBreakdownToPDF, 
+  printMonthBreakdown,
+  type MonthBreakdownExportData 
+} from "../../utils/monthBreakdownExport";
 import {
   Collapsible,
   CollapsibleContent,
@@ -115,6 +121,32 @@ function ExpandableTypeRow({
   const unpaidTotal = unpaid.reduce((sum, r) => sum + (r.residual_cents || 0), 0);
   const paidTotal = paid.reduce((sum, r) => sum + (r.amount_cents || 0), 0);
 
+  // Preparare dati per export
+  const exportData: MonthBreakdownExportData = {
+    year: year!,
+    month: month!,
+    monthName: MONTHS[month! - 1],
+    type: row.type,
+    typeLabel: labelForType(row.type),
+    paid: sortedPaid,
+    unpaid: sortedUnpaid,
+    paidTotal,
+    unpaidTotal,
+  };
+
+  // Handler export
+  const handleExportExcel = () => {
+    exportMonthBreakdownToExcel(exportData);
+  };
+
+  const handleExportPDF = () => {
+    exportMonthBreakdownToPDF(exportData);
+  };
+
+  const handlePrint = () => {
+    printMonthBreakdown(exportData);
+  };
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
@@ -147,6 +179,37 @@ function ExpandableTypeRow({
             {loading && <Skeleton className="h-32 w-full" />}
             {!loading && (
               <div className="space-y-4">
+                {/* Bottoni Export */}
+                <div className="flex flex-wrap gap-2 justify-end pb-2 border-b">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportExcel}
+                    className="gap-1.5"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    Excel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportPDF}
+                    className="gap-1.5"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrint}
+                    className="gap-1.5"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Stampa
+                  </Button>
+                </div>
+
                 {/* Non Pagate */}
                 {unpaid.length > 0 && (
                   <div>
