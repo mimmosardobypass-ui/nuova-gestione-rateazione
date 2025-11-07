@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useMonthBreakdown } from "../../hooks/useMonthBreakdown";
+import { useRateationsDetailForMonth } from "../../hooks/useRateationsDetailForMonth";
 import { formatCurrencyCompact, formatPercentage, getTypeColor } from "../../utils/statsV3Formatters";
 import {
   Sheet,
@@ -9,7 +11,12 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   BarChart,
   Bar,
@@ -30,25 +37,144 @@ type Props = {
 
 const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
-function buildDeepLinkForType(year: number, month: number, type: string): string {
-  const dateFrom = `${year}-${String(month).padStart(2, "0")}-01`;
-  const dateTo = `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`;
-  
-  // Mappa type_label → parametro URL `types`
-  const typeMap: Record<string, string> = {
-    "F24": "F24",
-    "PagoPa": "PAGOPA",
-    "PagoPA": "PAGOPA",
-    "Rottamazione Quater": "ROTTAMAZIONE_QUATER",
-    "Rott. Quater": "ROTTAMAZIONE_QUATER",
-    "Riammissione Quater": "RIAMMISSIONE_QUATER",
-    "Riam. Quater": "RIAMMISSIONE_QUATER",
-    "Altro": "ALTRO",
-  };
-  
-  const typeParam = typeMap[type] || type;
-  
-  return `/rateazioni?dateFrom=${dateFrom}&dateTo=${dateTo}&types=${typeParam}`;
+function ExpandableTypeRow({
+  row,
+  year,
+  month,
+}: {
+  row: { type: string; paid_cents: number; unpaid_cents: number; total_cents: number; paid_pct: number };
+  year: number | null;
+  month: number | null;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { loading, paid, unpaid } = useRateationsDetailForMonth(
+    isOpen ? year : null,
+    isOpen ? month : null,
+    isOpen ? row.type : null
+  );
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <tr className="border-t hover:bg-muted/50 cursor-pointer transition-colors">
+          <td className="px-3 py-2">
+            <div className="flex items-center gap-2">
+              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              <span
+                className="inline-block w-3 h-3 rounded-full"
+                style={{ backgroundColor: getTypeColor(row.type) }}
+              />
+              {labelForType(row.type)}
+            </div>
+          </td>
+          <td className="px-3 py-2 text-right text-green-600">
+            {formatCurrencyCompact(row.paid_cents)}
+          </td>
+          <td className="px-3 py-2 text-right text-red-500">
+            {formatCurrencyCompact(row.unpaid_cents)}
+          </td>
+          <td className="px-3 py-2 text-right font-medium">
+            {formatCurrencyCompact(row.total_cents)}
+          </td>
+          <td className="px-3 py-2 text-right">{formatPercentage(row.paid_pct * 100)}</td>
+        </tr>
+      </CollapsibleTrigger>
+      <CollapsibleContent asChild>
+        <tr className="border-t bg-muted/20">
+          <td colSpan={5} className="p-4">
+            {loading && <Skeleton className="h-32 w-full" />}
+            {!loading && (
+              <div className="space-y-4">
+                {/* Non Pagate */}
+                {unpaid.length > 0 && (
+                  <div>
+                    <div className="text-sm font-semibold text-red-600 mb-2">
+                      🔴 Non Pagate ({unpaid.length})
+                    </div>
+                    <div className="bg-background rounded-lg border overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/30">
+                          <tr>
+                            <th className="px-2 py-1 text-left">N. Rateazione</th>
+                            <th className="px-2 py-1 text-left">Contribuente</th>
+                            <th className="px-2 py-1 text-right">Residuo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {unpaid.map((r) => (
+                            <tr key={r.id} className="border-t hover:bg-muted/30">
+                              <td className="px-2 py-1.5">
+                                <a
+                                  href={`/rateazioni?search=${r.number}`}
+                                  className="text-primary hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {r.number}
+                                </a>
+                              </td>
+                              <td className="px-2 py-1.5">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-medium text-red-600">
+                                {formatCurrencyCompact(r.residual_cents)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pagate */}
+                {paid.length > 0 && (
+                  <div>
+                    <div className="text-sm font-semibold text-green-600 mb-2">
+                      🟢 Pagate ({paid.length})
+                    </div>
+                    <div className="bg-background rounded-lg border overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/30">
+                          <tr>
+                            <th className="px-2 py-1 text-left">N. Rateazione</th>
+                            <th className="px-2 py-1 text-left">Contribuente</th>
+                            <th className="px-2 py-1 text-right">Importo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paid.map((r) => (
+                            <tr key={r.id} className="border-t hover:bg-muted/30">
+                              <td className="px-2 py-1.5">
+                                <a
+                                  href={`/rateazioni?search=${r.number}`}
+                                  className="text-primary hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {r.number}
+                                </a>
+                              </td>
+                              <td className="px-2 py-1.5">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-medium text-green-600">
+                                {formatCurrencyCompact(r.amount_cents)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {unpaid.length === 0 && paid.length === 0 && (
+                  <div className="text-center text-sm text-muted-foreground py-4">
+                    Nessuna rateazione trovata per questo tipo nel mese selezionato.
+                  </div>
+                )}
+              </div>
+            )}
+          </td>
+        </tr>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props) {
@@ -130,47 +256,12 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props)
                       </td>
                     </tr>
                   )}
-                  {!loading &&
-                    rows.map((r) => {
-                      const typeLink = year && month ? buildDeepLinkForType(year, month, r.type) : "/rateazioni";
-                      
-                      return (
-                        <tr 
-                          key={r.type} 
-                          className="border-t hover:bg-muted/50 cursor-pointer transition-colors"
-                          onClick={() => window.location.href = typeLink}
-                          title={`Vedi rateazioni ${labelForType(r.type)} del mese`}
-                        >
-                          <td className="px-3 py-2 flex items-center gap-2">
-                            <span
-                              className="inline-block w-3 h-3 rounded-full"
-                              style={{ backgroundColor: getTypeColor(r.type) }}
-                            />
-                            {labelForType(r.type)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-green-600">
-                            {formatCurrencyCompact(r.paid_cents)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-red-500">
-                            {formatCurrencyCompact(r.unpaid_cents)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatCurrencyCompact(r.total_cents)}
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <span>{formatPercentage(r.paid_pct * 100)}</span>
-                              <ExternalLink size={14} className="text-muted-foreground" />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                  {!loading && rows.map((r) => <ExpandableTypeRow key={r.type} row={r} year={year} month={month} />)}
                 </tbody>
               </table>
             </div>
             <p className="text-xs text-muted-foreground mt-2 italic">
-              💡 Clicca su una riga per vedere le rateazioni di quel tipo
+              💡 Clicca su una riga per espandere e vedere le rateazioni pagate/non pagate
             </p>
           </div>
 
