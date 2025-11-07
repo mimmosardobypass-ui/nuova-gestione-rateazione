@@ -8,7 +8,7 @@ export interface StatsV3Filters {
   statuses: string[] | null;
   includeInterrupted: boolean;
   includeDecayed: boolean;
-  groupBy: 'due' | 'created';
+  groupBy: 'due' | 'paid';
 }
 
 export interface StatsV3KPIs {

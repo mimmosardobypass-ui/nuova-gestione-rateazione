@@ -13,7 +13,8 @@ export type RateationDetail = {
 export function useRateationsDetailForMonth(
   year: number | null,
   month: number | null,
-  typeLabel: string | null
+  typeLabel: string | null,
+  groupBy: 'due' | 'paid' = 'due'
 ) {
   const [loading, setLoading] = useState(false);
   const [paid, setPaid] = useState<RateationDetail[]>([]);
@@ -34,12 +35,25 @@ export function useRateationsDetailForMonth(
         const lastDay = new Date(year, month, 0).getDate();
         const dateTo = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
 
-        // Query installments nel mese
-        const { data: installments, error: instError } = await supabase
+        // Query installments nel mese - filtra per data scadenza o pagamento
+        let query = supabase
           .from("installments")
-          .select("rateation_id, amount_cents, is_paid")
-          .gte("due_date", dateFrom)
-          .lte("due_date", dateTo);
+          .select("rateation_id, amount_cents, is_paid, paid_date, paid_at");
+
+        if (groupBy === 'paid') {
+          // Modalità "Per Pagamento": filtra per paid_date/paid_at e solo rate pagate
+          query = query
+            .eq("is_paid", true)
+            .or(`paid_date.gte.${dateFrom},paid_date.lte.${dateTo}`)
+            .or(`paid_at.gte.${dateFrom},paid_at.lte.${dateTo}`);
+        } else {
+          // Modalità "Per Scadenza" (default): filtra per due_date
+          query = query
+            .gte("due_date", dateFrom)
+            .lte("due_date", dateTo);
+        }
+
+        const { data: installments, error: instError } = await query;
 
         if (instError) throw instError;
 
@@ -137,7 +151,7 @@ export function useRateationsDetailForMonth(
     };
 
     fetchData();
-  }, [year, month, typeLabel]);
+  }, [year, month, typeLabel, groupBy]);
 
   return { loading, paid, unpaid };
 }

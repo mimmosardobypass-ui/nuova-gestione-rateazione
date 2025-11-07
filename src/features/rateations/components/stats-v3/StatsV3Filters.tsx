@@ -232,30 +232,69 @@ export function StatsV3Filters({ filters, onApply, onReset }: StatsV3FiltersProp
         </div>
 
         {/* Opzioni */}
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="includeInterrupted"
-              checked={localFilters.includeInterrupted}
-              onCheckedChange={(checked) =>
-                setLocalFilters({ ...localFilters, includeInterrupted: !!checked })
-              }
-            />
-            <Label htmlFor="includeInterrupted" className="text-sm font-normal cursor-pointer">
-              Includi interrotte
-            </Label>
+        <div className="flex flex-col gap-4">
+          {/* Raggruppa per */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Raggruppa rate per</Label>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="groupByDue"
+                  checked={localFilters.groupBy === 'due'}
+                  onCheckedChange={(checked) => {
+                    if (checked) setLocalFilters({ ...localFilters, groupBy: 'due' });
+                  }}
+                />
+                <Label htmlFor="groupByDue" className="text-sm font-normal cursor-pointer">
+                  📅 Per scadenza (default)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="groupByPaid"
+                  checked={localFilters.groupBy === 'paid'}
+                  onCheckedChange={(checked) => {
+                    if (checked) setLocalFilters({ ...localFilters, groupBy: 'paid' });
+                  }}
+                />
+                <Label htmlFor="groupByPaid" className="text-sm font-normal cursor-pointer">
+                  💰 Per pagamento effettivo
+                </Label>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5 px-2">
+              {localFilters.groupBy === 'due' 
+                ? "Le rate vengono raggruppate per data di scadenza prevista (pianificazione fiscale)"
+                : "Le rate vengono raggruppate per data di pagamento effettivo (riconciliazione bancaria)"}
+            </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="includeDecayed"
-              checked={localFilters.includeDecayed}
-              onCheckedChange={(checked) =>
-                setLocalFilters({ ...localFilters, includeDecayed: !!checked })
-              }
-            />
-            <Label htmlFor="includeDecayed" className="text-sm font-normal cursor-pointer">
-              Includi decadute
-            </Label>
+
+          {/* Altri filtri */}
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="includeInterrupted"
+                checked={localFilters.includeInterrupted}
+                onCheckedChange={(checked) =>
+                  setLocalFilters({ ...localFilters, includeInterrupted: !!checked })
+                }
+              />
+              <Label htmlFor="includeInterrupted" className="text-sm font-normal cursor-pointer">
+                Includi interrotte
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="includeDecayed"
+                checked={localFilters.includeDecayed}
+                onCheckedChange={(checked) =>
+                  setLocalFilters({ ...localFilters, includeDecayed: !!checked })
+                }
+              />
+              <Label htmlFor="includeDecayed" className="text-sm font-normal cursor-pointer">
+                Includi decadute
+              </Label>
+            </div>
           </div>
         </div>
 

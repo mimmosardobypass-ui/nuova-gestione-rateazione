@@ -46,7 +46,7 @@ export default function StatsV3View() {
       statuses: statusesParam ? statusesParam.split(",") : null,
       includeInterrupted: searchParams.get("incInt") === "1",
       includeDecayed: searchParams.get("incDec") === "1",
-      groupBy: (searchParams.get("gb") as 'due' | 'created') || 'due',
+      groupBy: (searchParams.get("gb") as 'due' | 'paid') || 'due',
     };
   });
 

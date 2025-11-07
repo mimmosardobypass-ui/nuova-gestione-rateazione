@@ -47,10 +47,12 @@ function ExpandableTypeRow({
   row,
   year,
   month,
+  groupBy = 'due',
 }: {
   row: { type: string; paid_cents: number; unpaid_cents: number; total_cents: number; paid_pct: number };
   year: number | null;
   month: number | null;
+  groupBy?: 'due' | 'paid';
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -65,7 +67,8 @@ function ExpandableTypeRow({
   const { loading, paid, unpaid } = useRateationsDetailForMonth(
     isOpen ? year : null,
     isOpen ? month : null,
-    isOpen ? row.type : null
+    isOpen ? row.type : null,
+    groupBy
   );
 
   // Funzione per gestire il click sul column header
@@ -393,6 +396,7 @@ function SortableHeader({
 }
 
 export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props) {
+  const [groupBy, setGroupBy] = useState<'due' | 'paid'>('due');
   const { loading, rows, kpis } = useMonthBreakdown(year, month);
 
   const title = year && month ? `${MONTHS[month - 1]} ${year}` : "Dettaglio mese";
@@ -414,6 +418,30 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props)
       <SheetContent side="right" className="w-[760px] max-w-[92vw] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Dettaglio mese — {title}</SheetTitle>
+          
+          {/* Toggle Raggruppa per */}
+          <div className="flex items-center gap-3 pt-2 pb-1 border-b">
+            <span className="text-xs font-medium text-muted-foreground">Mostra:</span>
+            <div className="flex gap-2">
+              <Button
+                variant={groupBy === 'due' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGroupBy('due')}
+                className="text-xs"
+              >
+                📅 Per scadenza
+              </Button>
+              <Button
+                variant={groupBy === 'paid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGroupBy('paid')}
+                className="text-xs"
+              >
+                💰 Per pagamento
+              </Button>
+            </div>
+          </div>
+
           {loading && (
             <SheetDescription>
               <div className="mt-2 grid grid-cols-2 gap-3">
@@ -471,7 +499,7 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props)
                       </td>
                     </tr>
                   )}
-                  {!loading && rows.map((r) => <ExpandableTypeRow key={r.type} row={r} year={year} month={month} />)}
+                  {!loading && rows.map((r) => <ExpandableTypeRow key={r.type} row={r} year={year} month={month} groupBy={groupBy} />)}
                 </tbody>
               </table>
             </div>
