@@ -43,7 +43,23 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <ErrorBoundary>
+          <ErrorBoundary fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+              <div className="text-center space-y-4 p-8 max-w-md">
+                <h1 className="text-2xl font-bold text-destructive">Errore Applicazione</h1>
+                <p className="text-muted-foreground">
+                  Si è verificato un errore critico nell'applicazione. 
+                  Ricarica la pagina per riprovare.
+                </p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Ricarica Pagina
+                </button>
+              </div>
+            </div>
+          }>
             <SupabaseOutageBanner />
             <Toaster />
             <Sonner />

@@ -45,5 +45,4 @@ export async function safeSupabaseOperation<T>(
   }
 }
 
-// Re-export original client for backwards compatibility during transition
-export { supabase as legacySupabase } from './client';
+// Legacy export removed to prevent circular imports

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client-resilient';
 
 interface AuthContextType {
   user: User | null;
@@ -38,6 +38,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const initializeAuth = async () => {
       try {
+        if (!supabase) {
+          console.warn('[AuthContext] Supabase client not available');
+          setAuthReady(true);
+          setLoading(false);
+          return;
+        }
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
         
@@ -54,6 +60,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoading(false);
       }
     };
+
+    if (!supabase) {
+      console.warn('[AuthContext] Supabase client not available for auth state changes');
+      setAuthReady(true);
+      setLoading(false);
+      return () => {};
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -77,6 +90,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: { message: 'Supabase non disponibile' } as any };
+    }
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -90,6 +106,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: { message: 'Supabase non disponibile' } as any };
+    }
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -98,6 +117,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = async () => {
+    if (!supabase) {
+      console.warn('[AuthContext] Cannot sign out, Supabase client not available');
+      return;
+    }
     await supabase.auth.signOut();
   };
 
