@@ -25,12 +25,13 @@ export type MonthlyMatrix = {
 export type MonthlyEvolutionParams = {
   yearFrom: number;
   yearTo: number;
+  groupBy?: 'due' | 'paid';
 };
 
 const keyOf = (y: number, m: number) => `${y}-${m}`;
 
 export function useMonthlyEvolution(params: MonthlyEvolutionParams) {
-  const { yearFrom, yearTo } = params;
+  const { yearFrom, yearTo, groupBy = 'due' } = params;
 
   const [allPoints, setAllPoints] = useState<MonthlyPoint[]>([]);
   const [paidPoints, setPaidPoints] = useState<MonthlyPoint[]>([]);

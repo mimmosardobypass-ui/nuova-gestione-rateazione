@@ -154,6 +154,7 @@ export default function StatsV3View() {
           <MonthlyTrendMatrix
             yearFrom={yearFrom}
             yearTo={yearTo}
+            groupBy={filters.groupBy}
             onSelectMonth={(y, m) => {
               setSelectedMonth({ y, m });
               setDrawerOpen(true);
@@ -180,6 +181,7 @@ export default function StatsV3View() {
         onOpenChange={setDrawerOpen}
         year={selectedMonth.y}
         month={selectedMonth.m}
+        groupBy={filters.groupBy}
       />
 
       {/* Table */}

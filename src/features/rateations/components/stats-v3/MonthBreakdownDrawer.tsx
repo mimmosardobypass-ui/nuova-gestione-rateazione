@@ -39,6 +39,7 @@ type Props = {
   onOpenChange: (v: boolean) => void;
   year: number | null;
   month: number | null;
+  groupBy: 'due' | 'paid';
 };
 
 const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
@@ -395,9 +396,8 @@ function SortableHeader({
   );
 }
 
-export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props) {
-  const [groupBy, setGroupBy] = useState<'due' | 'paid'>('due');
-  const { loading, rows, kpis } = useMonthBreakdown(year, month);
+export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy }: Props) {
+  const { loading, rows, kpis } = useMonthBreakdown(year, month, groupBy);
 
   const title = year && month ? `${MONTHS[month - 1]} ${year}` : "Dettaglio mese";
 
@@ -418,29 +418,6 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month }: Props)
       <SheetContent side="right" className="w-[760px] max-w-[92vw] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Dettaglio mese — {title}</SheetTitle>
-          
-          {/* Toggle Raggruppa per */}
-          <div className="flex items-center gap-3 pt-2 pb-1 border-b">
-            <span className="text-xs font-medium text-muted-foreground">Mostra:</span>
-            <div className="flex gap-2">
-              <Button
-                variant={groupBy === 'due' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setGroupBy('due')}
-                className="text-xs"
-              >
-                📅 Per scadenza
-              </Button>
-              <Button
-                variant={groupBy === 'paid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setGroupBy('paid')}
-                className="text-xs"
-              >
-                💰 Per pagamento
-              </Button>
-            </div>
-          </div>
 
           {loading && (
             <SheetDescription>

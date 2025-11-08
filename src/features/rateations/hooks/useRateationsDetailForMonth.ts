@@ -44,8 +44,7 @@ export function useRateationsDetailForMonth(
           // Modalità "Per Pagamento": filtra per paid_date/paid_at e solo rate pagate
           query = query
             .eq("is_paid", true)
-            .or(`paid_date.gte.${dateFrom},paid_date.lte.${dateTo}`)
-            .or(`paid_at.gte.${dateFrom},paid_at.lte.${dateTo}`);
+            .or(`and(paid_date.gte.${dateFrom},paid_date.lte.${dateTo}),and(paid_at.gte.${dateFrom},paid_at.lte.${dateTo})`);
         } else {
           // Modalità "Per Scadenza" (default): filtra per due_date
           query = query

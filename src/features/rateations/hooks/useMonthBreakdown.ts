@@ -17,7 +17,11 @@ export type MonthKpis = {
   unpaid_pct: number;
 };
 
-export function useMonthBreakdown(year: number | null, month: number | null) {
+export function useMonthBreakdown(
+  year: number | null, 
+  month: number | null,
+  groupBy: 'due' | 'paid' = 'due'
+) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<BreakdownRow[]>([]);
   const [kpis, setKpis] = useState<MonthKpis | null>(null);
@@ -35,11 +39,13 @@ export function useMonthBreakdown(year: number | null, month: number | null) {
           p_year_from: year,
           p_year_to: year,
           p_pay_filter: "paid",
+          p_group_by: groupBy,
         }),
         supabase.rpc("residual_evolution_by_type", {
           p_year_from: year,
           p_year_to: year,
           p_pay_filter: "unpaid",
+          p_group_by: groupBy,
         }),
       ]);
 
@@ -101,7 +107,7 @@ export function useMonthBreakdown(year: number | null, month: number | null) {
     } finally {
       setLoading(false);
     }
-  }, [year, month]);
+  }, [year, month, groupBy]);
 
   useEffect(() => {
     fetchData();
