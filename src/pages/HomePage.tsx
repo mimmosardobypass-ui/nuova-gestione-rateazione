@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Plus, Eye, BarChart3, Calendar } from "lucide-react";
+import { Plus, Eye, BarChart3, Calendar, AlertCircle } from "lucide-react";
 import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
@@ -11,6 +11,8 @@ import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskRep
 import { calculateAlertDetails } from "@/constants/alertConfig";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 import { FreeNotesCard } from "@/components/FreeNotesCard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -97,61 +99,70 @@ export default function HomePage() {
 
       {/* Configurable Alerts */}
       <section className="container mx-auto px-4 pt-8">
-        <div className="space-y-4">
-          {!loadingF24Risk && (
-            <ConfigurableAlert
-              type="f24"
-              count={atRiskF24s.length}
-              details={f24Details}
-            />
-          )}
-          
-          {(() => {
-            try {
-              if (loadingPagopaRisk) {
-                return (
-                  <div className="border border-muted bg-muted/10 p-4 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm text-muted-foreground">
-                        Caricamento alert PagoPA...
-                      </p>
+        <ErrorBoundary fallback={
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Errore nel caricamento degli alert. Riprova ricaricando la pagina.
+            </AlertDescription>
+          </Alert>
+        }>
+          <div className="space-y-4">
+            {!loadingF24Risk && (
+              <ConfigurableAlert
+                type="f24"
+                count={atRiskF24s.length}
+                details={f24Details}
+              />
+            )}
+            
+            {(() => {
+              try {
+                if (loadingPagopaRisk) {
+                  return (
+                    <div className="border border-muted bg-muted/10 p-4 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm text-muted-foreground">
+                          Caricamento alert PagoPA...
+                        </p>
+                      </div>
                     </div>
+                  );
+                }
+                
+                console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
+                return (
+                  <ConfigurableAlert
+                    type="pagopa"
+                    count={atRiskPagopas.length}
+                    details={pagopaDetails}
+                  />
+                );
+              } catch (error) {
+                console.error('🔴 [HomePage] Error rendering PagoPA alert:', error);
+                return (
+                  <div className="border border-destructive bg-destructive/10 p-4 rounded-lg">
+                    <p className="text-sm text-destructive font-semibold">
+                      Errore visualizzazione alert PagoPA
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {String(error)}
+                    </p>
                   </div>
                 );
               }
-              
-              console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
-              return (
-                <ConfigurableAlert
-                  type="pagopa"
-                  count={atRiskPagopas.length}
-                  details={pagopaDetails}
-                />
-              );
-            } catch (error) {
-              console.error('🔴 [HomePage] Error rendering PagoPA alert:', error);
-              return (
-                <div className="border border-destructive bg-destructive/10 p-4 rounded-lg">
-                  <p className="text-sm text-destructive font-semibold">
-                    Errore visualizzazione alert PagoPA
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {String(error)}
-                  </p>
-                </div>
-              );
-            }
-          })()}
-        </div>
+            })()}
+          </div>
 
-        {/* Global At-Risk Report Selector */}
-        <div className="mt-6">
-          <AtRiskReportSelector 
-            f24Count={atRiskF24s.length} 
-            pagopaCount={atRiskPagopas.length} 
-          />
-        </div>
+          {/* Global At-Risk Report Selector */}
+          <div className="mt-6">
+            <AtRiskReportSelector 
+              f24Count={atRiskF24s.length} 
+              pagopaCount={atRiskPagopas.length} 
+            />
+          </div>
+        </ErrorBoundary>
       </section>
 
       {/* Recent Notes & Promemoria Section */}

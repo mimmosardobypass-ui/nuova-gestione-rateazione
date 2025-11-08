@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client-resilient';
 import { ALERT_CONFIG } from '@/constants/alertConfig';
 
 export interface PagopaAtRiskItem {
@@ -40,6 +40,14 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
       try {
         setLoading(true);
         setError(null);
+
+        // Check if Supabase client is available
+        if (!supabase) {
+          console.warn('[usePagopaAtRisk] Supabase client not available');
+          setAtRiskPagopas([]);
+          setLoading(false);
+          return;
+        }
 
         // Step 1: Query v_pagopa_today_kpis for at-risk PagoPAs
         const { data: kpisData, error: kpisError } = await supabase
@@ -87,41 +95,56 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           })
           .filter((item): item is PagopaAtRiskItem => item !== null);
 
-        // Step 3.5: For each at-risk PagoPA, fetch next due date
-        const atRiskWithDueDates = await Promise.all(
-          atRiskBase.map(async (item) => {
-            try {
-              // Query for next unpaid installment
-              const { data: nextInstallment } = await supabase
-                .from('installments')
-                .select('due_date')
-                .eq('rateation_id', Number(item.rateationId))
-                .eq('is_paid', false)
-                .gte('due_date', new Date().toISOString().split('T')[0])
-                .order('due_date', { ascending: true })
-                .limit(1)
-                .single();
+        // Step 3.5: For each at-risk PagoPA, fetch next due date (with timeout)
+        const fetchWithTimeout = async () => {
+          const timeoutPromise = new Promise<typeof atRiskBase>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout fetching due dates')), 8000)
+          );
 
-              if (nextInstallment?.due_date) {
-                const nextDueDate = new Date(nextInstallment.due_date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const daysRemaining = Math.ceil((nextDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const fetchPromise = Promise.all(
+            atRiskBase.map(async (item) => {
+              try {
+                if (!supabase) return item;
+                
+                // Query for next unpaid installment
+                const { data: nextInstallment } = await supabase
+                  .from('installments')
+                  .select('due_date')
+                  .eq('rateation_id', Number(item.rateationId))
+                  .eq('is_paid', false)
+                  .gte('due_date', new Date().toISOString().split('T')[0])
+                  .order('due_date', { ascending: true })
+                  .limit(1)
+                  .single();
 
-                return {
-                  ...item,
-                  nextDueDate: nextInstallment.due_date,
-                  daysRemaining: Math.max(0, daysRemaining)
-                };
+                if (nextInstallment?.due_date) {
+                  const nextDueDate = new Date(nextInstallment.due_date);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const daysRemaining = Math.ceil((nextDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+                  return {
+                    ...item,
+                    nextDueDate: nextInstallment.due_date,
+                    daysRemaining: Math.max(0, daysRemaining)
+                  };
+                }
+
+                return item;
+              } catch (err) {
+                console.error(`[usePagopaAtRisk] Error fetching next due date for ${item.rateationId}:`, err);
+                return item;
               }
+            })
+          );
 
-              return item; // Keep null if no next due date
-            } catch (err) {
-              console.error(`[usePagopaAtRisk] Error fetching next due date for ${item.rateationId}:`, err);
-              return item;
-            }
-          })
-        );
+          return Promise.race([fetchPromise, timeoutPromise]);
+        };
+
+        const atRiskWithDueDates = await fetchWithTimeout().catch(err => {
+          console.error('[usePagopaAtRisk] Timeout or error fetching due dates:', err);
+          return atRiskBase; // Return partial data without dates on timeout
+        });
 
         if (mounted) {
           setAtRiskPagopas(atRiskWithDueDates);
