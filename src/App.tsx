@@ -65,6 +65,12 @@ function App() {
             <Sonner />
             <BrowserRouter>
               <AppLayout>
+                {/* Visual Cache Indicator - Development Only */}
+                {import.meta.env.DEV && (
+                  <div className="fixed bottom-2 right-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded shadow-lg z-[9999] font-mono">
+                    v{new Date().toISOString().slice(0,10).replace(/-/g,'')}
+                  </div>
+                )}
                 <Routes>
                   <Route path="/login" element={<Login />} />
                   <Route path="/" element={

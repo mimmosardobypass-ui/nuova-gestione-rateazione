@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Cache Control: Prevent aggressive browser caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <title>Gestione Rateazioni – Dashboard pagamenti e scadenze</title>
     <meta name="description" content="App professionale per gestione rateazioni con dashboard, grafici, allegati e scadenze. React, Tailwind, shadcn/ui." />
     <meta name="author" content="Lovable" />
@@ -20,6 +26,16 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- Cache buster: Version parameter forces browser to reload on updates -->
+    <script type="module" src="/src/main.tsx?v=20250108001"></script>
+    
+    <!-- Service Worker: Disable aggressive caching -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+          // Service worker registration failed, continue without it
+        });
+      }
+    </script>
   </body>
 </html>
