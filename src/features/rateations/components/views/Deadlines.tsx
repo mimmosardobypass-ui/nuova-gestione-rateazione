@@ -62,7 +62,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
   }, [monthlyTrends]);
 
   const exportToCSV = () => {
-    const headers = ['Numero', 'Contribuente', 'Rata', 'Scadenza', 'Importo', 'Stato', 'Tipo', 'Bucket'];
+    const headers = ['Numero', 'Contribuente', 'Rata', 'Scadenza', 'Importo', 'Stato', 'Rate Saltate', 'Bucket'];
     const csvContent = [
       headers.join(','),
       ...deadlines.map(d => [
@@ -72,7 +72,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
         d.due_date ? format(new Date(d.due_date), 'dd/MM/yyyy') : '',
         (d.amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 }),
         d.is_paid ? 'Pagata' : 'Non pagata',
-        `"${d.type_name || ''}"`,
+        d.is_pagopa ? `"${d.skip_remaining ?? '-'}/${d.max_skips_effective ?? 8}"` : '"-"',
         `"${d.bucket || ''}"`
       ].join(','))
     ].join('\n');
@@ -250,7 +250,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
                       <TableHead>Scadenza</TableHead>
                       <TableHead>Importo</TableHead>
                       <TableHead>Stato</TableHead>
-                      <TableHead>Tipo</TableHead>
+                      <TableHead>Rate Saltate</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -280,7 +280,15 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
                             {deadline.bucket}
                           </Badge>
                         </TableCell>
-                        <TableCell>{deadline.type_name}</TableCell>
+                        <TableCell>
+                          {deadline.is_pagopa ? (
+                            <span className="font-mono text-sm">
+                              {deadline.skip_remaining ?? '-'}/{deadline.max_skips_effective ?? 8}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

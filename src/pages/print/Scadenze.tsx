@@ -128,7 +128,7 @@ export default function ScadenzePrint() {
                 <th>Scadenza</th>
                 <th>Importo</th>
                 <th>Stato</th>
-                <th>Tipo</th>
+                <th>Rate Saltate</th>
                 <th>Bucket</th>
               </tr>
             </thead>
@@ -146,7 +146,15 @@ export default function ScadenzePrint() {
                   </td>
                   <td className="text-right">{formatEuro(deadline.amount)}</td>
                   <td>{deadline.is_paid ? 'Pagata' : 'Non pagata'}</td>
-                  <td>{deadline.type_name}</td>
+                  <td>
+                    {deadline.is_pagopa ? (
+                      <span className="font-mono text-sm">
+                        {deadline.skip_remaining ?? '-'}/{deadline.max_skips_effective ?? 8}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
                   <td>
                     <span className={`print-badge ${deadline.bucket === 'In ritardo' ? 'badge-destructive' : ''}`}>
                       {deadline.bucket}

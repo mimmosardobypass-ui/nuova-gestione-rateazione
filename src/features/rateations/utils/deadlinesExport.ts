@@ -44,7 +44,7 @@ export function exportDeadlinesToExcel(
     'Scadenza',
     'Importo (€)',
     'Stato',
-    'Tipo',
+    'Rate Saltate',
     'Bucket',
     'Giorni Ritardo',
   ];
@@ -57,7 +57,7 @@ export function exportDeadlinesToExcel(
     d.due_date ? format(new Date(d.due_date), 'dd/MM/yyyy', { locale: it }) : '',
     (d.amount / 100).toFixed(2),
     d.is_paid ? 'Pagata' : 'Non pagata',
-    d.type_name || '',
+    d.is_pagopa ? `${d.skip_remaining ?? '-'}/${d.max_skips_effective ?? 8}` : '-',
     d.bucket || '',
     d.days_overdue > 0 ? d.days_overdue : '',
   ]);
@@ -96,7 +96,7 @@ export function exportDeadlinesToExcel(
     { wch: 12 },  // Scadenza
     { wch: 12 },  // Importo
     { wch: 12 },  // Stato
-    { wch: 20 },  // Tipo
+    { wch: 12 },  // Rate Saltate
     { wch: 15 },  // Bucket
     { wch: 12 },  // Giorni Ritardo
   ];

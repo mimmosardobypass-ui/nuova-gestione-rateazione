@@ -29,6 +29,9 @@ export interface DeadlineItem {
   bucket: BucketValue;
   aging_band: '1–7' | '8–30' | '31–60' | '>60' | null;
   days_overdue: number;
+  skip_remaining?: number;
+  max_skips_effective?: number;
+  is_pagopa?: boolean;
 }
 
 export interface DeadlineKPIs {
@@ -99,6 +102,31 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
       const { data, error } = await query.order('due_date', { ascending: true });
 
       if (error) throw error;
+
+      // Arricchimento dati con skip_remaining per PagoPA
+      const rateationIds = data?.map(d => d.rateation_id).filter(Boolean) || [];
+
+      if (rateationIds.length > 0) {
+        // Query separata per ottenere i KPI PagoPA
+        const { data: pagopaKpis } = await supabase
+          .from('v_pagopa_today_kpis')
+          .select('rateation_id, skip_remaining, max_skips_effective')
+          .in('rateation_id', rateationIds);
+
+        // Merge dei dati usando rateation_id come chiave
+        const enrichedData = data?.map(deadline => {
+          const kpi = pagopaKpis?.find(k => k.rateation_id === deadline.rateation_id);
+          return {
+            ...deadline,
+            skip_remaining: kpi?.skip_remaining ?? null,
+            max_skips_effective: kpi?.max_skips_effective ?? null,
+            is_pagopa: !!kpi,
+          };
+        });
+
+        return enrichedData || [];
+      }
+
       return data || [];
     },
   });
