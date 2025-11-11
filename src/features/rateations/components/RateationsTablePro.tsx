@@ -195,8 +195,7 @@ export function RateationsTablePro({
               </TableHead>
               <TableHead className="text-center">
                 <div className="flex flex-col items-center leading-tight">
-                  <span className="text-xs">Rate in ritardo</span>
-                  <span className="text-xs font-semibold">Scadenti oggi</span>
+                  <span className="text-xs font-semibold">Rate Saltate</span>
                 </div>
               </TableHead>
               <TableHead className="w-[120px]">Azioni</TableHead>
@@ -239,15 +238,17 @@ export function RateationsTablePro({
                     <TableCell className="text-center">{r.rateNonPagate}</TableCell>
                      <TableCell className={`text-center ${
                        r.is_pagopa 
-                         ? (r.unpaid_overdue_today && r.unpaid_overdue_today > 0 ? "text-destructive font-medium" : "")
-                         : ((r.rateInRitardo + (r.ratePaidLate || 0)) > 0 ? "text-destructive font-medium" : "")
+                         ? (() => {
+                             const max = r.max_skips_effective ?? 8;
+                             const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
+                             return remaining <= 2 ? "text-destructive font-medium" : "";
+                           })()
+                         : ""
                       }`}>
                            {(() => {
-                              // F24 Recovery Window Logic
+                              // F24 non ha senso per rate saltate
                               if (r.is_f24) {
-                                // We don't have installments here, so we'll show a simplified view
-                                // The full badge will be shown in the detail view
-                                return <span>{r.rateInRitardo + (r.ratePaidLate || 0)}</span>;
+                                return <span className="text-muted-foreground">-</span>;
                               }
                               
                               // Use unified helper for PagoPA detection
@@ -263,37 +264,27 @@ export function RateationsTablePro({
                                 onViewTarget={handleViewTarget}
                               />
                               
-                              {/* Standard PagoPA KPIs (hidden if migrated) */}
+                              {/* Rate Saltate (simplified view) */}
                               {r.rq_migration_status === 'none' && (
-                                <div className="flex flex-col gap-1">
-                                  <div className="text-sm">
-                                    <span className="text-muted-foreground">In ritardo:</span>{' '}
-                                    <span className="font-medium">{r.unpaid_overdue_today ?? 0}</span>
-                                  </div>
-                                  <div className="text-sm">
-                                    <span className="text-muted-foreground">Scadenti oggi:</span>{' '}
-                                    <span className="font-medium">{r.unpaid_due_today ?? 0}</span>
-                                  </div>
-                                   <div className="text-sm inline-flex items-center gap-2">
-                                     <span className="text-muted-foreground">Salti:</span>
-                                      {(() => {
-                                        const max = r.max_skips_effective ?? 8;
-                                        const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
-                                       const risk = getLegacySkipRisk(remaining);
-                                      return (
-                                        <>
-                                          <span className="font-medium">{remaining}/{max}</span>
-                                          {risk && <span className={risk.cls} title={risk.title}>⚠️</span>}
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
+                                <div className="text-sm inline-flex items-center gap-2">
+                                  {(() => {
+                                    const max = r.max_skips_effective ?? 8;
+                                    const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
+                                    const skipped = max - remaining;
+                                    const risk = getLegacySkipRisk(remaining);
+                                    return (
+                                      <>
+                                        <span className="font-medium">{skipped}/{max}</span>
+                                        {risk && <span className={risk.cls} title={risk.title}>⚠️</span>}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </div>
                            ) : (
-                             // fallback piani non PagoPA: metrica esistente
-                             <span>{r.rateInRitardo + (r.ratePaidLate || 0)}</span>
+                             // Piani non PagoPA non hanno rate saltate
+                             <span className="text-muted-foreground">-</span>
                            );
                            })()}
                      </TableCell>
