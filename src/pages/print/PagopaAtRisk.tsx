@@ -64,6 +64,10 @@ export default function PagopaAtRisk() {
     ? Math.round(atRiskPagopas.reduce((sum, p) => sum + (p.daysRemaining || 0), 0) / atRiskPagopas.length)
     : 0;
 
+  const totalInstallmentsAmount = atRiskPagopas.reduce((sum, p) => 
+    sum + (p.nextInstallmentAmountCents || 0), 0
+  );
+
   const getRiskBadge = (skipRemaining: number, dueDate: string | null) => {
     const dateStr = dueDate 
       ? ` - Entro ${new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}`
@@ -148,6 +152,16 @@ export default function PagopaAtRisk() {
                   </tr>
                 );
               })}
+              {/* Riga Totale */}
+              <tr className="border-t-2 border-gray-400 font-bold bg-gray-50">
+                <td colSpan={6} className="text-right pr-4 py-3">
+                  TOTALE RATE:
+                </td>
+                <td className="text-right font-bold text-lg text-blue-600">
+                  {formatCurrency(totalInstallmentsAmount / 100)}
+                </td>
+                <td></td>
+              </tr>
             </tbody>
           </table>
         </section>
