@@ -270,7 +270,7 @@ export function RateationsTablePro({
                                   {(() => {
                                     const max = r.max_skips_effective ?? 8;
                                     const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
-                                    const skipped = max - remaining;
+                                    const skipped = r.unpaid_overdue_today ?? 0;
                                     const risk = getLegacySkipRisk(remaining);
                                     return (
                                       <>
