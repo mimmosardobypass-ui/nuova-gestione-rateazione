@@ -116,6 +116,7 @@ export default function PagopaAtRisk() {
                 <th className="text-right">Skip Residui</th>
                 <th className="text-right">Giorni Rimanenti</th>
                 <th>Prossima Scadenza</th>
+                <th className="text-right">Importo Rata</th>
                 <th className="text-center">Livello Rischio</th>
               </tr>
             </thead>
@@ -132,6 +133,11 @@ export default function PagopaAtRisk() {
                     <td className="font-medium">
                       {pagopa.nextDueDate 
                         ? new Date(pagopa.nextDueDate).toLocaleDateString('it-IT')
+                        : 'N/D'}
+                    </td>
+                    <td className="text-right font-semibold">
+                      {pagopa.nextInstallmentAmountCents !== null
+                        ? formatCurrency(pagopa.nextInstallmentAmountCents / 100)
                         : 'N/D'}
                     </td>
                     <td className="text-center">

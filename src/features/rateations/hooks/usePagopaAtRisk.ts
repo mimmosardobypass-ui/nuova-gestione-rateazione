@@ -10,6 +10,7 @@ export interface PagopaAtRiskItem {
   skipRemaining: number;
   nextDueDate: string | null;
   daysRemaining: number;
+  nextInstallmentAmountCents: number | null;
 }
 
 export interface UsePagopaAtRiskResult {
@@ -90,7 +91,8 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
               unpaidOverdueCount: kpi.unpaid_overdue_today ?? 0,
               skipRemaining: kpi.skip_remaining ?? 0,
               nextDueDate: null,
-              daysRemaining: 0
+              daysRemaining: 0,
+              nextInstallmentAmountCents: null
             };
           })
           .filter((item): item is PagopaAtRiskItem => item !== null);
@@ -109,7 +111,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
                 // Query for next unpaid installment
                 const { data: nextInstallment } = await supabase
                   .from('installments')
-                  .select('due_date')
+                  .select('due_date, amount_cents')
                   .eq('rateation_id', Number(item.rateationId))
                   .eq('is_paid', false)
                   .gte('due_date', new Date().toISOString().split('T')[0])
@@ -126,7 +128,8 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
                   return {
                     ...item,
                     nextDueDate: nextInstallment.due_date,
-                    daysRemaining: Math.max(0, daysRemaining)
+                    daysRemaining: Math.max(0, daysRemaining),
+                    nextInstallmentAmountCents: nextInstallment.amount_cents ?? null
                   };
                 }
 
