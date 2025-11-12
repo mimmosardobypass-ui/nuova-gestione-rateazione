@@ -32,6 +32,7 @@ export interface DeadlineItem {
   skip_remaining?: number;
   max_skips_effective?: number;
   is_pagopa?: boolean;
+  unpaid_overdue_today?: number;
 }
 
 export interface DeadlineKPIs {
@@ -110,7 +111,7 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
         // Query separata per ottenere i KPI PagoPA
         const { data: pagopaKpis } = await supabase
           .from('v_pagopa_today_kpis')
-          .select('rateation_id, skip_remaining, max_skips_effective')
+          .select('rateation_id, skip_remaining, max_skips_effective, unpaid_overdue_today')
           .in('rateation_id', rateationIds);
 
         // Merge dei dati usando rateation_id come chiave
@@ -121,6 +122,7 @@ export function useDeadlines(filters: DeadlineFilters = {}) {
             skip_remaining: kpi?.skip_remaining ?? null,
             max_skips_effective: kpi?.max_skips_effective ?? null,
             is_pagopa: !!kpi,
+            unpaid_overdue_today: kpi?.unpaid_overdue_today ?? 0,
           };
         });
 

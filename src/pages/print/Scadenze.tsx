@@ -149,7 +149,7 @@ export default function ScadenzePrint() {
                   <td>
                     {deadline.is_pagopa ? (
                       <span className="font-mono text-sm">
-                        {deadline.skip_remaining ?? '-'}/{deadline.max_skips_effective ?? 8}
+                        {deadline.unpaid_overdue_today ?? 0}/{deadline.max_skips_effective ?? 8}
                       </span>
                     ) : (
                       '-'

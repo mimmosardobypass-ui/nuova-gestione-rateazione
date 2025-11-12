@@ -72,7 +72,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
         d.due_date ? format(new Date(d.due_date), 'dd/MM/yyyy') : '',
         (d.amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 }),
         d.is_paid ? 'Pagata' : 'Non pagata',
-        d.is_pagopa ? `"${d.skip_remaining ?? '-'}/${d.max_skips_effective ?? 8}"` : '"-"',
+        d.is_pagopa ? `"${d.unpaid_overdue_today ?? 0}/${d.max_skips_effective ?? 8}"` : '"-"',
         `"${d.bucket || ''}"`
       ].join(','))
     ].join('\n');
@@ -283,7 +283,7 @@ export function Deadlines({ rows, loading: parentLoading, onBack }: DeadlinesPro
                         <TableCell>
                           {deadline.is_pagopa ? (
                             <span className="font-mono text-sm">
-                              {deadline.skip_remaining ?? '-'}/{deadline.max_skips_effective ?? 8}
+                              {deadline.unpaid_overdue_today ?? 0}/{deadline.max_skips_effective ?? 8}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
