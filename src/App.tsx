@@ -29,15 +29,16 @@ import RateazioniAtRisk from "./pages/print/RateazioniAtRisk";
 import F24AtRisk from "./pages/print/F24AtRisk";
 import PagopaAtRisk from "./pages/print/PagopaAtRisk";
 
-function App() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60 * 5,
-        retry: 1,
-      },
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
     },
-  });
+  },
+});
+
+function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
