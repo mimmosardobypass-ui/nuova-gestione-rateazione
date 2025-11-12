@@ -60,6 +60,7 @@ export type RateationRowPro = {
   latest_rq_id?: number | null;
   // F24 link fields
   is_f24?: boolean;
+  f24_days_to_next_due?: number | null;
   // Note fields
   notes?: string | null;
   notes_updated_at?: string | null;
@@ -245,48 +246,73 @@ export function RateationsTablePro({
                            })()
                          : ""
                       }`}>
-                           {(() => {
-                              // F24 non ha senso per rate saltate
-                              if (r.is_f24) {
-                                return <span className="text-muted-foreground">-</span>;
-                              }
-                              
-                              // Use unified helper for PagoPA detection
-                              const isPagoPA = isPagoPAPlan({ is_pagopa: r.is_pagopa, tipo: r.tipo });
-                             return isPagoPA ? (
-                            <div className="space-y-2">
-                              {/* Migration Status Badge */}
-                               <MigrationStatusBadge 
-                                row={r}
-                                onOpenMigration={() => {
-                                  // Migration dialog will be triggered via the actions column
-                                }}
-                                onViewTarget={handleViewTarget}
-                              />
-                              
-                              {/* Rate Saltate (simplified view) */}
-                              {r.rq_migration_status === 'none' && (
-                                <div className="text-sm inline-flex items-center gap-2">
-                                  {(() => {
-                                    const max = r.max_skips_effective ?? 8;
-                                    const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
-                                    const skipped = r.unpaid_overdue_today ?? 0;
-                                    const risk = getLegacySkipRisk(remaining);
-                                    return (
-                                      <>
-                                        <span className="font-medium">{skipped}/{max}</span>
-                                        {risk && <span className={risk.cls} title={risk.title}>⚠️</span>}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              )}
-                            </div>
-                           ) : (
-                             // Piani non PagoPA non hanno rate saltate
-                             <span className="text-muted-foreground">-</span>
-                           );
-                           })()}
+                            {(() => {
+                               // === F24: Mostra rate scadute + giorni rimanenti ===
+                               if (r.is_f24) {
+                                 const overdueCount = r.rateInRitardo ?? 0;
+                                 const daysRemaining = r.f24_days_to_next_due ?? null;
+                                 
+                                 // Se non ci sono rate scadute, mostra "-"
+                                 if (overdueCount === 0 || daysRemaining === null) {
+                                   return <span className="text-muted-foreground">-</span>;
+                                 }
+                                 
+                                 // Determina il colore basato sui giorni rimanenti
+                                 const getColorClass = (days: number): string => {
+                                   if (days > 30) return "text-green-600";
+                                   if (days >= 15) return "text-yellow-600";
+                                   if (days > 0) return "text-red-600";
+                                   return "text-gray-700";
+                                 };
+                                 
+                                 const colorClass = getColorClass(daysRemaining);
+                                 
+                                 return (
+                                   <div className="inline-flex items-baseline gap-1">
+                                     <span className="font-medium">{overdueCount}</span>
+                                     <span className={`text-xs ${colorClass}`}>
+                                       ({daysRemaining}gg)
+                                     </span>
+                                   </div>
+                                 );
+                               }
+                               
+                               // === PagoPA: Logica esistente ===
+                               const isPagoPA = isPagoPAPlan({ is_pagopa: r.is_pagopa, tipo: r.tipo });
+                              return isPagoPA ? (
+                             <div className="space-y-2">
+                               {/* Migration Status Badge */}
+                                <MigrationStatusBadge 
+                                 row={r}
+                                 onOpenMigration={() => {
+                                   // Migration dialog will be triggered via the actions column
+                                 }}
+                                 onViewTarget={handleViewTarget}
+                               />
+                               
+                               {/* Rate Saltate (simplified view) */}
+                               {r.rq_migration_status === 'none' && (
+                                 <div className="text-sm inline-flex items-center gap-2">
+                                   {(() => {
+                                     const max = r.max_skips_effective ?? 8;
+                                     const remaining = Math.max(0, Math.min(max, r.skip_remaining ?? 8));
+                                     const skipped = r.unpaid_overdue_today ?? 0;
+                                     const risk = getLegacySkipRisk(remaining);
+                                     return (
+                                       <>
+                                         <span className="font-medium">{skipped}/{max}</span>
+                                         {risk && <span className={risk.cls} title={risk.title}>⚠️</span>}
+                                       </>
+                                     );
+                                   })()}
+                                 </div>
+                               )}
+                             </div>
+                            ) : (
+                              // Altri tipi non hanno rate saltate
+                              <span className="text-muted-foreground">-</span>
+                            );
+                            })()}
                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
