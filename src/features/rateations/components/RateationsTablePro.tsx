@@ -246,36 +246,42 @@ export function RateationsTablePro({
                            })()
                          : ""
                       }`}>
-                            {(() => {
-                               // === F24: Mostra rate scadute + giorni rimanenti ===
-                               if (r.is_f24) {
-                                 const overdueCount = r.rateInRitardo ?? 0;
-                                 const daysRemaining = r.f24_days_to_next_due ?? null;
-                                 
-                                 // Se non ci sono rate scadute, mostra "-"
-                                 if (overdueCount === 0 || daysRemaining === null) {
-                                   return <span className="text-muted-foreground">-</span>;
-                                 }
-                                 
-                                 // Determina il colore basato sui giorni rimanenti
-                                 const getColorClass = (days: number): string => {
-                                   if (days > 30) return "text-green-600";
-                                   if (days >= 15) return "text-yellow-600";
-                                   if (days > 0) return "text-red-600";
-                                   return "text-gray-700";
-                                 };
-                                 
-                                 const colorClass = getColorClass(daysRemaining);
-                                 
-                                 return (
-                                   <div className="inline-flex items-baseline gap-1">
-                                     <span className="font-medium">{overdueCount}</span>
-                                     <span className={`text-xs ${colorClass}`}>
-                                       ({daysRemaining}gg)
-                                     </span>
-                                   </div>
-                                 );
-                               }
+                               {(() => {
+                                // === F24: Mostra rate scadute + giorni rimanenti ===
+                                // SOLO per F24 attive o in ritardo (non decadute!)
+                                if (r.is_f24 && (r.status === 'ATTIVA' || r.status === 'IN_RITARDO')) {
+                                  const overdueCount = r.rateInRitardo ?? 0;
+                                  const daysRemaining = r.f24_days_to_next_due ?? null;
+                                  
+                                  // Se non ci sono rate scadute, mostra "-"
+                                  if (overdueCount === 0 || daysRemaining === null) {
+                                    return <span className="text-muted-foreground">-</span>;
+                                  }
+                                  
+                                  // Determina il colore basato sui giorni rimanenti
+                                  const getColorClass = (days: number): string => {
+                                    if (days > 30) return "text-green-600";
+                                    if (days >= 15) return "text-yellow-600";
+                                    if (days > 0) return "text-red-600";
+                                    return "text-gray-700";
+                                  };
+                                  
+                                  const colorClass = getColorClass(daysRemaining);
+                                  
+                                  return (
+                                    <div className="inline-flex items-baseline gap-1">
+                                      <span className="font-medium">{overdueCount}</span>
+                                      <span className={`text-xs ${colorClass}`}>
+                                        ({daysRemaining}gg)
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                
+                                // Per F24 decadute/completate/interrotte, mostra "-"
+                                if (r.is_f24) {
+                                  return <span className="text-muted-foreground">-</span>;
+                                }
                                
                                // === PagoPA: Logica esistente ===
                                const isPagoPA = isPagoPAPlan({ is_pagopa: r.is_pagopa, tipo: r.tipo });
