@@ -61,14 +61,12 @@ export default function F24AtRisk() {
     ? Math.round(atRiskF24s.reduce((sum, f) => sum + (f.daysRemaining || 0), 0) / atRiskF24s.length)
     : 0;
 
-  const getRiskBadge = (days: number, dueDate: string | null) => {
-    const formattedDate = dueDate 
-      ? new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      : 'N/D';
-    
-    if (days <= 7) return { label: `🔴 CRITICO - Entro ${formattedDate}`, class: 'bg-red-100 text-red-800' };
-    if (days <= 14) return { label: `🟡 ATTENZIONE - Scad. ${formattedDate}`, class: 'bg-orange-100 text-orange-800' };
-    return { label: `🟢 MONITORARE - Scad. ${formattedDate}`, class: 'bg-yellow-100 text-yellow-800' };
+  // ✅ Usa il riskLevel dal hook invece di calcolare sul client
+  const getRiskBadge = (item: typeof atRiskF24s[0]) => {
+    if (item.riskLevel === 'critical') {
+      return { label: "🚨 URGENTE", className: "bg-red-100 text-red-800 border-red-300" };
+    }
+    return { label: "⚠️ ATTENZIONE", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
   };
 
   return (
@@ -110,6 +108,7 @@ export default function F24AtRisk() {
                 <th>Numero</th>
                 <th>Contribuente</th>
                 <th className="text-right">Rate Scadute</th>
+                <th className="text-right">Rate Non Pagate</th>
                 <th className="text-right">Giorni Rimanenti</th>
                 <th>Prossima Scadenza</th>
                 <th className="text-center">Livello Rischio</th>
@@ -117,12 +116,13 @@ export default function F24AtRisk() {
             </thead>
             <tbody>
               {atRiskF24s.map((f24) => {
-                const risk = getRiskBadge(f24.daysRemaining || 0, f24.nextDueDate);
+                const risk = getRiskBadge(f24);
                 return (
                   <tr key={f24.rateationId}>
                     <td className="font-mono text-sm">{f24.numero}</td>
                     <td>{f24.contribuente || 'N/A'}</td>
-                    <td className="text-right font-semibold">{f24.overdueCount}</td>
+                    <td className="text-right font-semibold text-red-600">{f24.overdueCount}</td>
+                    <td className="text-right font-semibold">{f24.unpaidCount}</td>
                     <td className="text-right font-semibold">{f24.daysRemaining || 0}</td>
                     <td className="font-medium">
                       {f24.nextDueDate 
@@ -130,7 +130,7 @@ export default function F24AtRisk() {
                         : 'N/D'}
                     </td>
                     <td className="text-center">
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
+                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.className}`}>
                         {risk.label}
                       </span>
                     </td>
@@ -150,9 +150,8 @@ export default function F24AtRisk() {
       <section className="mt-8 border-t pt-4">
         <h3 className="text-sm font-semibold mb-2">Legenda Livelli di Rischio F24</h3>
         <ul className="space-y-1 text-xs text-muted-foreground">
-          <li>• <strong>CRITICO:</strong> Giorni al prossimo pagamento ≤ 7</li>
-          <li>• <strong>ALTO:</strong> Giorni al prossimo pagamento 8-14</li>
-          <li>• <strong>MEDIO:</strong> Giorni al prossimo pagamento 15-20</li>
+          <li>• <strong>🚨 URGENTE:</strong> Rate scadute + prossima scadenza entro 20 giorni (rischio decadenza immediato)</li>
+          <li>• <strong>⚠️ ATTENZIONE:</strong> Rate in scadenza entro 30 giorni (nessuna rata scaduta, pianificare pagamenti)</li>
         </ul>
       </section>
     </PrintLayout>

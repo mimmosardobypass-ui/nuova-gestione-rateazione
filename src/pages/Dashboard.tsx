@@ -30,6 +30,7 @@ import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
+import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";
 import { FreeNotesCard } from "@/components/FreeNotesCard";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
@@ -120,11 +121,7 @@ export default function Dashboard() {
   const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
   const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
 
-  // Calculate alert details for dynamic messages
-  const f24Details = useMemo(() => 
-    calculateAlertDetails(atRiskF24s, 'f24'), 
-    [atRiskF24s]
-  );
+  // Calculate alert details for dynamic messages (solo per PagoPA)
   const pagopaDetails = useMemo(() => 
     calculateAlertDetails(atRiskPagopas, 'pagopa'), 
     [atRiskPagopas]
@@ -293,10 +290,9 @@ export default function Dashboard() {
         {/* Configurable Alerts - Solo informativi */}
         <div className="mt-6 space-y-4">
           {!loadingF24Risk && (
-            <ConfigurableAlert
-              type="f24"
-              count={atRiskF24s.length}
-              details={f24Details}
+            <F24AtRiskAlert
+              atRiskF24s={atRiskF24s}
+              onNavigate={() => navigate('/print/f24-at-risk')}
             />
           )}
           
