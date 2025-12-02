@@ -28,6 +28,7 @@ import AnnualMatrix from "./pages/print/AnnualMatrix";
 import RateazioniAtRisk from "./pages/print/RateazioniAtRisk";
 import F24AtRisk from "./pages/print/F24AtRisk";
 import PagopaAtRisk from "./pages/print/PagopaAtRisk";
+import QuaterAtRisk from "./pages/print/QuaterAtRisk";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,6 +158,11 @@ function App() {
                   <Route path="/print/pagopa-a-rischio" element={
                     <ProtectedRoute>
                       <PagopaAtRisk />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print/quater-a-rischio" element={
+                    <ProtectedRoute>
+                      <QuaterAtRisk />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />

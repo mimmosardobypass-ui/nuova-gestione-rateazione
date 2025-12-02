@@ -27,10 +27,12 @@ import ResidualDecadenceSection from "@/pages/dashboard/ResidualDecadenceSection
 import { toLocalISO } from "@/utils/date";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { useQuaterAtRisk } from "@/features/rateations/hooks/useQuaterAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
 import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";
+import { QuaterAtRiskAlert } from "@/features/rateations/components/QuaterAtRiskAlert";
 import { FreeNotesCard } from "@/components/FreeNotesCard";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
 
@@ -120,6 +122,7 @@ export default function Dashboard() {
   // Alert hooks
   const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
   const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
+  const { atRiskQuaters, loading: loadingQuaterRisk } = useQuaterAtRisk();
 
   // Calculate alert details for dynamic messages (solo per PagoPA)
   const pagopaDetails = useMemo(() => 
@@ -333,13 +336,22 @@ export default function Dashboard() {
               );
             }
           })()}
+
+          {/* Alert Quater */}
+          {!loadingQuaterRisk && (
+            <QuaterAtRiskAlert
+              atRiskQuaters={atRiskQuaters}
+              onNavigate={() => navigate('/print/quater-a-rischio')}
+            />
+          )}
         </div>
 
         {/* Global At-Risk Report Selector */}
         <div className="mt-6">
           <AtRiskReportSelector 
             f24Count={atRiskF24s.length} 
-            pagopaCount={atRiskPagopas.length} 
+            pagopaCount={atRiskPagopas.length}
+            quaterCount={atRiskQuaters.length}
           />
         </div>
 
