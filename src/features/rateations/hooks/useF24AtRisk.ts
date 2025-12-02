@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
 
+console.log('📦 [useF24AtRisk] Module loaded');
+
 export interface F24AtRiskItem {
   rateationId: string;
   numero: string;
@@ -37,12 +39,15 @@ export interface UseF24AtRiskResult {
  * OPTIMIZED: Uses server-side calculated fields from v_rateations_list_ui view
  */
 export function useF24AtRisk(): UseF24AtRiskResult {
+  console.log('🔄 [useF24AtRisk] Hook initialized');
+  
   const [atRiskF24s, setAtRiskF24s] = useState<F24AtRiskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
+    console.log('🔄 [useF24AtRisk] useEffect running, fetching data...');
 
     async function fetchF24AtRisk() {
       try {
