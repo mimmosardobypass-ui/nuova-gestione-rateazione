@@ -119,23 +119,32 @@ export default function Dashboard() {
     return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
   }, []);
 
-  // Alert hooks
-  const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
-  const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
-  const { atRiskQuaters, loading: loadingQuaterRisk } = useQuaterAtRisk();
+  // Alert hooks with error handling
+  const { atRiskF24s, loading: loadingF24Risk, error: errorF24 } = useF24AtRisk();
+  const { atRiskPagopas, loading: loadingPagopaRisk, error: errorPagopa } = usePagopaAtRisk();
+  const { atRiskQuaters, loading: loadingQuaterRisk, error: errorQuater } = useQuaterAtRisk();
+
+  // Safe arrays to prevent crashes
+  const safeF24s = Array.isArray(atRiskF24s) ? atRiskF24s : [];
+  const safePagopas = Array.isArray(atRiskPagopas) ? atRiskPagopas : [];
+  const safeQuaters = Array.isArray(atRiskQuaters) ? atRiskQuaters : [];
+
+  // Log errors for debugging
+  if (errorF24) console.error('[Dashboard] F24 error:', errorF24);
+  if (errorPagopa) console.error('[Dashboard] PagoPA error:', errorPagopa);
+  if (errorQuater) console.error('[Dashboard] Quater error:', errorQuater);
 
   // Calculate alert details for dynamic messages (solo per PagoPA)
   const pagopaDetails = useMemo(() => 
-    calculateAlertDetails(atRiskPagopas, 'pagopa'), 
-    [atRiskPagopas]
+    calculateAlertDetails(safePagopas, 'pagopa'), 
+    [safePagopas]
   );
 
-  // Debug: Log stato alert PagoPA
-  console.log('🟢 [Dashboard] PagoPA Alert State:', {
-    loading: loadingPagopaRisk,
-    count: atRiskPagopas.length,
-    details: pagopaDetails,
-    items: atRiskPagopas
+  // Debug: Log stato alert
+  console.log('🟢 [Dashboard] Alert State:', {
+    f24: { loading: loadingF24Risk, count: safeF24s.length, error: errorF24 },
+    pagopa: { loading: loadingPagopaRisk, count: safePagopas.length, error: errorPagopa },
+    quater: { loading: loadingQuaterRisk, count: safeQuaters.length, error: errorQuater }
   });
 
   // Calcoli
@@ -294,7 +303,7 @@ export default function Dashboard() {
         <div className="mt-6 space-y-4">
           {!loadingF24Risk && (
             <F24AtRiskAlert
-              atRiskF24s={atRiskF24s}
+              atRiskF24s={safeF24s}
               onNavigate={() => navigate('/print/f24-at-risk')}
             />
           )}
@@ -314,11 +323,11 @@ export default function Dashboard() {
                 );
               }
               
-              console.log('🟡 [Dashboard] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
+              console.log('🟡 [Dashboard] Rendering PagoPA ConfigurableAlert with count:', safePagopas.length);
               return (
                 <ConfigurableAlert
                   type="pagopa"
-                  count={atRiskPagopas.length}
+                  count={safePagopas.length}
                   details={pagopaDetails}
                 />
               );
@@ -340,7 +349,7 @@ export default function Dashboard() {
           {/* Alert Quater */}
           {!loadingQuaterRisk && (
             <QuaterAtRiskAlert
-              atRiskQuaters={atRiskQuaters}
+              atRiskQuaters={safeQuaters}
               onNavigate={() => navigate('/print/quater-a-rischio')}
             />
           )}
@@ -349,9 +358,9 @@ export default function Dashboard() {
         {/* Global At-Risk Report Selector */}
         <div className="mt-6">
           <AtRiskReportSelector 
-            f24Count={atRiskF24s.length} 
-            pagopaCount={atRiskPagopas.length}
-            quaterCount={atRiskQuaters.length}
+            f24Count={safeF24s.length} 
+            pagopaCount={safePagopas.length}
+            quaterCount={safeQuaters.length}
           />
         </div>
 

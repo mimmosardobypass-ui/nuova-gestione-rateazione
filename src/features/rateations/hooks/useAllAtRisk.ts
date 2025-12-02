@@ -72,10 +72,19 @@ export function useAllAtRisk(): AllAtRiskData {
 
         console.log('[useAllAtRisk] Received data:', data);
 
-        // Sum up all residuals
+        // Sum up all residuals with safe BigInt conversion
         const total = (data || []).reduce((sum, row) => {
-          const value = row.residual_effective_cents ? BigInt(row.residual_effective_cents) : BigInt(0);
-          return sum + value;
+          try {
+            const cents = row.residual_effective_cents;
+            if (cents === null || cents === undefined) return sum;
+            // Handle string or number
+            const numValue = typeof cents === 'string' ? parseInt(cents, 10) : Number(cents);
+            if (isNaN(numValue) || !isFinite(numValue)) return sum;
+            return sum + BigInt(Math.floor(numValue));
+          } catch (e) {
+            console.warn('[useAllAtRisk] Invalid residual_effective_cents:', row.residual_effective_cents, e);
+            return sum;
+          }
         }, BigInt(0));
 
         console.log('[useAllAtRisk] Total residual calculated:', total.toString());

@@ -19,15 +19,18 @@ const formatDate = (dateStr: string) =>
  * Mostra countdown verso la data di decadenza (scadenza rata + 5gg tolleranza)
  * Visualizza a partire da 20 giorni prima della decadenza
  */
-export function QuaterAtRiskAlert({ atRiskQuaters, onNavigate }: QuaterAtRiskAlertProps) {
-  // Separa per livello di rischio
-  const critical = atRiskQuaters.filter(q => q.riskLevel === 'critical');
-  const warning = atRiskQuaters.filter(q => q.riskLevel === 'warning');
-  const caution = atRiskQuaters.filter(q => q.riskLevel === 'caution');
-  const ok = atRiskQuaters.filter(q => q.riskLevel === 'ok');
+export function QuaterAtRiskAlert({ atRiskQuaters = [], onNavigate }: QuaterAtRiskAlertProps) {
+  // Ensure atRiskQuaters is always an array
+  const safeQuaters = Array.isArray(atRiskQuaters) ? atRiskQuaters : [];
+  
+  // Separa per livello di rischio con protezione null/undefined
+  const critical = safeQuaters.filter(q => q?.riskLevel === 'critical');
+  const warning = safeQuaters.filter(q => q?.riskLevel === 'warning');
+  const caution = safeQuaters.filter(q => q?.riskLevel === 'caution');
+  const ok = safeQuaters.filter(q => q?.riskLevel === 'ok');
 
   // Nessun alert se non ci sono Quater a rischio entro 20gg
-  if (atRiskQuaters.length === 0) {
+  if (safeQuaters.length === 0) {
     return (
       <Alert className="border-green-500 bg-green-50">
         <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -41,11 +44,12 @@ export function QuaterAtRiskAlert({ atRiskQuaters, onNavigate }: QuaterAtRiskAle
     );
   }
 
-  // Calcola totali
-  const totalCount = atRiskQuaters.length;
-  const totalAmount = atRiskQuaters.reduce((sum, q) => sum + q.importoRata, 0);
-  const minDaysToDecadence = Math.min(...atRiskQuaters.map(q => q.daysToDecadence));
-  const nearest = atRiskQuaters.find(q => q.daysToDecadence === minDaysToDecadence);
+  // Calcola totali con protezione
+  const totalCount = safeQuaters.length;
+  const totalAmount = safeQuaters.reduce((sum, q) => sum + (q?.importoRata || 0), 0);
+  const daysArray = safeQuaters.map(q => q?.daysToDecadence ?? Infinity).filter(d => isFinite(d));
+  const minDaysToDecadence = daysArray.length > 0 ? Math.min(...daysArray) : 0;
+  const nearest = safeQuaters.find(q => q?.daysToDecadence === minDaysToDecadence);
 
   return (
     <div className="space-y-3">

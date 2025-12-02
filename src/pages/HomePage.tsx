@@ -24,27 +24,36 @@ export default function HomePage() {
     "Dashboard per la gestione completa delle rateazioni fiscali con KPI in tempo reale"
   );
 
-  // Alert hooks
-  const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
-  const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
-  const { atRiskQuaters } = useQuaterAtRisk();
+  // Alert hooks with error handling
+  const { atRiskF24s, loading: loadingF24Risk, error: errorF24 } = useF24AtRisk();
+  const { atRiskPagopas, loading: loadingPagopaRisk, error: errorPagopa } = usePagopaAtRisk();
+  const { atRiskQuaters, loading: loadingQuater, error: errorQuater } = useQuaterAtRisk();
 
-  // Calculate alert details for dynamic messages
+  // Safe arrays to prevent crashes
+  const safeF24s = Array.isArray(atRiskF24s) ? atRiskF24s : [];
+  const safePagopas = Array.isArray(atRiskPagopas) ? atRiskPagopas : [];
+  const safeQuaters = Array.isArray(atRiskQuaters) ? atRiskQuaters : [];
+
+  // Log errors for debugging
+  if (errorF24) console.error('[HomePage] F24 error:', errorF24);
+  if (errorPagopa) console.error('[HomePage] PagoPA error:', errorPagopa);
+  if (errorQuater) console.error('[HomePage] Quater error:', errorQuater);
+
+  // Calculate alert details for dynamic messages (using safe arrays)
   const f24Details = useMemo(() => 
-    calculateAlertDetails(atRiskF24s, 'f24'), 
-    [atRiskF24s]
+    calculateAlertDetails(safeF24s, 'f24'), 
+    [safeF24s]
   );
   const pagopaDetails = useMemo(() => 
-    calculateAlertDetails(atRiskPagopas, 'pagopa'), 
-    [atRiskPagopas]
+    calculateAlertDetails(safePagopas, 'pagopa'), 
+    [safePagopas]
   );
 
-  // Debug: Log stato alert PagoPA
-  console.log('🟢 [HomePage] PagoPA Alert State:', {
-    loading: loadingPagopaRisk,
-    count: atRiskPagopas.length,
-    details: pagopaDetails,
-    items: atRiskPagopas
+  // Debug: Log stato alert
+  console.log('🟢 [HomePage] Alert State:', {
+    f24: { loading: loadingF24Risk, count: safeF24s.length, error: errorF24 },
+    pagopa: { loading: loadingPagopaRisk, count: safePagopas.length, error: errorPagopa },
+    quater: { loading: loadingQuater, count: safeQuaters.length, error: errorQuater }
   });
 
 
@@ -113,7 +122,7 @@ export default function HomePage() {
             {!loadingF24Risk && (
               <ConfigurableAlert
                 type="f24"
-                count={atRiskF24s.length}
+                count={safeF24s.length}
                 details={f24Details}
               />
             )}
@@ -133,11 +142,11 @@ export default function HomePage() {
                   );
                 }
                 
-                console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', atRiskPagopas.length);
+                console.log('🟡 [HomePage] Rendering PagoPA ConfigurableAlert with count:', safePagopas.length);
                 return (
                   <ConfigurableAlert
                     type="pagopa"
-                    count={atRiskPagopas.length}
+                    count={safePagopas.length}
                     details={pagopaDetails}
                   />
                 );
@@ -160,9 +169,9 @@ export default function HomePage() {
           {/* Global At-Risk Report Selector */}
           <div className="mt-6">
             <AtRiskReportSelector 
-              f24Count={atRiskF24s.length} 
-              pagopaCount={atRiskPagopas.length}
-              quaterCount={atRiskQuaters.length}
+              f24Count={safeF24s.length} 
+              pagopaCount={safePagopas.length}
+              quaterCount={safeQuaters.length}
             />
           </div>
         </ErrorBoundary>
