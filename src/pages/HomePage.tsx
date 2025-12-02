@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { useQuaterAtRisk } from "@/features/rateations/hooks/useQuaterAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
@@ -26,6 +27,7 @@ export default function HomePage() {
   // Alert hooks
   const { atRiskF24s, loading: loadingF24Risk } = useF24AtRisk();
   const { atRiskPagopas, loading: loadingPagopaRisk } = usePagopaAtRisk();
+  const { atRiskQuaters } = useQuaterAtRisk();
 
   // Calculate alert details for dynamic messages
   const f24Details = useMemo(() => 
@@ -159,7 +161,8 @@ export default function HomePage() {
           <div className="mt-6">
             <AtRiskReportSelector 
               f24Count={atRiskF24s.length} 
-              pagopaCount={atRiskPagopas.length} 
+              pagopaCount={atRiskPagopas.length}
+              quaterCount={atRiskQuaters.length}
             />
           </div>
         </ErrorBoundary>

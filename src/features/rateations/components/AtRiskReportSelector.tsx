@@ -2,26 +2,28 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, FileText, ArrowRight } from 'lucide-react';
+import { AlertTriangle, FileText, ArrowRight, Clock } from 'lucide-react';
 import { PrintService } from '@/utils/printUtils';
 
 interface AtRiskReportSelectorProps {
   f24Count: number;
   pagopaCount: number;
+  quaterCount: number;
 }
 
 /**
  * Selettore globale per scegliere quale report a rischio visualizzare
+ * Include F24, PagoPA e Quater (Rottamazione Quater + Riam.Quater)
  */
-export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSelectorProps) {
+export function AtRiskReportSelector({ f24Count, pagopaCount, quaterCount }: AtRiskReportSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  const totalCount = f24Count + pagopaCount;
+  const totalCount = f24Count + pagopaCount + quaterCount;
 
   // Non mostrare il pulsante se non ci sono rateazioni a rischio
   if (totalCount === 0) return null;
 
-  const handleSelection = (reportType: 'f24' | 'pagopa' | 'unified') => {
+  const handleSelection = (reportType: 'f24' | 'pagopa' | 'quater' | 'unified') => {
     setOpen(false);
     
     switch (reportType) {
@@ -30,6 +32,9 @@ export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSele
         break;
       case 'pagopa':
         PrintService.openPagopaAtRiskPreview();
+        break;
+      case 'quater':
+        PrintService.openQuaterAtRiskPreview();
         break;
       case 'unified':
         PrintService.openUnifiedAtRiskPreview();
@@ -112,6 +117,33 @@ export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSele
               </CardContent>
             </Card>
 
+            {/* Quater Card */}
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => handleSelection('quater')}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>Solo Quater a Rischio</span>
+                  </div>
+                  <span className="text-amber-600 font-bold">{quaterCount}</span>
+                </CardTitle>
+                <CardDescription>
+                  Rottamazione Quater e Riam.Quater con decadenza entro 20 giorni
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Visualizza e stampa report Quater
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Unified Card */}
             <Card 
               className="cursor-pointer hover:border-primary transition-colors border-2"
@@ -119,7 +151,7 @@ export function AtRiskReportSelector({ f24Count, pagopaCount }: AtRiskReportSele
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
-                  <span>Report Completo (F24 + PagoPA)</span>
+                  <span>Report Completo (F24 + PagoPA + Quater)</span>
                   <span className="text-primary font-bold">{totalCount}</span>
                 </CardTitle>
                 <CardDescription>
