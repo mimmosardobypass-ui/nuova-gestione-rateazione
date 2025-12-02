@@ -166,6 +166,7 @@ export default function RateazioniAtRisk() {
               <tr>
                 <th>Numero</th>
                 <th>Contribuente</th>
+                <th className="text-right">Importo Rata</th>
                 <th className="text-right">Rate Scadute</th>
                 <th className="text-right">Giorni Rimanenti</th>
                 <th>Prossima Scadenza</th>
@@ -179,6 +180,11 @@ export default function RateazioniAtRisk() {
                   <tr key={f24.rateationId}>
                     <td className="font-mono text-sm">{f24.numero}</td>
                     <td>{f24.contribuente || 'N/A'}</td>
+                    <td className="text-right font-semibold">
+                      {f24.nextInstallmentAmountCents 
+                        ? formatCurrency(f24.nextInstallmentAmountCents / 100) 
+                        : 'N/D'}
+                    </td>
                     <td className="text-right font-semibold">{f24.overdueCount}</td>
                     <td className="text-right font-semibold">{f24.daysRemaining || 0}</td>
                     <td className="font-medium">
@@ -198,6 +204,9 @@ export default function RateazioniAtRisk() {
             <tfoot>
               <tr className="bg-red-50 font-bold border-t-2">
                 <td colSpan={2} className="text-right">TOTALE F24:</td>
+                <td className="text-right">
+                  {formatCurrency(f24AtRisk.reduce((sum, f) => sum + (f.nextInstallmentAmountCents || 0), 0) / 100)}
+                </td>
                 <td className="text-right">{f24AtRisk.reduce((sum, f) => sum + f.overdueCount, 0)}</td>
                 <td colSpan={3}></td>
               </tr>
@@ -241,6 +250,7 @@ export default function RateazioniAtRisk() {
               <tr>
                 <th>Numero</th>
                 <th>Contribuente</th>
+                <th className="text-right">Importo Rata</th>
                 <th className="text-right">Rate Scadute</th>
                 <th className="text-right">Skip Residui</th>
                 <th className="text-right">Giorni Rimanenti</th>
@@ -255,6 +265,11 @@ export default function RateazioniAtRisk() {
                   <tr key={pagopa.rateationId}>
                     <td className="font-mono text-sm">{pagopa.numero}</td>
                     <td>{pagopa.contribuente || 'N/A'}</td>
+                    <td className="text-right font-semibold">
+                      {pagopa.nextInstallmentAmountCents 
+                        ? formatCurrency(pagopa.nextInstallmentAmountCents / 100) 
+                        : 'N/D'}
+                    </td>
                     <td className="text-right font-semibold">{pagopa.unpaidOverdueCount}</td>
                     <td className="text-right font-semibold">{pagopa.skipRemaining}</td>
                     <td className="text-right font-semibold">{pagopa.daysRemaining || 'N/D'}</td>
@@ -275,6 +290,9 @@ export default function RateazioniAtRisk() {
             <tfoot>
               <tr className="bg-orange-50 font-bold border-t-2">
                 <td colSpan={2} className="text-right">TOTALE PagoPA:</td>
+                <td className="text-right">
+                  {formatCurrency(pagopaAtRisk.reduce((sum, p) => sum + (p.nextInstallmentAmountCents || 0), 0) / 100)}
+                </td>
                 <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.unpaidOverdueCount, 0)}</td>
                 <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.skipRemaining, 0)}</td>
                 <td colSpan={3}></td>
@@ -388,7 +406,9 @@ export default function RateazioniAtRisk() {
                 <td className="font-semibold text-red-700">F24</td>
                 <td className="text-right">{f24AtRisk.length}</td>
                 <td className="text-right">{f24AtRisk.reduce((sum, f) => sum + f.overdueCount, 0)}</td>
-                <td className="text-right text-muted-foreground">N/D</td>
+                <td className="text-right">
+                  {formatCurrency(f24AtRisk.reduce((sum, f) => sum + (f.nextInstallmentAmountCents || 0), 0) / 100)}
+                </td>
               </tr>
               <tr>
                 <td className="font-semibold text-orange-700">PagoPA</td>
@@ -420,6 +440,7 @@ export default function RateazioniAtRisk() {
                 </td>
                 <td className="text-right text-lg">
                   {formatCurrency(
+                    f24AtRisk.reduce((sum, f) => sum + (f.nextInstallmentAmountCents || 0), 0) / 100 +
                     pagopaAtRisk.reduce((sum, p) => sum + (p.nextInstallmentAmountCents || 0), 0) / 100 +
                     quaterAtRisk.reduce((sum, q) => sum + q.importoRata, 0)
                   )}
@@ -427,10 +448,6 @@ export default function RateazioniAtRisk() {
               </tr>
             </tfoot>
           </table>
-          
-          <p className="text-xs text-muted-foreground mt-2 italic">
-            * L'importo F24 non è disponibile in questa vista. Il totale generale include solo PagoPA e Quater.
-          </p>
         </section>
       )}
 
