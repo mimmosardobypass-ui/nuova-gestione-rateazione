@@ -152,26 +152,26 @@ function ExpandableTypeRow({
         className="border-t hover:bg-muted/50 cursor-pointer transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <td className="px-3 py-2 w-[130px]">
+        <td className="px-3 py-2 min-w-[140px]">
           <div className="flex items-center gap-2">
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             <span
               className="inline-block w-3 h-3 rounded-full flex-shrink-0"
               style={{ backgroundColor: getTypeColor(row.type) }}
             />
-            <span className="truncate">{labelForType(row.type)}</span>
+            <span className="whitespace-nowrap">{labelForType(row.type)}</span>
           </div>
         </td>
-        <td className="px-3 py-2 text-right text-green-600 w-[100px]">
+        <td className="px-3 py-2 text-right text-green-600 whitespace-nowrap">
           {formatCurrencyCompact(row.paid_cents)}
         </td>
-        <td className="px-3 py-2 text-right text-red-500 w-[110px]">
+        <td className="px-3 py-2 text-right text-red-500 whitespace-nowrap">
           {formatCurrencyCompact(row.unpaid_cents)}
         </td>
-        <td className="px-3 py-2 text-right font-medium w-[100px]">
+        <td className="px-3 py-2 text-right font-medium whitespace-nowrap">
           {formatCurrencyCompact(row.total_cents)}
         </td>
-        <td className="px-3 py-2 text-right w-[80px]">{formatPercentage(row.paid_pct * 100)}</td>
+        <td className="px-3 py-2 text-right whitespace-nowrap">{formatPercentage(row.paid_pct * 100)}</td>
       </tr>
       {isOpen && (
         <tr className="border-t bg-muted/20">
@@ -217,7 +217,7 @@ function ExpandableTypeRow({
                       🔴 Non Pagate ({unpaid.length})
                     </div>
                     <div className="bg-background rounded-lg border overflow-hidden">
-                      <table className="w-full text-xs table-fixed">
+                      <table className="w-full text-xs">
                         <thead className="bg-muted/30">
                           <tr>
                             <SortableHeader
@@ -226,7 +226,7 @@ function ExpandableTypeRow({
                               currentField={unpaidSortField}
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'number')}
-                              className="w-[140px]"
+                              className="min-w-[120px]"
                             />
                             <SortableHeader
                               label="Contribuente"
@@ -234,7 +234,6 @@ function ExpandableTypeRow({
                               currentField={unpaidSortField}
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'taxpayer')}
-                              className="w-auto"
                             />
                             <SortableHeader
                               label="Residuo"
@@ -243,14 +242,14 @@ function ExpandableTypeRow({
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'amount')}
                               align="right"
-                              className="w-[100px]"
+                              className="min-w-[90px]"
                             />
                           </tr>
                         </thead>
                         <tbody>
                           {sortedUnpaid.map((r) => (
                             <tr key={r.id} className="border-t hover:bg-muted/30">
-                              <td className="px-2 py-1.5 w-[140px]">
+                              <td className="px-2 py-1.5">
                                 <a
                                   href={`/rateazioni?search=${r.number}`}
                                   className="text-primary hover:underline"
@@ -260,7 +259,7 @@ function ExpandableTypeRow({
                                 </a>
                               </td>
                               <td className="px-2 py-1.5 truncate">{r.taxpayer_name || "—"}</td>
-                              <td className="px-2 py-1.5 text-right font-medium text-red-600 w-[100px]">
+                              <td className="px-2 py-1.5 text-right font-medium text-red-600 whitespace-nowrap">
                                 {formatCurrencyCompact(r.residual_cents)}
                               </td>
                             </tr>
@@ -271,7 +270,7 @@ function ExpandableTypeRow({
                             <td className="px-2 py-1.5" colSpan={2}>
                               Totale ({unpaid.length} rate)
                             </td>
-                            <td className="px-2 py-1.5 text-right text-red-600 w-[100px]">
+                            <td className="px-2 py-1.5 text-right text-red-600 whitespace-nowrap">
                               {formatCurrencyCompact(unpaidTotal)}
                             </td>
                           </tr>
@@ -288,7 +287,7 @@ function ExpandableTypeRow({
                       🟢 Pagate ({paid.length})
                     </div>
                     <div className="bg-background rounded-lg border overflow-hidden">
-                      <table className="w-full text-xs table-fixed">
+                      <table className="w-full text-xs">
                         <thead className="bg-muted/30">
                           <tr>
                             <SortableHeader
@@ -297,7 +296,7 @@ function ExpandableTypeRow({
                               currentField={paidSortField}
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'number')}
-                              className="w-[140px]"
+                              className="min-w-[120px]"
                             />
                             <SortableHeader
                               label="Contribuente"
@@ -305,7 +304,6 @@ function ExpandableTypeRow({
                               currentField={paidSortField}
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'taxpayer')}
-                              className="w-auto"
                             />
                             <SortableHeader
                               label="Importo"
@@ -314,14 +312,14 @@ function ExpandableTypeRow({
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'amount')}
                               align="right"
-                              className="w-[100px]"
+                              className="min-w-[90px]"
                             />
                           </tr>
                         </thead>
                         <tbody>
                           {sortedPaid.map((r) => (
                             <tr key={r.id} className="border-t hover:bg-muted/30">
-                              <td className="px-2 py-1.5 w-[140px]">
+                              <td className="px-2 py-1.5">
                                 <a
                                   href={`/rateazioni?search=${r.number}`}
                                   className="text-primary hover:underline"
@@ -331,7 +329,7 @@ function ExpandableTypeRow({
                                 </a>
                               </td>
                               <td className="px-2 py-1.5 truncate">{r.taxpayer_name || "—"}</td>
-                              <td className="px-2 py-1.5 text-right font-medium text-green-600 w-[100px]">
+                              <td className="px-2 py-1.5 text-right font-medium text-green-600 whitespace-nowrap">
                                 {formatCurrencyCompact(r.amount_cents)}
                               </td>
                             </tr>
@@ -342,7 +340,7 @@ function ExpandableTypeRow({
                             <td className="px-2 py-1.5" colSpan={2}>
                               Totale ({paid.length} rate)
                             </td>
-                            <td className="px-2 py-1.5 text-right text-green-600 w-[100px]">
+                            <td className="px-2 py-1.5 text-right text-green-600 whitespace-nowrap">
                               {formatCurrencyCompact(paidTotal)}
                             </td>
                           </tr>
@@ -419,7 +417,7 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[760px] max-w-[92vw] overflow-y-auto">
+      <SheetContent side="right" className="w-[900px] max-w-[95vw] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Dettaglio mese — {title}</SheetTitle>
 
@@ -455,14 +453,14 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy 
           <div>
             <div className="mb-3 text-sm font-medium text-foreground">Per tipologia</div>
             <div className="overflow-hidden rounded-xl border">
-              <table className="w-full table-fixed text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium w-[130px]">Tipo</th>
-                    <th className="px-3 py-2 text-right font-medium w-[100px]">🟢 Pagato</th>
-                    <th className="px-3 py-2 text-right font-medium w-[110px]">🔴 Non pagato</th>
-                    <th className="px-3 py-2 text-right font-medium w-[100px]">Totale</th>
-                    <th className="px-3 py-2 text-right font-medium w-[80px]">% Pagato</th>
+                    <th className="px-3 py-2 text-left font-medium min-w-[140px]">Tipo</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">🟢 Pagato</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">🔴 Non pagato</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Totale</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">% Pagato</th>
                   </tr>
                 </thead>
                 <tbody>
