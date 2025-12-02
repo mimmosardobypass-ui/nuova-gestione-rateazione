@@ -19,11 +19,6 @@ import {
   type MonthBreakdownExportData 
 } from "../../utils/monthBreakdownExport";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   BarChart,
   Bar,
   XAxis,
@@ -152,32 +147,33 @@ function ExpandableTypeRow({
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <tr className="border-t hover:bg-muted/50 cursor-pointer transition-colors">
-          <td className="px-3 py-2">
-            <div className="flex items-center gap-2">
-              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              <span
-                className="inline-block w-3 h-3 rounded-full"
-                style={{ backgroundColor: getTypeColor(row.type) }}
-              />
-              {labelForType(row.type)}
-            </div>
-          </td>
-          <td className="px-3 py-2 text-right text-green-600">
-            {formatCurrencyCompact(row.paid_cents)}
-          </td>
-          <td className="px-3 py-2 text-right text-red-500">
-            {formatCurrencyCompact(row.unpaid_cents)}
-          </td>
-          <td className="px-3 py-2 text-right font-medium">
-            {formatCurrencyCompact(row.total_cents)}
-          </td>
-          <td className="px-3 py-2 text-right">{formatPercentage(row.paid_pct * 100)}</td>
-        </tr>
-      </CollapsibleTrigger>
-      <CollapsibleContent asChild>
+    <>
+      <tr 
+        className="border-t hover:bg-muted/50 cursor-pointer transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <td className="px-3 py-2 w-[130px]">
+          <div className="flex items-center gap-2">
+            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <span
+              className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: getTypeColor(row.type) }}
+            />
+            <span className="truncate">{labelForType(row.type)}</span>
+          </div>
+        </td>
+        <td className="px-3 py-2 text-right text-green-600 w-[100px]">
+          {formatCurrencyCompact(row.paid_cents)}
+        </td>
+        <td className="px-3 py-2 text-right text-red-500 w-[110px]">
+          {formatCurrencyCompact(row.unpaid_cents)}
+        </td>
+        <td className="px-3 py-2 text-right font-medium w-[100px]">
+          {formatCurrencyCompact(row.total_cents)}
+        </td>
+        <td className="px-3 py-2 text-right w-[80px]">{formatPercentage(row.paid_pct * 100)}</td>
+      </tr>
+      {isOpen && (
         <tr className="border-t bg-muted/20">
           <td colSpan={5} className="p-4">
             {loading && <Skeleton className="h-32 w-full" />}
@@ -221,7 +217,7 @@ function ExpandableTypeRow({
                       🔴 Non Pagate ({unpaid.length})
                     </div>
                     <div className="bg-background rounded-lg border overflow-hidden">
-                      <table className="w-full text-xs">
+                      <table className="w-full text-xs table-fixed">
                         <thead className="bg-muted/30">
                           <tr>
                             <SortableHeader
@@ -230,6 +226,7 @@ function ExpandableTypeRow({
                               currentField={unpaidSortField}
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'number')}
+                              className="w-[140px]"
                             />
                             <SortableHeader
                               label="Contribuente"
@@ -237,6 +234,7 @@ function ExpandableTypeRow({
                               currentField={unpaidSortField}
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'taxpayer')}
+                              className="w-auto"
                             />
                             <SortableHeader
                               label="Residuo"
@@ -245,13 +243,14 @@ function ExpandableTypeRow({
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'amount')}
                               align="right"
+                              className="w-[100px]"
                             />
                           </tr>
                         </thead>
                         <tbody>
                           {sortedUnpaid.map((r) => (
                             <tr key={r.id} className="border-t hover:bg-muted/30">
-                              <td className="px-2 py-1.5">
+                              <td className="px-2 py-1.5 w-[140px]">
                                 <a
                                   href={`/rateazioni?search=${r.number}`}
                                   className="text-primary hover:underline"
@@ -260,8 +259,8 @@ function ExpandableTypeRow({
                                   {r.number}
                                 </a>
                               </td>
-                              <td className="px-2 py-1.5">{r.taxpayer_name || "—"}</td>
-                              <td className="px-2 py-1.5 text-right font-medium text-red-600">
+                              <td className="px-2 py-1.5 truncate">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-medium text-red-600 w-[100px]">
                                 {formatCurrencyCompact(r.residual_cents)}
                               </td>
                             </tr>
@@ -272,7 +271,7 @@ function ExpandableTypeRow({
                             <td className="px-2 py-1.5" colSpan={2}>
                               Totale ({unpaid.length} rate)
                             </td>
-                            <td className="px-2 py-1.5 text-right text-red-600">
+                            <td className="px-2 py-1.5 text-right text-red-600 w-[100px]">
                               {formatCurrencyCompact(unpaidTotal)}
                             </td>
                           </tr>
@@ -289,7 +288,7 @@ function ExpandableTypeRow({
                       🟢 Pagate ({paid.length})
                     </div>
                     <div className="bg-background rounded-lg border overflow-hidden">
-                      <table className="w-full text-xs">
+                      <table className="w-full text-xs table-fixed">
                         <thead className="bg-muted/30">
                           <tr>
                             <SortableHeader
@@ -298,6 +297,7 @@ function ExpandableTypeRow({
                               currentField={paidSortField}
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'number')}
+                              className="w-[140px]"
                             />
                             <SortableHeader
                               label="Contribuente"
@@ -305,6 +305,7 @@ function ExpandableTypeRow({
                               currentField={paidSortField}
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'taxpayer')}
+                              className="w-auto"
                             />
                             <SortableHeader
                               label="Importo"
@@ -313,13 +314,14 @@ function ExpandableTypeRow({
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'amount')}
                               align="right"
+                              className="w-[100px]"
                             />
                           </tr>
                         </thead>
                         <tbody>
                           {sortedPaid.map((r) => (
                             <tr key={r.id} className="border-t hover:bg-muted/30">
-                              <td className="px-2 py-1.5">
+                              <td className="px-2 py-1.5 w-[140px]">
                                 <a
                                   href={`/rateazioni?search=${r.number}`}
                                   className="text-primary hover:underline"
@@ -328,8 +330,8 @@ function ExpandableTypeRow({
                                   {r.number}
                                 </a>
                               </td>
-                              <td className="px-2 py-1.5">{r.taxpayer_name || "—"}</td>
-                              <td className="px-2 py-1.5 text-right font-medium text-green-600">
+                              <td className="px-2 py-1.5 truncate">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-medium text-green-600 w-[100px]">
                                 {formatCurrencyCompact(r.amount_cents)}
                               </td>
                             </tr>
@@ -340,7 +342,7 @@ function ExpandableTypeRow({
                             <td className="px-2 py-1.5" colSpan={2}>
                               Totale ({paid.length} rate)
                             </td>
-                            <td className="px-2 py-1.5 text-right text-green-600">
+                            <td className="px-2 py-1.5 text-right text-green-600 w-[100px]">
                               {formatCurrencyCompact(paidTotal)}
                             </td>
                           </tr>
@@ -359,8 +361,8 @@ function ExpandableTypeRow({
             )}
           </td>
         </tr>
-      </CollapsibleContent>
-    </Collapsible>
+      )}
+    </>
   );
 }
 
@@ -370,7 +372,8 @@ function SortableHeader({
   currentField,
   currentDir,
   onClick,
-  align = 'left'
+  align = 'left',
+  className = ''
 }: {
   label: string;
   field: 'number' | 'taxpayer' | 'amount';
@@ -378,12 +381,13 @@ function SortableHeader({
   currentDir: 'asc' | 'desc';
   onClick: () => void;
   align?: 'left' | 'right';
+  className?: string;
 }) {
   const isActive = currentField === field;
   
   return (
     <th
-      className={`px-2 py-1 text-${align} cursor-pointer hover:bg-muted/50 transition-colors select-none`}
+      className={`px-2 py-1 cursor-pointer hover:bg-muted/50 transition-colors select-none ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}
       onClick={onClick}
     >
       <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
@@ -454,11 +458,11 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy 
               <table className="w-full table-fixed text-sm">
                 <thead className="bg-muted/50 text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium">Tipo</th>
-                    <th className="px-3 py-2 text-right font-medium">🟢 Pagato</th>
-                    <th className="px-3 py-2 text-right font-medium">🔴 Non pagato</th>
-                    <th className="px-3 py-2 text-right font-medium">Totale</th>
-                    <th className="px-3 py-2 text-right font-medium">% Pagato</th>
+                    <th className="px-3 py-2 text-left font-medium w-[130px]">Tipo</th>
+                    <th className="px-3 py-2 text-right font-medium w-[100px]">🟢 Pagato</th>
+                    <th className="px-3 py-2 text-right font-medium w-[110px]">🔴 Non pagato</th>
+                    <th className="px-3 py-2 text-right font-medium w-[100px]">Totale</th>
+                    <th className="px-3 py-2 text-right font-medium w-[80px]">% Pagato</th>
                   </tr>
                 </thead>
                 <tbody>
