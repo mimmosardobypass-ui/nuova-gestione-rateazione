@@ -195,6 +195,13 @@ export default function RateazioniAtRisk() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="bg-red-50 font-bold border-t-2">
+                <td colSpan={2} className="text-right">TOTALE F24:</td>
+                <td className="text-right">{f24AtRisk.reduce((sum, f) => sum + f.overdueCount, 0)}</td>
+                <td colSpan={3}></td>
+              </tr>
+            </tfoot>
           </table>
         </section>
       )}
@@ -265,6 +272,14 @@ export default function RateazioniAtRisk() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="bg-orange-50 font-bold border-t-2">
+                <td colSpan={2} className="text-right">TOTALE PagoPA:</td>
+                <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.unpaidOverdueCount, 0)}</td>
+                <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.skipRemaining, 0)}</td>
+                <td colSpan={3}></td>
+              </tr>
+            </tfoot>
           </table>
         </section>
       )}
@@ -341,7 +356,81 @@ export default function RateazioniAtRisk() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="bg-amber-50 font-bold border-t-2">
+                <td colSpan={3} className="text-right">TOTALE Quater:</td>
+                <td className="text-right">{formatCurrency(quaterAtRisk.reduce((sum, q) => sum + q.importoRata, 0))}</td>
+                <td colSpan={4}></td>
+              </tr>
+            </tfoot>
           </table>
+        </section>
+      )}
+
+      {/* Riepilogo Totali */}
+      {totalCount > 0 && (
+        <section className="mb-8 avoid-break">
+          <h2 className="text-lg font-semibold mb-3 border-b pb-2 text-slate-700">
+            📊 Riepilogo Totali Rateazioni a Rischio
+          </h2>
+          
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th className="text-right">N. Rateazioni</th>
+                <th className="text-right">Rate Scadute</th>
+                <th className="text-right">Importo Totale a Rischio</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="font-semibold text-red-700">F24</td>
+                <td className="text-right">{f24AtRisk.length}</td>
+                <td className="text-right">{f24AtRisk.reduce((sum, f) => sum + f.overdueCount, 0)}</td>
+                <td className="text-right text-muted-foreground">N/D</td>
+              </tr>
+              <tr>
+                <td className="font-semibold text-orange-700">PagoPA</td>
+                <td className="text-right">{pagopaAtRisk.length}</td>
+                <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.unpaidOverdueCount, 0)}</td>
+                <td className="text-right">
+                  {formatCurrency(
+                    pagopaAtRisk.reduce((sum, p) => sum + (p.nextInstallmentAmountCents || 0), 0) / 100
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td className="font-semibold text-amber-700">Quater</td>
+                <td className="text-right">{quaterAtRisk.length}</td>
+                <td className="text-right">{quaterAtRisk.length}</td>
+                <td className="text-right">
+                  {formatCurrency(quaterAtRisk.reduce((sum, q) => sum + q.importoRata, 0))}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-100 font-bold border-t-2">
+                <td>TOTALE GENERALE</td>
+                <td className="text-right">{totalCount}</td>
+                <td className="text-right">
+                  {f24AtRisk.reduce((sum, f) => sum + f.overdueCount, 0) +
+                   pagopaAtRisk.reduce((sum, p) => sum + p.unpaidOverdueCount, 0) +
+                   quaterAtRisk.length}
+                </td>
+                <td className="text-right text-lg">
+                  {formatCurrency(
+                    pagopaAtRisk.reduce((sum, p) => sum + (p.nextInstallmentAmountCents || 0), 0) / 100 +
+                    quaterAtRisk.reduce((sum, q) => sum + q.importoRata, 0)
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          
+          <p className="text-xs text-muted-foreground mt-2 italic">
+            * L'importo F24 non è disponibile in questa vista. Il totale generale include solo PagoPA e Quater.
+          </p>
         </section>
       )}
 
