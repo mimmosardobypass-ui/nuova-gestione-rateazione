@@ -417,7 +417,7 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[900px] max-w-[95vw] overflow-y-auto">
+      <SheetContent side="right" className="w-[900px] max-w-[95vw] sm:max-w-[95vw] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Dettaglio mese — {title}</SheetTitle>
 
