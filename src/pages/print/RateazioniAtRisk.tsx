@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import PrintLayout from "@/components/print/PrintLayout";
 import { useAllAtRisk } from "@/features/rateations/hooks/useAllAtRisk";
+import { QUATER_TOLERANCE_DAYS } from "@/features/rateations/hooks/useQuaterAtRisk";
 
 // Format currency helper
 const formatCurrency = (amount: number): string => {
@@ -14,7 +15,7 @@ export default function RateazioniAtRisk() {
   const density = searchParams.get("density") || "compact";
   const logoUrl = searchParams.get("logo") || undefined;
 
-  const { f24AtRisk, pagopaAtRisk, totalCount, totalResidual, loading, error } = useAllAtRisk();
+  const { f24AtRisk, pagopaAtRisk, quaterAtRisk, totalCount, totalResidual, loading, error } = useAllAtRisk();
 
   // Apply theme classes
   useEffect(() => {
@@ -92,6 +93,13 @@ export default function RateazioniAtRisk() {
     return { label: `🟡 MEDIO${dateStr}`, class: 'bg-yellow-100 text-yellow-800' };
   };
 
+  const getRiskBadgeQuater = (daysToDecadence: number) => {
+    if (daysToDecadence <= 0) return { label: `🔴 DECADUTO`, class: 'bg-red-100 text-red-800' };
+    if (daysToDecadence <= 5) return { label: `🟠 ${daysToDecadence}gg`, class: 'bg-orange-100 text-orange-800' };
+    if (daysToDecadence <= 10) return { label: `🟡 ${daysToDecadence}gg`, class: 'bg-yellow-100 text-yellow-800' };
+    return { label: `🟢 ${daysToDecadence}gg`, class: 'bg-green-100 text-green-800' };
+  };
+
   return (
     <PrintLayout
       title="Rateazioni a Rischio Decadenza"
@@ -101,7 +109,7 @@ export default function RateazioniAtRisk() {
       {/* Global KPIs */}
       <section className="mb-6">
         <h2 className="text-lg font-semibold mb-3 border-b pb-2">Riepilogo Generale</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           <div className="print-kpi">
             <div className="print-kpi-label">Totale Rateazioni</div>
             <div className="print-kpi-value">{totalCount}</div>
@@ -117,6 +125,10 @@ export default function RateazioniAtRisk() {
           <div className="print-kpi">
             <div className="print-kpi-label">PagoPA a Rischio</div>
             <div className="print-kpi-value text-orange-600">{pagopaAtRisk.length}</div>
+          </div>
+          <div className="print-kpi">
+            <div className="print-kpi-label">Quater a Rischio</div>
+            <div className="print-kpi-value text-amber-600">{quaterAtRisk.length}</div>
           </div>
         </div>
       </section>
@@ -257,6 +269,82 @@ export default function RateazioniAtRisk() {
         </section>
       )}
 
+      {/* Quater Section */}
+      {quaterAtRisk.length > 0 && (
+        <section className="mb-8 avoid-break">
+          <h2 className="text-lg font-semibold mb-3 border-b pb-2 text-amber-700">
+            Sezione Quater / Riammissione Quater ({quaterAtRisk.length})
+          </h2>
+
+          {/* Quater KPIs */}
+          <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="print-kpi">
+              <div className="print-kpi-label">Totale Quater a Rischio</div>
+              <div className="print-kpi-value">{quaterAtRisk.length}</div>
+            </div>
+            <div className="print-kpi">
+              <div className="print-kpi-label">Decadute (0gg o meno)</div>
+              <div className="print-kpi-value text-red-600">
+                {quaterAtRisk.filter(q => q.daysToDecadence <= 0).length}
+              </div>
+            </div>
+            <div className="print-kpi">
+              <div className="print-kpi-label">Urgenti (1-5gg)</div>
+              <div className="print-kpi-value text-orange-600">
+                {quaterAtRisk.filter(q => q.daysToDecadence > 0 && q.daysToDecadence <= 5).length}
+              </div>
+            </div>
+            <div className="print-kpi">
+              <div className="print-kpi-label">Giorni Min. alla Decadenza</div>
+              <div className="print-kpi-value">
+                {quaterAtRisk.length > 0 ? Math.min(...quaterAtRisk.map(q => q.daysToDecadence)) : 'N/D'}
+              </div>
+            </div>
+          </div>
+
+          {/* Quater Table */}
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>Numero</th>
+                <th>Tipo</th>
+                <th>Contribuente</th>
+                <th className="text-right">Importo Rata</th>
+                <th>Scadenza Rata</th>
+                <th>Data Decadenza</th>
+                <th className="text-center">Giorni</th>
+                <th className="text-center">Livello Rischio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quaterAtRisk.map((q) => {
+                const risk = getRiskBadgeQuater(q.daysToDecadence);
+                return (
+                  <tr key={q.rateationId}>
+                    <td className="font-mono text-sm">{q.numero}</td>
+                    <td className="text-sm">{q.tipoQuater}</td>
+                    <td>{q.contribuente || 'N/A'}</td>
+                    <td className="text-right font-semibold">
+                      {formatCurrency(q.importoRata)}
+                    </td>
+                    <td>{new Date(q.dueDateRata).toLocaleDateString('it-IT')}</td>
+                    <td className="font-semibold">{new Date(q.decadenceDate).toLocaleDateString('it-IT')}</td>
+                    <td className="text-center font-bold">
+                      {q.daysToDecadence <= 0 ? '❌' : q.daysToDecadence}
+                    </td>
+                    <td className="text-center">
+                      <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
+                        {risk.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       {/* Empty State */}
       {totalCount === 0 && (
         <div className="text-center py-12">
@@ -270,7 +358,7 @@ export default function RateazioniAtRisk() {
       {/* Legend */}
       <section className="mt-8 border-t pt-4">
         <h3 className="text-sm font-semibold mb-2">Legenda Livelli di Rischio</h3>
-        <div className="grid grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-3 gap-4 text-xs">
           <div>
             <p className="font-semibold mb-1">F24:</p>
             <ul className="space-y-1 text-muted-foreground">
@@ -286,6 +374,16 @@ export default function RateazioniAtRisk() {
               <li>• <strong>ALTO:</strong> Skip residui = 2</li>
               <li>• <strong>MEDIO:</strong> Skip residui ≥ 3</li>
             </ul>
+          </div>
+          <div>
+            <p className="font-semibold mb-1">Quater:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>• <strong>DECADUTO:</strong> 0 giorni o meno</li>
+              <li>• <strong>URGENTE:</strong> 1-5 giorni alla decadenza</li>
+              <li>• <strong>ATTENZIONE:</strong> 6-10 giorni</li>
+              <li>• <strong>MONITORAGGIO:</strong> 11-20 giorni</li>
+            </ul>
+            <p className="mt-1 text-xs italic">Decadenza = Scadenza + {QUATER_TOLERANCE_DAYS}gg</p>
           </div>
         </div>
       </section>

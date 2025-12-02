@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useF24AtRisk, F24AtRiskItem } from "./useF24AtRisk";
 import { usePagopaAtRisk, PagopaAtRiskItem } from "./usePagopaAtRisk";
+import { useQuaterAtRisk, QuaterAtRiskItem } from "./useQuaterAtRisk";
 import { supabase } from "@/integrations/supabase/client-resilient";
 
 export interface AllAtRiskData {
   f24AtRisk: F24AtRiskItem[];
   pagopaAtRisk: PagopaAtRiskItem[];
+  quaterAtRisk: QuaterAtRiskItem[];
   totalCount: number;
   totalResidual: bigint;
   loading: boolean;
@@ -15,13 +17,14 @@ export interface AllAtRiskData {
 export function useAllAtRisk(): AllAtRiskData {
   const { atRiskF24s, loading: loadingF24, error: errorF24 } = useF24AtRisk();
   const { atRiskPagopas, loading: loadingPagopa, error: errorPagopa } = usePagopaAtRisk();
+  const { atRiskQuaters, loading: loadingQuater, error: errorQuater } = useQuaterAtRisk();
   
   const [totalResidual, setTotalResidual] = useState<bigint>(BigInt(0));
   const [loadingResidual, setLoadingResidual] = useState(false);
   const [errorResidual, setErrorResidual] = useState<string | null>(null);
 
   // Calculate total count
-  const totalCount = atRiskF24s.length + atRiskPagopas.length;
+  const totalCount = atRiskF24s.length + atRiskPagopas.length + atRiskQuaters.length;
 
   // Fetch total residual for all at-risk rateations
   useEffect(() => {
@@ -45,7 +48,8 @@ export function useAllAtRisk(): AllAtRiskData {
         // Combine all IDs
         const allIds = [
           ...atRiskF24s.map(f => f.rateationId),
-          ...atRiskPagopas.map(p => p.rateationId)
+          ...atRiskPagopas.map(p => p.rateationId),
+          ...atRiskQuaters.map(q => q.rateationId)
         ];
 
         if (allIds.length === 0) {
@@ -56,7 +60,6 @@ export function useAllAtRisk(): AllAtRiskData {
         console.log('[useAllAtRisk] Fetching residual for IDs:', allIds);
 
         // Fetch residual amounts from v_rateations_list_ui
-        // NOTE: Column is residual_effective_cents, not residual
         const { data, error } = await supabase
           .from('v_rateations_list_ui')
           .select('residual_effective_cents')
@@ -86,15 +89,16 @@ export function useAllAtRisk(): AllAtRiskData {
     };
 
     fetchResidual();
-  }, [atRiskF24s, atRiskPagopas, totalCount]);
+  }, [atRiskF24s, atRiskPagopas, atRiskQuaters, totalCount]);
 
   // Combine loading and error states
-  const loading = loadingF24 || loadingPagopa || loadingResidual;
-  const error = errorF24 || errorPagopa || errorResidual;
+  const loading = loadingF24 || loadingPagopa || loadingQuater || loadingResidual;
+  const error = errorF24 || errorPagopa || errorQuater || errorResidual;
 
   return {
     f24AtRisk: atRiskF24s,
     pagopaAtRisk: atRiskPagopas,
+    quaterAtRisk: atRiskQuaters,
     totalCount,
     totalResidual,
     loading,
