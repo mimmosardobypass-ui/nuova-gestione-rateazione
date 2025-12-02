@@ -57,12 +57,11 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
             id, 
             number, 
             taxpayer_name, 
-            type_label,
+            tipo,
             is_quater
           `)
           .eq('is_quater', true)
-          .in('status', ['attiva', 'ATTIVA', 'in_ritardo'])
-          .eq('is_deleted', false);
+          .in('status', ['attiva', 'ATTIVA', 'in_ritardo']);
 
         if (queryError) throw queryError;
         if (!mounted) return;
@@ -134,7 +133,7 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
             rateationId: String(row.id),
             numero: row.number || 'N/A',
             contribuente: row.taxpayer_name,
-            tipoQuater: row.type_label || (row.is_quater ? 'Quater' : 'N/D'),
+            tipoQuater: row.tipo || (row.is_quater ? 'Quater' : 'N/D'),
             importoRata: Number(nextInstallment.amount) || 0,
             dueDateRata: nextInstallment.due_date,
             decadenceDate: decadenceDate.toISOString().split('T')[0],
