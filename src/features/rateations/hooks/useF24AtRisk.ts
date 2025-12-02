@@ -9,7 +9,8 @@ export interface F24AtRiskItem {
   overdueCount: number; // Number of overdue installments
   nextDueDate: string;
   daysRemaining: number;
-  riskLevel: 'critical' | 'warning'; // ✅ NUOVO: Livello di urgenza
+  riskLevel: 'critical' | 'warning';
+  nextInstallmentAmountCents: number | null; // Importo prossima rata
 }
 
 export interface UseF24AtRiskResult {
@@ -82,33 +83,51 @@ export function useF24AtRisk(): UseF24AtRiskResult {
           return;
         }
 
-        // Transform view data to F24AtRiskItem format con classificazione a 2 livelli
-        const atRisk: F24AtRiskItem[] = filteredData.map(row => {
-          const daysRemaining = row.f24_days_to_next_due ?? 0;
-          const unpaidCount = (row.installments_total ?? 0) - (row.installments_paid ?? 0);
-          const overdueCount = row.installments_overdue_today ?? 0;
-          
-          // ✅ Classificazione a 2 livelli
-          // 🔴 CRITICAL: overdue > 0 AND days <= 20 (rischio decadenza immediato)
-          // 🟡 WARNING: unpaid > 0 but overdue = 0 AND days <= 30 (attenzione preventiva)
-          const riskLevel: 'critical' | 'warning' = 
-            (overdueCount > 0 && daysRemaining <= 20) ? 'critical' : 'warning';
-          
-          // Calculate next due date from days remaining
-          const nextDueDate = new Date();
-          nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
-          
-          return {
-            rateationId: String(row.id),
-            numero: row.number || 'N/A',
-            contribuente: row.taxpayer_name,
-            unpaidCount,
-            overdueCount,
-            nextDueDate: nextDueDate.toISOString().split('T')[0],
-            daysRemaining,
-            riskLevel // ✅ NUOVO
-          };
-        });
+        // Fetch next installment amount for each F24
+        const atRiskWithAmounts: F24AtRiskItem[] = await Promise.all(
+          filteredData.map(async (row) => {
+            const daysRemaining = row.f24_days_to_next_due ?? 0;
+            const unpaidCount = (row.installments_total ?? 0) - (row.installments_paid ?? 0);
+            const overdueCount = row.installments_overdue_today ?? 0;
+            
+            const riskLevel: 'critical' | 'warning' = 
+              (overdueCount > 0 && daysRemaining <= 20) ? 'critical' : 'warning';
+            
+            const nextDueDate = new Date();
+            nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
+
+            // Query for next unpaid installment amount
+            let nextInstallmentAmountCents: number | null = null;
+            try {
+              const { data: installment } = await supabase
+                .from('installments')
+                .select('amount_cents')
+                .eq('rateation_id', row.id)
+                .eq('is_paid', false)
+                .order('due_date', { ascending: true })
+                .limit(1)
+                .single();
+              
+              nextInstallmentAmountCents = installment?.amount_cents ?? null;
+            } catch {
+              // Ignore errors, keep null
+            }
+            
+            return {
+              rateationId: String(row.id),
+              numero: row.number || 'N/A',
+              contribuente: row.taxpayer_name,
+              unpaidCount,
+              overdueCount,
+              nextDueDate: nextDueDate.toISOString().split('T')[0],
+              daysRemaining,
+              riskLevel,
+              nextInstallmentAmountCents
+            };
+          })
+        );
+
+        const atRisk = atRiskWithAmounts;
 
         if (mounted) {
           setAtRiskF24s(atRisk);
