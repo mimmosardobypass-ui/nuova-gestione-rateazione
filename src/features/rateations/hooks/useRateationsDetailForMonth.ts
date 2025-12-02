@@ -108,10 +108,10 @@ export function useRateationsDetailForMonth(
           typeLabelMap.set(tl.id, tl.type_label);
         });
 
-        // Filtra per tipo usando la Map
+        // Filtra per tipo usando la Map (case-insensitive)
         const filteredRateations = (rateations || []).filter((r: any) => {
           const rateationType = typeLabelMap.get(r.id);
-          return rateationType === typeLabel;
+          return rateationType?.toLowerCase() === typeLabel?.toLowerCase();
         });
 
         const paidList: RateationDetail[] = [];
