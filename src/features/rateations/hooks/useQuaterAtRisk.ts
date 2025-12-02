@@ -45,12 +45,22 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
     let mounted = true;
 
     async function fetchQuaterAtRisk() {
+      // Check supabase client availability
+      if (!supabase) {
+        console.warn('[useQuaterAtRisk] Supabase client not available');
+        if (mounted) {
+          setAtRiskQuaters([]);
+          setLoading(false);
+          setError(null); // Non mostrare errore, solo skip silenzioso
+        }
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
         // Query rateazioni Quater attive con rate non pagate
-        // E calcola la data di decadenza (due_date + 5 giorni)
         const { data, error: queryError } = await supabase
           .from('v_rateations_list_ui')
           .select(`
@@ -63,10 +73,14 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
           .eq('is_quater', true)
           .in('status', ['attiva', 'ATTIVA', 'in_ritardo']);
 
-        if (queryError) throw queryError;
+        if (queryError) {
+          console.error('[useQuaterAtRisk] Query error:', queryError);
+          throw queryError;
+        }
         if (!mounted) return;
 
         if (!data || data.length === 0) {
+          console.log('[useQuaterAtRisk] No Quater rateations found');
           setAtRiskQuaters([]);
           setLoading(false);
           return;
@@ -75,14 +89,25 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
         // Per ogni rateazione Quater, recupera la prossima rata non pagata
         const quaterIds = data.map(r => r.id);
         
-        const { data: installmentsData, error: instError } = await supabase
-          .from('installments')
-          .select('rateation_id, due_date, amount, is_paid')
-          .in('rateation_id', quaterIds)
-          .eq('is_paid', false)
-          .order('due_date', { ascending: true });
+        let installmentsData: any[] = [];
+        try {
+          const { data: instData, error: instError } = await supabase
+            .from('installments')
+            .select('rateation_id, due_date, amount, is_paid')
+            .in('rateation_id', quaterIds)
+            .eq('is_paid', false)
+            .order('due_date', { ascending: true });
 
-        if (instError) throw instError;
+          if (instError) {
+            console.warn('[useQuaterAtRisk] Installments query warning:', instError);
+            // Non bloccare, continua senza dati installments
+          } else {
+            installmentsData = instData || [];
+          }
+        } catch (instQueryErr) {
+          console.error('[useQuaterAtRisk] Installments query error:', instQueryErr);
+          // Non bloccare, continua con array vuoto
+        }
 
         // Raggruppa per rateation_id e prendi la più vicina
         const installmentsByRateation = new Map<number, typeof installmentsData[0]>();
@@ -99,11 +124,22 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
         const atRisk: QuaterAtRiskItem[] = [];
         
         for (const row of data) {
-          const nextInstallment = installmentsByRateation.get(row.id);
-          if (!nextInstallment) continue; // Nessuna rata non pagata
-          
-          const dueDate = new Date(nextInstallment.due_date);
-          dueDate.setHours(0, 0, 0, 0);
+          try {
+            const nextInstallment = installmentsByRateation.get(row.id);
+            if (!nextInstallment) continue; // Nessuna rata non pagata
+            
+            // Validazione date
+            if (!nextInstallment.due_date) {
+              console.warn('[useQuaterAtRisk] Missing due_date for rateation:', row.id);
+              continue;
+            }
+            
+            const dueDate = new Date(nextInstallment.due_date);
+            if (isNaN(dueDate.getTime())) {
+              console.warn('[useQuaterAtRisk] Invalid due_date for rateation:', row.id, nextInstallment.due_date);
+              continue;
+            }
+            dueDate.setHours(0, 0, 0, 0);
           
           // Data decadenza = scadenza rata + 5 giorni di tolleranza
           const decadenceDate = new Date(dueDate);
@@ -129,17 +165,21 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
             riskLevel = 'ok';       // 🟢 Monitoraggio
           }
           
-          atRisk.push({
-            rateationId: String(row.id),
-            numero: row.number || 'N/A',
-            contribuente: row.taxpayer_name,
-            tipoQuater: row.tipo || (row.is_quater ? 'Quater' : 'N/D'),
-            importoRata: Number(nextInstallment.amount) || 0,
-            dueDateRata: nextInstallment.due_date,
-            decadenceDate: decadenceDate.toISOString().split('T')[0],
-            daysToDecadence,
-            riskLevel
-          });
+            atRisk.push({
+              rateationId: String(row.id),
+              numero: row.number || 'N/A',
+              contribuente: row.taxpayer_name,
+              tipoQuater: row.tipo || (row.is_quater ? 'Quater' : 'N/D'),
+              importoRata: Number(nextInstallment.amount) || 0,
+              dueDateRata: nextInstallment.due_date,
+              decadenceDate: decadenceDate.toISOString().split('T')[0],
+              daysToDecadence,
+              riskLevel
+            });
+          } catch (rowErr) {
+            console.warn('[useQuaterAtRisk] Error processing row:', row.id, rowErr);
+            // Skip this row and continue
+          }
         }
 
         // Ordina per giorni alla decadenza (più urgenti prima)
