@@ -5,7 +5,7 @@ import './index.css'
 import './styles/print.css'
 import 'flatpickr/dist/themes/material_blue.css'
 
-// Force Vite cache invalidation - build timestamp: 2025-12-03T19:35:00
+// Force Vite cache invalidation - build timestamp: 2025-12-03T20:10:00
 // Global error handlers for debugging black screen issues
 console.log('🚀 [App] Starting application initialization...');
 
