@@ -403,7 +403,7 @@ function SortableHeader({
 }
 
 export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy, includeDecayed = false }: Props) {
-  const { loading, rows, kpis } = useMonthBreakdown(year, month, groupBy);
+  const { loading, rows, kpis } = useMonthBreakdown(year, month, groupBy, includeDecayed);
 
   const title = year && month ? `${MONTHS[month - 1]} ${year}` : "Dettaglio mese";
 
