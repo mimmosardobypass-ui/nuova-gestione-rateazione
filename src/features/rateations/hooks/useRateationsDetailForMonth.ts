@@ -91,11 +91,14 @@ export function useRateationsDetailForMonth(
           .from("v_rateations_with_kpis")
           .select("*")
           .in("id", rateationIds)
-          .neq("status", "INTERROTTA");
+          .neq("status", "INTERROTTA")
+          .neq("status", "interrotta");
         
-        // Escludere anche le DECADUTE se includeDecayed è false
+        // Escludere anche le DECADUTE se includeDecayed è false (gestisce entrambi i case)
         if (!includeDecayed) {
-          rateationsQuery = rateationsQuery.neq("status", "DECADUTA");
+          rateationsQuery = rateationsQuery
+            .neq("status", "DECADUTA")
+            .neq("status", "decaduta");
         }
         
         const { data: rateations, error: ratError } = await rateationsQuery;
