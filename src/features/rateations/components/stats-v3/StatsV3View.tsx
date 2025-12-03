@@ -182,6 +182,7 @@ export default function StatsV3View() {
         year={selectedMonth.y}
         month={selectedMonth.m}
         groupBy={filters.groupBy}
+        includeDecayed={filters.includeDecayed}
       />
 
       {/* Table */}

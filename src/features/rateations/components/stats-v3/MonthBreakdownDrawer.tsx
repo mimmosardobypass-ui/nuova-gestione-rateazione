@@ -35,6 +35,7 @@ type Props = {
   year: number | null;
   month: number | null;
   groupBy: 'due' | 'paid';
+  includeDecayed?: boolean;
 };
 
 const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
@@ -44,11 +45,13 @@ function ExpandableTypeRow({
   year,
   month,
   groupBy = 'due',
+  includeDecayed = false,
 }: {
   row: { type: string; paid_cents: number; unpaid_cents: number; total_cents: number; paid_pct: number };
   year: number | null;
   month: number | null;
   groupBy?: 'due' | 'paid';
+  includeDecayed?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -64,7 +67,8 @@ function ExpandableTypeRow({
     isOpen ? year : null,
     isOpen ? month : null,
     isOpen ? row.type : null,
-    groupBy
+    groupBy,
+    includeDecayed
   );
 
   // Funzione per gestire il click sul column header
@@ -398,7 +402,7 @@ function SortableHeader({
   );
 }
 
-export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy }: Props) {
+export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy, includeDecayed = false }: Props) {
   const { loading, rows, kpis } = useMonthBreakdown(year, month, groupBy);
 
   const title = year && month ? `${MONTHS[month - 1]} ${year}` : "Dettaglio mese";
@@ -478,7 +482,7 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy 
                       </td>
                     </tr>
                   )}
-                  {!loading && rows.map((r) => <ExpandableTypeRow key={r.type} row={r} year={year} month={month} groupBy={groupBy} />)}
+                  {!loading && rows.map((r) => <ExpandableTypeRow key={r.type} row={r} year={year} month={month} groupBy={groupBy} includeDecayed={includeDecayed} />)}
                 </tbody>
               </table>
             </div>
