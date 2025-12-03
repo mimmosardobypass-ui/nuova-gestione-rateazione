@@ -14,7 +14,8 @@ export function useRateationsDetailForMonth(
   year: number | null,
   month: number | null,
   typeLabel: string | null,
-  groupBy: 'due' | 'paid' = 'due'
+  groupBy: 'due' | 'paid' = 'due',
+  includeDecayed: boolean = false
 ) {
   const [loading, setLoading] = useState(false);
   const [paid, setPaid] = useState<RateationDetail[]>([]);
@@ -85,12 +86,19 @@ export function useRateationsDetailForMonth(
           return;
         }
 
-        // Query 1: Ottieni le rateazioni base (escludi INTERROTTA)
-        const { data: rateations, error: ratError } = await supabase
+        // Query 1: Ottieni le rateazioni base (escludi INTERROTTA e opzionalmente DECADUTA)
+        let rateationsQuery = supabase
           .from("v_rateations_with_kpis")
           .select("*")
           .in("id", rateationIds)
           .neq("status", "INTERROTTA");
+        
+        // Escludere anche le DECADUTE se includeDecayed è false
+        if (!includeDecayed) {
+          rateationsQuery = rateationsQuery.neq("status", "DECADUTA");
+        }
+        
+        const { data: rateations, error: ratError } = await rateationsQuery;
 
         if (ratError) throw ratError;
 
@@ -150,7 +158,7 @@ export function useRateationsDetailForMonth(
     };
 
     fetchData();
-  }, [year, month, typeLabel, groupBy]);
+  }, [year, month, typeLabel, groupBy, includeDecayed]);
 
   return { loading, paid, unpaid };
 }
