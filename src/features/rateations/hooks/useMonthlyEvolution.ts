@@ -50,18 +50,21 @@ export function useMonthlyEvolution(params: MonthlyEvolutionParams) {
           p_year_to: yearTo,
           p_pay_filter: "all",
           p_group_by: groupBy,
+          p_include_decayed: true,
         }),
         supabase.rpc("residual_evolution_by_type", {
           p_year_from: yearFrom,
           p_year_to: yearTo,
           p_pay_filter: "paid",
           p_group_by: groupBy,
+          p_include_decayed: true,
         }),
         supabase.rpc("residual_evolution_by_type", {
           p_year_from: yearFrom,
           p_year_to: yearTo,
           p_pay_filter: "unpaid",
           p_group_by: groupBy,
+          p_include_decayed: true,
         }),
       ]);
 
