@@ -18,6 +18,13 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Force single React instance to prevent "Cannot read properties of null (reading 'useState')" errors
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    // Force re-bundling of dependencies on every restart
+    force: true,
+    include: ['react', 'react-dom'],
   },
   build: {
     // Cache busting: Generate unique file names with content hash

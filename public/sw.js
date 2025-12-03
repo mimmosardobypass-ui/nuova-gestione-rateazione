@@ -11,11 +11,20 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Take control of all clients immediately
+// Take control of all clients immediately and clear old caches
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
   event.waitUntil(
-    self.clients.claim().then(() => {
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('[SW] Deleting old cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      return self.clients.claim();
+    }).then(() => {
       console.log('[SW] Service worker activated and claimed clients');
     })
   );
