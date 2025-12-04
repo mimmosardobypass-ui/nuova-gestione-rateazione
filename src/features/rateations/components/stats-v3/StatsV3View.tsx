@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -64,6 +64,16 @@ export default function StatsV3View() {
     yearTo,
     groupBy: filters.groupBy,
   });
+
+  // Calculate total paid from monthlyMatrix (same data as table)
+  const totalPaidFromMatrix = useMemo(() => {
+    if (!monthlyMatrix) return undefined;
+    let total = 0;
+    monthlyMatrix.cells.forEach(cell => {
+      total += cell.paid_cents;
+    });
+    return total;
+  }, [monthlyMatrix]);
 
   // Update URL when filters change
   useEffect(() => {
@@ -141,7 +151,7 @@ export default function StatsV3View() {
           ))}
         </div>
       ) : data ? (
-        <StatsV3KPIs kpis={data.kpis} />
+        <StatsV3KPIs kpis={data.kpis} totalPaidOverride={totalPaidFromMatrix} />
       ) : null}
 
       {/* Charts */}
