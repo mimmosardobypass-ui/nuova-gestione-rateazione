@@ -4,9 +4,10 @@ import type { StatsV3KPIs as KPIsType } from "../../hooks/useStatsV3";
 
 interface StatsV3KPIsProps {
   kpis: KPIsType;
+  totalPaidOverride?: number; // Cents - valore dalla monthlyMatrix
 }
 
-export function StatsV3KPIs({ kpis }: StatsV3KPIsProps) {
+export function StatsV3KPIs({ kpis, totalPaidOverride }: StatsV3KPIsProps) {
   const cards = [
     { 
       label: "Totale Dovuto", 
@@ -18,7 +19,7 @@ export function StatsV3KPIs({ kpis }: StatsV3KPIsProps) {
     },
     { 
       label: "Totale Pagato", 
-      value: kpis.total_paid_cents, 
+      value: totalPaidOverride ?? kpis.total_paid_cents, 
       icon: "💵", 
       bgColor: "bg-green-50",
       borderColor: "border-green-200",
