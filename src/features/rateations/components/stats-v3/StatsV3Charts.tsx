@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import type { StatsV3ByType, StatsV3Series } from "../../hooks/useStatsV3";
-import { formatCentsToEur, formatMonth, formatTypeLabel } from "../../utils/statsV3Formatters";
+import type { StatsV3ByType } from "../../hooks/useStatsV3";
+import type { MonthlyMatrix } from "../../hooks/useMonthlyEvolution";
+import { formatCentsToEur, formatTypeLabel } from "../../utils/statsV3Formatters";
 
 interface StatsV3ChartsProps {
   byType: StatsV3ByType[];
-  series: StatsV3Series[];
+  monthlyMatrix: MonthlyMatrix | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -16,14 +18,36 @@ const TYPE_COLORS: Record<string, string> = {
   ALTRO: "#868e96",
 };
 
-export function StatsV3Charts({ byType, series }: StatsV3ChartsProps) {
-  // Prepare data for line chart
-  const lineChartData = series.map((s) => ({
-    month: formatMonth(s.month),
-    Totale: formatCentsToEur(s.total_cents),
-    Pagato: formatCentsToEur(s.paid_cents),
-    Residuo: formatCentsToEur(s.residual_cents),
-  }));
+const MONTHS_LABELS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+export function StatsV3Charts({ byType, monthlyMatrix }: StatsV3ChartsProps) {
+  // Prepare data for line chart from monthlyMatrix (same data as table)
+  const lineChartData = useMemo(() => {
+    if (!monthlyMatrix || !monthlyMatrix.years.length) {
+      return MONTHS_LABELS.map(month => ({ month, Totale: 0, Pagato: 0, Residuo: 0 }));
+    }
+    
+    return MONTHS_LABELS.map((monthLabel, i) => {
+      const m = i + 1;
+      let totale = 0, pagato = 0, residuo = 0;
+      
+      monthlyMatrix.years.forEach(y => {
+        const cell = monthlyMatrix.cells.get(`${y}-${m}`);
+        if (cell) {
+          totale += cell.total_cents;
+          pagato += cell.paid_cents;
+          residuo += cell.unpaid_cents;
+        }
+      });
+      
+      return {
+        month: monthLabel,
+        Totale: formatCentsToEur(totale),
+        Pagato: formatCentsToEur(pagato),
+        Residuo: formatCentsToEur(residuo),
+      };
+    });
+  }, [monthlyMatrix]);
 
   // Prepare data for pie chart
   const pieChartData = byType.map((t) => ({

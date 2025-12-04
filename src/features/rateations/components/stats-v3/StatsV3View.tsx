@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, ArrowLeft, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStatsV3, type StatsV3Filters } from "../../hooks/useStatsV3";
+import { useMonthlyEvolution } from "../../hooks/useMonthlyEvolution";
 import { StatsV3KPIs } from "./StatsV3KPIs";
 import { StatsV3Filters as FiltersComponent } from "./StatsV3Filters";
 import { StatsV3Charts } from "./StatsV3Charts";
@@ -50,7 +51,19 @@ export default function StatsV3View() {
     };
   });
 
+  // Calculate year range for monthly matrix (must be before useMonthlyEvolution)
+  const currentYear = new Date().getFullYear();
+  const yearFrom = filters.dateFrom ? new Date(filters.dateFrom).getFullYear() : 2021;
+  const yearTo = filters.dateTo ? new Date(filters.dateTo).getFullYear() : currentYear;
+
   const { data, loading, error } = useStatsV3(filters);
+  
+  // Fetch monthly matrix for chart (same data as table, independent from filters)
+  const { matrix: monthlyMatrix, loading: monthlyLoading } = useMonthlyEvolution({
+    yearFrom,
+    yearTo,
+    groupBy: filters.groupBy,
+  });
 
   // Update URL when filters change
   useEffect(() => {
@@ -73,11 +86,6 @@ export default function StatsV3View() {
   const handleResetFilters = () => {
     setFilters(DEFAULT_FILTERS);
   };
-
-  // Calculate year range for monthly matrix
-  const currentYear = new Date().getFullYear();
-  const yearFrom = filters.dateFrom ? new Date(filters.dateFrom).getFullYear() : 2021;
-  const yearTo = filters.dateTo ? new Date(filters.dateTo).getFullYear() : currentYear;
 
   if (error) {
     return (
@@ -137,13 +145,13 @@ export default function StatsV3View() {
       ) : null}
 
       {/* Charts */}
-      {loading ? (
+      {(loading || monthlyLoading) ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Skeleton className="h-[400px]" />
           <Skeleton className="h-[400px]" />
         </div>
       ) : data ? (
-        <StatsV3Charts byType={data.by_type} series={data.series} />
+        <StatsV3Charts byType={data.by_type} monthlyMatrix={monthlyMatrix} />
       ) : null}
 
       {/* Monthly Trend Matrix */}
