@@ -151,7 +151,7 @@ export default function StatsV3View() {
           <Skeleton className="h-[400px]" />
         </div>
       ) : data ? (
-        <StatsV3Charts byType={data.by_type} monthlyMatrix={monthlyMatrix} />
+        <StatsV3Charts monthlyMatrix={monthlyMatrix} />
       ) : null}
 
       {/* Monthly Trend Matrix */}

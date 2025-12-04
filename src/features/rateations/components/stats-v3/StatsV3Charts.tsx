@@ -1,13 +1,23 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import type { StatsV3ByType } from "../../hooks/useStatsV3";
 import type { MonthlyMatrix } from "../../hooks/useMonthlyEvolution";
 import { formatCentsToEur, formatTypeLabel } from "../../utils/statsV3Formatters";
 
 interface StatsV3ChartsProps {
-  byType: StatsV3ByType[];
   monthlyMatrix: MonthlyMatrix | null;
+}
+
+// Map type labels from RPC to color keys
+function mapTypeToColorKey(typeLabel: string): string {
+  const mapping: Record<string, string> = {
+    'F24': 'F24',
+    'PagoPa': 'PAGOPA',
+    'Rottamazione Quater': 'ROTTAMAZIONE_QUATER',
+    'Riam. Quater': 'RIAMMISSIONE_QUATER',
+    'Altro': 'ALTRO',
+  };
+  return mapping[typeLabel] || 'ALTRO';
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -20,7 +30,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 const MONTHS_LABELS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
-export function StatsV3Charts({ byType, monthlyMatrix }: StatsV3ChartsProps) {
+export function StatsV3Charts({ monthlyMatrix }: StatsV3ChartsProps) {
   // Prepare data for line chart from monthlyMatrix (same data as table)
   const lineChartData = useMemo(() => {
     if (!monthlyMatrix || !monthlyMatrix.years.length) {
@@ -49,12 +59,35 @@ export function StatsV3Charts({ byType, monthlyMatrix }: StatsV3ChartsProps) {
     });
   }, [monthlyMatrix]);
 
-  // Prepare data for pie chart
-  const pieChartData = byType.map((t) => ({
-    name: formatTypeLabel(t.type),
-    value: formatCentsToEur(t.total_cents),
-    rawType: t.type,
-  }));
+  // Prepare data for pie chart from monthlyMatrix (same data as table)
+  const pieChartData = useMemo(() => {
+    if (!monthlyMatrix || !monthlyMatrix.years.length) {
+      return [];
+    }
+    
+    // Aggregate all types across all months and years
+    const typeTotals: Record<string, number> = {};
+    
+    monthlyMatrix.cells.forEach(cell => {
+      if (cell.byType) {
+        Object.entries(cell.byType).forEach(([type, amounts]) => {
+          if (!typeTotals[type]) {
+            typeTotals[type] = 0;
+          }
+          typeTotals[type] += amounts.paid_cents;
+        });
+      }
+    });
+    
+    // Convert to array format for pie chart
+    return Object.entries(typeTotals)
+      .filter(([_, value]) => value > 0)
+      .map(([type, total_cents]) => ({
+        name: formatTypeLabel(type),
+        value: formatCentsToEur(total_cents),
+        rawType: mapTypeToColorKey(type),
+      }));
+  }, [monthlyMatrix]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
