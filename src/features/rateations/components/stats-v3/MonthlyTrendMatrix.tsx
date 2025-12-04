@@ -134,48 +134,56 @@ export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth, groupBy = 
               );
             })}
 
-            {/* Riga TOT */}
-            <tr className="border-t-2 border-gray-300 bg-gray-50">
-              <td className="px-3 py-2 font-semibold text-gray-900 text-xs">TOT</td>
-              {MONTHS.map((_, i) => {
+            {(() => {
+              // Calcolo totali mensili per riga TOT e MEDIA cumulativa
+              const monthlyTotals = MONTHS.map((_, i) => {
                 const m = i + 1;
-                const sum = years.reduce((acc, y) => {
+                return years.reduce((acc, y) => {
                   const c = matrix.cells.get(`${y}-${m}`);
                   return acc + (c?.total_cents ?? 0);
                 }, 0);
-                return (
-                  <td key={m} className="px-3 py-2 text-right font-semibold text-gray-900 text-sm border-r border-gray-200">
-                    {formatCurrencyCompact(sum)}
-                  </td>
-                );
-              })}
-              <td className="px-3 py-2 text-right font-bold text-gray-900 text-sm border-r border-gray-100">
-                {formatCurrencyCompact(
-                  Array.from(matrix.cells.values()).reduce((a, c) => a + c.total_cents, 0)
-                )}
-              </td>
-              <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
-            </tr>
+              });
+              const grandTotal = monthlyTotals.reduce((a, b) => a + b, 0);
 
-            {/* Riga MEDIA */}
-            <tr className="border-t border-gray-200 bg-white">
-              <td className="px-3 py-2 text-gray-600 text-xs">MEDIA</td>
-              {MONTHS.map((_, i) => {
-                const m = i + 1;
-                const sum = years.reduce((acc, y) => {
-                  const c = matrix.cells.get(`${y}-${m}`);
-                  return acc + (c?.total_cents ?? 0);
-                }, 0);
-                const avg = years.length ? sum / years.length : 0;
-                return (
-                  <td key={m} className="px-3 py-2 text-right text-gray-600 text-sm border-r border-gray-100">
-                    {formatCurrencyCompact(avg)}
-                  </td>
-                );
-              })}
-              <td className="px-3 py-2 text-right text-gray-600 text-sm border-r border-gray-100">—</td>
-              <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
-            </tr>
+              return (
+                <>
+                  {/* Riga TOT */}
+                  <tr className="border-t-2 border-gray-300 bg-gray-50">
+                    <td className="px-3 py-2 font-semibold text-gray-900 text-xs">TOT</td>
+                    {monthlyTotals.map((sum, i) => (
+                      <td key={i} className="px-3 py-2 text-right font-semibold text-gray-900 text-sm border-r border-gray-200">
+                        {formatCurrencyCompact(sum)}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right font-bold text-gray-900 text-sm border-r border-gray-100">
+                      {formatCurrencyCompact(grandTotal)}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
+                  </tr>
+
+                  {/* Riga MEDIA - Media cumulativa progressiva */}
+                  <tr className="border-t border-gray-200 bg-white">
+                    <td className="px-3 py-2 text-gray-600 text-xs">MEDIA</td>
+                    {MONTHS.map((_, i) => {
+                      // Somma cumulativa da Gen fino a questo mese
+                      let cumulativeSum = 0;
+                      for (let j = 0; j <= i; j++) {
+                        cumulativeSum += monthlyTotals[j];
+                      }
+                      // Media = somma cumulativa / numero di mesi
+                      const cumulativeAvg = cumulativeSum / (i + 1);
+                      return (
+                        <td key={i} className="px-3 py-2 text-right text-gray-600 text-sm border-r border-gray-100">
+                          {formatCurrencyCompact(cumulativeAvg)}
+                        </td>
+                      );
+                    })}
+                    <td className="px-3 py-2 text-right text-gray-600 text-sm border-r border-gray-100">—</td>
+                    <td className="px-3 py-2 text-right text-gray-600 text-sm">—</td>
+                  </tr>
+                </>
+              );
+            })()}
           </tbody>
         </table>
       </div>
