@@ -63,6 +63,15 @@ export default function StatsV3View() {
     yearFrom,
     yearTo,
     groupBy: filters.groupBy,
+    includeDecayed: true, // Include tutto per tabella e grafici
+  });
+
+  // Hook dedicato per "Totale Dovuto" - sempre per due_date, esclude decadute/interrotte
+  const { matrix: dueMatrix, loading: dueLoading } = useMonthlyEvolution({
+    yearFrom,
+    yearTo,
+    groupBy: 'due', // Sempre 'due' per il totale dovuto
+    includeDecayed: false, // Esclude decadute e interrotte
   });
 
   // Calculate total paid from monthlyMatrix (same data as table)
@@ -74,6 +83,16 @@ export default function StatsV3View() {
     });
     return total;
   }, [monthlyMatrix]);
+
+  // Calculate total due from dueMatrix (excludes decayed/interrupted)
+  const totalDueFromMatrix = useMemo(() => {
+    if (!dueMatrix) return undefined;
+    let total = 0;
+    dueMatrix.cells.forEach(cell => {
+      total += cell.total_cents;
+    });
+    return total;
+  }, [dueMatrix]);
 
   // Update URL when filters change
   useEffect(() => {
@@ -151,7 +170,7 @@ export default function StatsV3View() {
           ))}
         </div>
       ) : data ? (
-        <StatsV3KPIs kpis={data.kpis} totalPaidOverride={totalPaidFromMatrix} />
+        <StatsV3KPIs kpis={data.kpis} totalPaidOverride={totalPaidFromMatrix} totalDueOverride={totalDueFromMatrix} />
       ) : null}
 
       {/* Charts */}
