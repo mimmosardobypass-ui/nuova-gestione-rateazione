@@ -85,13 +85,15 @@ export default function StatsV3View() {
   }, [monthlyMatrix]);
 
   // Calculate total due from dueMatrix (excludes decayed/interrupted)
+  // IMPORTANT: Always uses groupBy='due' regardless of UI filter selection
   const totalDueFromMatrix = useMemo(() => {
-    if (!dueMatrix) return undefined;
+    if (!dueMatrix || dueMatrix.cells.size === 0) return undefined;
     let total = 0;
     dueMatrix.cells.forEach(cell => {
       total += cell.total_cents;
     });
-    return total;
+    // Return undefined if 0 to avoid overriding valid kpis value
+    return total > 0 ? total : undefined;
   }, [dueMatrix]);
 
   // Update URL when filters change
