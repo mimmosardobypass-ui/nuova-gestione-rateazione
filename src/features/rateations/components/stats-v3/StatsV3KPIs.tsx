@@ -4,14 +4,15 @@ import type { StatsV3KPIs as KPIsType } from "../../hooks/useStatsV3";
 
 interface StatsV3KPIsProps {
   kpis: KPIsType;
+  totalDueOverride?: number; // Cents - somma rate attive con scadenza nel periodo
   totalPaidOverride?: number; // Cents - valore dalla monthlyMatrix
 }
 
-export function StatsV3KPIs({ kpis, totalPaidOverride }: StatsV3KPIsProps) {
+export function StatsV3KPIs({ kpis, totalDueOverride, totalPaidOverride }: StatsV3KPIsProps) {
   const cards = [
     { 
       label: "Totale Dovuto", 
-      value: kpis.total_due_cents, 
+      value: totalDueOverride ?? kpis.total_due_cents, 
       icon: "💰", 
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",

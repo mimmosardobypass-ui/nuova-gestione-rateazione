@@ -26,12 +26,13 @@ export type MonthlyEvolutionParams = {
   yearFrom: number;
   yearTo: number;
   groupBy?: 'due' | 'paid';
+  includeDecayed?: boolean;
 };
 
 const keyOf = (y: number, m: number) => `${y}-${m}`;
 
 export function useMonthlyEvolution(params: MonthlyEvolutionParams) {
-  const { yearFrom, yearTo, groupBy = 'due' } = params;
+  const { yearFrom, yearTo, groupBy = 'due', includeDecayed = true } = params;
 
   const [allPoints, setAllPoints] = useState<MonthlyPoint[]>([]);
   const [paidPoints, setPaidPoints] = useState<MonthlyPoint[]>([]);
@@ -50,21 +51,21 @@ export function useMonthlyEvolution(params: MonthlyEvolutionParams) {
           p_year_to: yearTo,
           p_pay_filter: "all",
           p_group_by: groupBy,
-          p_include_decayed: true,
+          p_include_decayed: includeDecayed,
         }),
         supabase.rpc("residual_evolution_by_type", {
           p_year_from: yearFrom,
           p_year_to: yearTo,
           p_pay_filter: "paid",
           p_group_by: groupBy,
-          p_include_decayed: true,
+          p_include_decayed: includeDecayed,
         }),
         supabase.rpc("residual_evolution_by_type", {
           p_year_from: yearFrom,
           p_year_to: yearTo,
           p_pay_filter: "unpaid",
           p_group_by: groupBy,
-          p_include_decayed: true,
+          p_include_decayed: includeDecayed,
         }),
       ]);
 
@@ -80,7 +81,7 @@ export function useMonthlyEvolution(params: MonthlyEvolutionParams) {
     } finally {
       setLoading(false);
     }
-  }, [yearFrom, yearTo, groupBy]);
+  }, [yearFrom, yearTo, groupBy, includeDecayed]);
 
   useEffect(() => {
     fetchData();
