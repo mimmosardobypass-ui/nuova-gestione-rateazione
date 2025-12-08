@@ -166,14 +166,14 @@ function ExpandableTypeRow({
             <span className="whitespace-nowrap">{labelForType(row.type)}</span>
           </div>
         </td>
+        <td className="px-3 py-2 text-right font-medium whitespace-nowrap">
+          {formatCurrencyCompact(row.total_cents)}
+        </td>
         <td className="px-3 py-2 text-right text-green-600 whitespace-nowrap">
           {formatCurrencyCompact(row.paid_cents)}
         </td>
         <td className="px-3 py-2 text-right text-red-500 whitespace-nowrap">
           {formatCurrencyCompact(row.unpaid_cents)}
-        </td>
-        <td className="px-3 py-2 text-right font-medium whitespace-nowrap">
-          {formatCurrencyCompact(row.total_cents)}
         </td>
         <td className="px-3 py-2 text-right whitespace-nowrap">{formatPercentage(row.paid_pct * 100)}</td>
       </tr>
@@ -461,9 +461,9 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy,
                 <thead className="bg-muted/50 text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium min-w-[140px]">Tipo</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Dovuto</th>
                     <th className="px-3 py-2 text-right font-medium whitespace-nowrap">🟢 Pagato</th>
-                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">🔴 Non pagato</th>
-                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Totale</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">🔴 Residuo</th>
                     <th className="px-3 py-2 text-right font-medium whitespace-nowrap">% Pagato</th>
                   </tr>
                 </thead>
@@ -484,6 +484,25 @@ export function MonthBreakdownDrawer({ open, onOpenChange, year, month, groupBy,
                   )}
                   {!loading && rows.map((r) => <ExpandableTypeRow key={r.type} row={r} year={year} month={month} groupBy={groupBy} includeDecayed={includeDecayed} />)}
                 </tbody>
+                {!loading && rows.length > 0 && kpis && (
+                  <tfoot className="border-t-2 bg-muted/50">
+                    <tr className="font-semibold">
+                      <td className="px-3 py-2">TOTALE</td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">
+                        {formatCurrencyCompact(kpis.due_cents)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-green-600 whitespace-nowrap">
+                        {formatCurrencyCompact(kpis.paid_cents)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-red-500 whitespace-nowrap">
+                        {formatCurrencyCompact(kpis.unpaid_cents)}
+                      </td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">
+                        {formatPercentage(kpis.paid_pct * 100)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
             <p className="text-xs text-muted-foreground mt-2 italic">
