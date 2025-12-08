@@ -18,6 +18,15 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
   const warning = atRiskF24s.filter(f => f.riskLevel === 'warning');
   const info = atRiskF24s.filter(f => f.riskLevel === 'info');
   
+  // Debug logging
+  console.log('🔵 [F24AtRiskAlert] Data:', {
+    total: atRiskF24s.length,
+    critical: critical.length,
+    warning: warning.length,
+    info: info.length,
+    infoItems: info.map(f => ({ numero: f.numero, overdueCount: f.overdueCount, daysRemaining: f.daysRemaining }))
+  });
+  
   // Nessun alert se tutto OK
   if (critical.length === 0 && warning.length === 0 && info.length === 0) {
     return (
@@ -35,6 +44,22 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
   
   return (
     <div className="space-y-3">
+      {/* 📊 Riepilogo Contatore */}
+      <div className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 flex items-center gap-2">
+        <span className="font-medium">📊 Riepilogo F24:</span>
+        <span className={critical.length > 0 ? "text-red-600 font-semibold" : "text-muted-foreground"}>
+          {critical.length} urgenti
+        </span>
+        <span className="text-muted-foreground">|</span>
+        <span className={info.length > 0 ? "text-blue-600 font-semibold" : "text-muted-foreground"}>
+          {info.length} promemoria
+        </span>
+        <span className="text-muted-foreground">|</span>
+        <span className={warning.length > 0 ? "text-yellow-600 font-semibold" : "text-muted-foreground"}>
+          {warning.length} in attenzione
+        </span>
+      </div>
+
       {/* 🔴 Alert Rosso: Rischio decadenza immediato */}
       {critical.length > 0 && (
         <Alert className="border-red-500 bg-red-50">
@@ -58,32 +83,8 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
           </AlertDescription>
         </Alert>
       )}
-      
-      {/* 🟡 Alert Giallo: Attenzione preventiva */}
-      {warning.length > 0 && (
-        <Alert className="border-yellow-500 bg-yellow-50">
-          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-          <AlertTitle className="text-yellow-900">
-            {warning.length} F24 con scadenze ravvicinate (30 giorni)
-          </AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-yellow-800">
-              Rate in scadenza entro 30 giorni. Nessuna rata scaduta al momento.
-              <strong className="block mt-1">Pianificare i pagamenti.</strong>
-            </span>
-            <Button 
-              onClick={onNavigate} 
-              variant="outline"
-              size="sm"
-              className="ml-4 border-yellow-600 text-yellow-600 hover:bg-yellow-100"
-            >
-              Monitora →
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
 
-      {/* 🔵 Promemoria Blu: Rate scadute ma senza rischio imminente */}
+      {/* 🔵 Promemoria Blu: Rate scadute ma senza rischio imminente - PRIMA di warning */}
       {info.length > 0 && (
         <Alert className="border-blue-400 bg-blue-50">
           <Info className="h-4 w-4 text-blue-600" />
@@ -103,6 +104,30 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
                 </li>
               ))}
             </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* 🟡 Alert Giallo: Attenzione preventiva - DOPO info */}
+      {warning.length > 0 && (
+        <Alert className="border-yellow-500 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-900">
+            {warning.length} F24 con scadenze ravvicinate (30 giorni)
+          </AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-yellow-800">
+              Rate in scadenza entro 30 giorni. Nessuna rata scaduta al momento.
+              <strong className="block mt-1">Pianificare i pagamenti.</strong>
+            </span>
+            <Button 
+              onClick={onNavigate} 
+              variant="outline"
+              size="sm"
+              className="ml-4 border-yellow-600 text-yellow-600 hover:bg-yellow-100"
+            >
+              Monitora →
+            </Button>
           </AlertDescription>
         </Alert>
       )}
