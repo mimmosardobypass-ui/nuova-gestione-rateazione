@@ -66,8 +66,13 @@ export default function F24AtRisk() {
     switch (item.riskLevel) {
       case 'critical':
         return { label: "🚨 URGENTE", className: "bg-red-100 text-red-800 border-red-300" };
-      case 'info':
-        return { label: `ℹ️ PROMEMORIA${item.daysOverdue ? ` (${item.daysOverdue}gg)` : ''}`, className: "bg-blue-100 text-blue-800 border-blue-300" };
+      case 'info': {
+        const rataLabel = item.overdueCount === 1 ? 'RATA SCADUTA' : 'RATE SCADUTE';
+        return { 
+          label: `ℹ️ ${item.overdueCount} ${rataLabel}${item.daysOverdue ? ` (${item.daysOverdue}gg)` : ''}`, 
+          className: "bg-blue-100 text-blue-800 border-blue-300" 
+        };
+      }
       default: // warning
         return { label: "⚠️ ATTENZIONE", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
     }
@@ -156,6 +161,7 @@ export default function F24AtRisk() {
         <ul className="space-y-1 text-xs text-muted-foreground">
           <li>• <strong>🚨 URGENTE:</strong> Rate scadute + prossima scadenza entro 20 giorni (rischio decadenza immediato)</li>
           <li>• <strong>⚠️ ATTENZIONE:</strong> Rate in scadenza entro 30 giorni (nessuna rata scaduta, pianificare pagamenti)</li>
+          <li>• <strong>ℹ️ PROMEMORIA:</strong> Rate scadute ma prossima scadenza oltre 30 giorni (non a rischio, tempo per recuperare)</li>
         </ul>
       </section>
     </PrintLayout>
