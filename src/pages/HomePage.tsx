@@ -8,6 +8,7 @@ import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
 import { useQuaterAtRisk } from "@/features/rateations/hooks/useQuaterAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
+import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";
 import { AtRiskReportSelector } from "@/features/rateations/components/AtRiskReportSelector";
 import { calculateAlertDetails } from "@/constants/alertConfig";
 import { RecentNotesCard } from "@/features/rateations/components/RecentNotesCard";
@@ -120,10 +121,9 @@ export default function HomePage() {
         }>
           <div className="space-y-4">
             {!loadingF24Risk && (
-              <ConfigurableAlert
-                type="f24"
-                count={safeF24s.length}
-                details={f24Details}
+              <F24AtRiskAlert
+                atRiskF24s={safeF24s}
+                onNavigate={() => navigate('/print/f24-at-risk')}
               />
             )}
             
