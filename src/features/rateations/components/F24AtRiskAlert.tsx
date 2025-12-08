@@ -1,24 +1,25 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { F24AtRiskItem } from "@/features/rateations/hooks/useF24AtRisk";
 
 interface F24AtRiskAlertProps {
-  atRiskF24s: F24AtRiskItem[]; // ✅ Passa l'array completo invece del count
+  atRiskF24s: F24AtRiskItem[];
   onNavigate: () => void;
 }
 
 /**
  * Dashboard alert banner for F24 rateations at risk
- * Mostra alert a 2 livelli: CRITICAL (rosso) e WARNING (giallo)
+ * Mostra alert a 3 livelli: CRITICAL (rosso), WARNING (giallo), INFO (blu)
  */
 export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) {
   // Separa per livello di rischio
   const critical = atRiskF24s.filter(f => f.riskLevel === 'critical');
   const warning = atRiskF24s.filter(f => f.riskLevel === 'warning');
+  const info = atRiskF24s.filter(f => f.riskLevel === 'info');
   
   // Nessun alert se tutto OK
-  if (critical.length === 0 && warning.length === 0) {
+  if (critical.length === 0 && warning.length === 0 && info.length === 0) {
     return (
       <Alert className="border-green-500 bg-green-50">
         <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -39,7 +40,7 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
         <Alert className="border-red-500 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-900 font-semibold">
-            🚨 {critical.length} F24 a rischio decadenza immediato
+            {critical.length} F24 a rischio decadenza immediato
           </AlertTitle>
           <AlertDescription className="flex items-center justify-between">
             <span className="text-red-800">
@@ -63,7 +64,7 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
         <Alert className="border-yellow-500 bg-yellow-50">
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
           <AlertTitle className="text-yellow-900">
-            ⚠️ {warning.length} F24 con scadenze ravvicinate (30 giorni)
+            {warning.length} F24 con scadenze ravvicinate (30 giorni)
           </AlertTitle>
           <AlertDescription className="flex items-center justify-between">
             <span className="text-yellow-800">
@@ -78,6 +79,29 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
             >
               Monitora →
             </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* 🔵 Promemoria Blu: Rate scadute ma senza rischio imminente */}
+      {info.length > 0 && (
+        <Alert className="border-blue-400 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-900">
+            Promemoria: {info.length} F24 con rata da saldare
+          </AlertTitle>
+          <AlertDescription className="text-blue-800">
+            <ul className="mt-2 space-y-1 text-sm">
+              {info.map(f => (
+                <li key={f.rateationId}>
+                  <strong>{f.numero}</strong>: rata scaduta da {f.daysOverdue} giorni. 
+                  Prossima scadenza tra {f.daysRemaining} giorni.
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-blue-700">
+              Non a rischio decadenza. Pagamento consigliato.
+            </p>
           </AlertDescription>
         </Alert>
       )}
