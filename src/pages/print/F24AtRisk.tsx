@@ -63,10 +63,14 @@ export default function F24AtRisk() {
 
   // ✅ Usa il riskLevel dal hook invece di calcolare sul client
   const getRiskBadge = (item: typeof atRiskF24s[0]) => {
-    if (item.riskLevel === 'critical') {
-      return { label: "🚨 URGENTE", className: "bg-red-100 text-red-800 border-red-300" };
+    switch (item.riskLevel) {
+      case 'critical':
+        return { label: "🚨 URGENTE", className: "bg-red-100 text-red-800 border-red-300" };
+      case 'info':
+        return { label: `ℹ️ PROMEMORIA${item.daysOverdue ? ` (${item.daysOverdue}gg)` : ''}`, className: "bg-blue-100 text-blue-800 border-blue-300" };
+      default: // warning
+        return { label: "⚠️ ATTENZIONE", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
     }
-    return { label: "⚠️ ATTENZIONE", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
   };
 
   return (
