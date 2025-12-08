@@ -120,9 +120,14 @@ function ExpandableTypeRow({
   const sortedUnpaid = sortRateations(unpaid, unpaidSortField, unpaidSortDir, 'residual_cents');
   const sortedPaid = sortRateations(paid, paidSortField, paidSortDir, 'amount_cents');
 
-  // Calcolare i totali
-  const unpaidTotal = unpaid.reduce((sum, r) => sum + (r.residual_cents || 0), 0);
-  const paidTotal = paid.reduce((sum, r) => sum + (r.amount_cents || 0), 0);
+  // Calcolare i totali completi per ogni sezione
+  const unpaidDovutoTotal = unpaid.reduce((sum, r) => sum + (r.amount_cents || 0), 0);
+  const unpaidPagatoTotal = unpaid.reduce((sum, r) => sum + ((r.amount_cents || 0) - (r.residual_cents || 0)), 0);
+  const unpaidResiduoTotal = unpaid.reduce((sum, r) => sum + (r.residual_cents || 0), 0);
+
+  const paidDovutoTotal = paid.reduce((sum, r) => sum + (r.amount_cents || 0), 0);
+  const paidPagatoTotal = paid.reduce((sum, r) => sum + ((r.amount_cents || 0) - (r.residual_cents || 0)), 0);
+  const paidResiduoTotal = paid.reduce((sum, r) => sum + (r.residual_cents || 0), 0);
 
   // Preparare dati per export
   const exportData: MonthBreakdownExportData = {
@@ -133,8 +138,8 @@ function ExpandableTypeRow({
     typeLabel: labelForType(row.type),
     paid: sortedPaid,
     unpaid: sortedUnpaid,
-    paidTotal,
-    unpaidTotal,
+    paidTotal: paidDovutoTotal,
+    unpaidTotal: unpaidResiduoTotal,
   };
 
   // Handler export
@@ -230,7 +235,7 @@ function ExpandableTypeRow({
                               currentField={unpaidSortField}
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'number')}
-                              className="min-w-[120px]"
+                              className="min-w-[100px]"
                             />
                             <SortableHeader
                               label="Contribuente"
@@ -239,6 +244,8 @@ function ExpandableTypeRow({
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'taxpayer')}
                             />
+                            <th className="px-2 py-1 text-right font-medium min-w-[80px]">Dovuto</th>
+                            <th className="px-2 py-1 text-right font-medium min-w-[80px]">Pagato</th>
                             <SortableHeader
                               label="Residuo"
                               field="amount"
@@ -246,7 +253,7 @@ function ExpandableTypeRow({
                               currentDir={unpaidSortDir}
                               onClick={() => handleSort('unpaid', 'amount')}
                               align="right"
-                              className="min-w-[90px]"
+                              className="min-w-[80px]"
                             />
                           </tr>
                         </thead>
@@ -262,7 +269,13 @@ function ExpandableTypeRow({
                                   {r.number}
                                 </a>
                               </td>
-                              <td className="px-2 py-1.5 truncate">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 truncate max-w-[150px]">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-medium whitespace-nowrap">
+                                {formatCurrencyCompact(r.amount_cents)}
+                              </td>
+                              <td className="px-2 py-1.5 text-right text-green-600 whitespace-nowrap">
+                                {formatCurrencyCompact((r.amount_cents || 0) - (r.residual_cents || 0))}
+                              </td>
                               <td className="px-2 py-1.5 text-right font-medium text-red-600 whitespace-nowrap">
                                 {formatCurrencyCompact(r.residual_cents)}
                               </td>
@@ -274,8 +287,14 @@ function ExpandableTypeRow({
                             <td className="px-2 py-1.5" colSpan={2}>
                               Totale ({unpaid.length} rate)
                             </td>
+                            <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                              {formatCurrencyCompact(unpaidDovutoTotal)}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-green-600 whitespace-nowrap">
+                              {formatCurrencyCompact(unpaidPagatoTotal)}
+                            </td>
                             <td className="px-2 py-1.5 text-right text-red-600 whitespace-nowrap">
-                              {formatCurrencyCompact(unpaidTotal)}
+                              {formatCurrencyCompact(unpaidResiduoTotal)}
                             </td>
                           </tr>
                         </tfoot>
@@ -300,7 +319,7 @@ function ExpandableTypeRow({
                               currentField={paidSortField}
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'number')}
-                              className="min-w-[120px]"
+                              className="min-w-[100px]"
                             />
                             <SortableHeader
                               label="Contribuente"
@@ -309,14 +328,16 @@ function ExpandableTypeRow({
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'taxpayer')}
                             />
+                            <th className="px-2 py-1 text-right font-medium min-w-[80px]">Dovuto</th>
+                            <th className="px-2 py-1 text-right font-medium min-w-[80px]">Pagato</th>
                             <SortableHeader
-                              label="Importo"
+                              label="Residuo"
                               field="amount"
                               currentField={paidSortField}
                               currentDir={paidSortDir}
                               onClick={() => handleSort('paid', 'amount')}
                               align="right"
-                              className="min-w-[90px]"
+                              className="min-w-[80px]"
                             />
                           </tr>
                         </thead>
@@ -332,9 +353,15 @@ function ExpandableTypeRow({
                                   {r.number}
                                 </a>
                               </td>
-                              <td className="px-2 py-1.5 truncate">{r.taxpayer_name || "—"}</td>
-                              <td className="px-2 py-1.5 text-right font-medium text-green-600 whitespace-nowrap">
+                              <td className="px-2 py-1.5 truncate max-w-[150px]">{r.taxpayer_name || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-medium whitespace-nowrap">
                                 {formatCurrencyCompact(r.amount_cents)}
+                              </td>
+                              <td className="px-2 py-1.5 text-right text-green-600 whitespace-nowrap">
+                                {formatCurrencyCompact((r.amount_cents || 0) - (r.residual_cents || 0))}
+                              </td>
+                              <td className="px-2 py-1.5 text-right text-red-600 whitespace-nowrap">
+                                {formatCurrencyCompact(r.residual_cents)}
                               </td>
                             </tr>
                           ))}
@@ -344,8 +371,14 @@ function ExpandableTypeRow({
                             <td className="px-2 py-1.5" colSpan={2}>
                               Totale ({paid.length} rate)
                             </td>
+                            <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                              {formatCurrencyCompact(paidDovutoTotal)}
+                            </td>
                             <td className="px-2 py-1.5 text-right text-green-600 whitespace-nowrap">
-                              {formatCurrencyCompact(paidTotal)}
+                              {formatCurrencyCompact(paidPagatoTotal)}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-red-600 whitespace-nowrap">
+                              {formatCurrencyCompact(paidResiduoTotal)}
                             </td>
                           </tr>
                         </tfoot>
