@@ -88,20 +88,21 @@ export function F24AtRiskAlert({ atRiskF24s, onNavigate }: F24AtRiskAlertProps) 
         <Alert className="border-blue-400 bg-blue-50">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertTitle className="text-blue-900">
-            Promemoria: {info.length} F24 con rata da saldare
+            ℹ️ Promemoria: {info.length} F24 con {info.length === 1 ? 'rata scaduta' : 'rate scadute'} da pagare
           </AlertTitle>
           <AlertDescription className="text-blue-800">
-            <ul className="mt-2 space-y-1 text-sm">
+            <ul className="mt-2 space-y-2">
               {info.map(f => (
-                <li key={f.rateationId}>
-                  <strong>{f.numero}</strong>: rata scaduta da {f.daysOverdue} giorni. 
-                  Prossima scadenza tra {f.daysRemaining} giorni.
+                <li key={f.rateationId} className="border-l-2 border-blue-300 pl-3">
+                  <strong className="text-blue-900">{f.numero}</strong>
+                  <div className="text-sm mt-1 space-y-0.5">
+                    <div>✓ <strong>{f.overdueCount}</strong> {f.overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} da <strong>{f.daysOverdue}</strong> giorni</div>
+                    <div>✓ Prossima scadenza tra <strong>{f.daysRemaining}</strong> giorni</div>
+                    <div className="text-blue-600 text-xs">✓ Non a rischio decadenza - tempo disponibile per saldare</div>
+                  </div>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-blue-700">
-              Non a rischio decadenza. Pagamento consigliato.
-            </p>
           </AlertDescription>
         </Alert>
       )}
