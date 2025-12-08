@@ -72,15 +72,20 @@ export default function RateazioniAtRisk() {
 
   const totalSkipPagopa = pagopaAtRisk.reduce((sum, p) => sum + p.skipRemaining, 0);
 
-  // Risk badge helper
-  const getRiskBadgeF24 = (days: number, dueDate: string | null) => {
+  // Risk badge helper - uses riskLevel from hook
+  const getRiskBadgeF24 = (riskLevel: 'critical' | 'warning' | 'info', dueDate: string | null, daysOverdue?: number) => {
     const formattedDate = dueDate 
       ? new Date(dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
       : 'N/D';
     
-    if (days <= 7) return { label: `🔴 CRITICO - ${formattedDate}`, class: 'bg-red-100 text-red-800' };
-    if (days <= 14) return { label: `🟡 ALTO - ${formattedDate}`, class: 'bg-orange-100 text-orange-800' };
-    return { label: `🟢 MEDIO - ${formattedDate}`, class: 'bg-yellow-100 text-yellow-800' };
+    switch (riskLevel) {
+      case 'critical':
+        return { label: `🔴 CRITICO - ${formattedDate}`, class: 'bg-red-100 text-red-800' };
+      case 'warning':
+        return { label: `🟡 ATTENZIONE - ${formattedDate}`, class: 'bg-yellow-100 text-yellow-800' };
+      case 'info':
+        return { label: `🔵 PROMEMORIA${daysOverdue ? ` (${daysOverdue}gg)` : ''}`, class: 'bg-blue-100 text-blue-800' };
+    }
   };
 
   const getRiskBadgePagopa = (skipRemaining: number, dueDate: string | null) => {
@@ -175,7 +180,7 @@ export default function RateazioniAtRisk() {
             </thead>
             <tbody>
               {f24AtRisk.map((f24) => {
-                const risk = getRiskBadgeF24(f24.daysRemaining || 0, f24.nextDueDate);
+                const risk = getRiskBadgeF24(f24.riskLevel, f24.nextDueDate, f24.daysOverdue);
                 return (
                   <tr key={f24.rateationId}>
                     <td className="font-mono text-sm">{f24.numero}</td>
