@@ -2,8 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-
-// Cache bust: 2025-12-08T16:52
+// Cache bust: 2025-12-08T16:53:30
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -21,12 +20,18 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
     // Force single React instance to prevent "Cannot read properties of null (reading 'useState')" errors
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   },
   optimizeDeps: {
     // Force re-bundling of dependencies on every restart
     force: true,
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    esbuildOptions: {
+      // Force fresh build
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   build: {
     // Cache busting: Generate unique file names with content hash
