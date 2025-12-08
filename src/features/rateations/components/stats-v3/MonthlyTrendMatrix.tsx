@@ -10,12 +10,13 @@ type Props = {
   yearTo: number;
   onSelectMonth: (y: number, m: number) => void;
   groupBy?: 'due' | 'paid';
+  includeDecayed?: boolean;
 };
 
 const MONTHS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
-export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth, groupBy = 'due' }: Props) {
-  const { loading, error, matrix } = useMonthlyEvolution({ yearFrom, yearTo, groupBy });
+export function MonthlyTrendMatrix({ yearFrom, yearTo, onSelectMonth, groupBy = 'due', includeDecayed = true }: Props) {
+  const { loading, error, matrix } = useMonthlyEvolution({ yearFrom, yearTo, groupBy, includeDecayed });
 
   if (loading) {
     return <Skeleton className="h-[500px]" />;

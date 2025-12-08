@@ -194,6 +194,7 @@ export default function StatsV3View() {
             yearFrom={yearFrom}
             yearTo={yearTo}
             groupBy={filters.groupBy}
+            includeDecayed={filters.includeDecayed}
             onSelectMonth={(y, m) => {
               setSelectedMonth({ y, m });
               setDrawerOpen(true);
