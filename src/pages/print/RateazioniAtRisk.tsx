@@ -201,6 +201,12 @@ export default function RateazioniAtRisk() {
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
                         {risk.label}
                       </span>
+                      {/* Dettaglio compatto in riga unica per PROMEMORIA */}
+                      {f24.riskLevel === 'info' && (
+                        <div className="mt-0.5 text-[8px] text-gray-400 leading-tight">
+                          ✓ {f24.overdueCount} {f24.overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} da {f24.daysOverdue}gg · ✓ Prossima: {f24.daysRemaining}gg · ✓ Non a rischio
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
