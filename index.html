@@ -26,16 +26,42 @@
 
   <body>
     <div id="root"></div>
-    <!-- Cache buster: Version parameter forces browser to reload on updates -->
-    <script type="module" src="/src/main.tsx?v=20251218180"></script>
-    
-    <!-- Service Worker: Disable aggressive caching -->
+    <!-- Service Worker: disabilitato per evitare cache/React mismatch -->
     <script>
+      // Forza la rimozione di eventuali vecchi service worker e cache residue.
+      // Se troviamo qualcosa da pulire, facciamo un solo reload (evita loop) per caricare chunk coerenti.
+      const CLEANUP_FLAG = 'sw_cache_cleanup_done_v1';
+      const canReloadOnce = !sessionStorage.getItem(CLEANUP_FLAG);
+
+      const tasks: Promise<any>[] = [];
+
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {
-          // Service worker registration failed, continue without it
-        });
+        tasks.push(
+          navigator.serviceWorker.getRegistrations().then((regs) => {
+            if (regs.length && canReloadOnce) sessionStorage.setItem(CLEANUP_FLAG, '1');
+            return Promise.all(regs.map((r) => r.unregister()));
+          })
+        );
       }
+
+      if (window.caches?.keys) {
+        tasks.push(
+          caches.keys().then((keys) => {
+            if (keys.length && canReloadOnce) sessionStorage.setItem(CLEANUP_FLAG, '1');
+            return Promise.all(keys.map((k) => caches.delete(k)));
+          })
+        );
+      }
+
+      Promise.all(tasks).finally(() => {
+        if (canReloadOnce && sessionStorage.getItem(CLEANUP_FLAG) === '1') {
+          // Reload “pulito” una sola volta
+          window.location.reload();
+        }
+      });
     </script>
+
+    <!-- Cache buster: Version parameter forces browser to reload on updates -->
+    <script type="module" src="/src/main.tsx?v=20251218181"></script>
   </body>
 </html>
