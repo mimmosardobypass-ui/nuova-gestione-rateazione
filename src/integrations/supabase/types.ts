@@ -4709,13 +4709,13 @@ export type Database = {
       }
       fn_realign_rateation_totals:
         | {
-            Args: { p_rateation_id: string }
+            Args: { p_rateation_id: number }
             Returns: {
               error: true
             } & "Could not choose the best candidate function between: public.fn_realign_rateation_totals(p_rateation_id => int8), public.fn_realign_rateation_totals(p_rateation_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
         | {
-            Args: { p_rateation_id: number }
+            Args: { p_rateation_id: string }
             Returns: {
               error: true
             } & "Could not choose the best candidate function between: public.fn_realign_rateation_totals(p_rateation_id => int8), public.fn_realign_rateation_totals(p_rateation_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
@@ -4769,6 +4769,17 @@ export type Database = {
       get_filtered_stats:
         | {
             Args: {
+              p_end_date?: string
+              p_owner_only?: boolean
+              p_start_date?: string
+              p_statuses?: string[]
+              p_taxpayer_search?: string
+              p_type_labels?: string[]
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
               p_end_date: string
               p_include_closed: boolean
               p_owner_only: boolean
@@ -4776,17 +4787,6 @@ export type Database = {
               p_statuses: string[]
               p_taxpayer_search: string
               p_types: string[]
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_end_date?: string
-              p_owner_only?: boolean
-              p_start_date?: string
-              p_statuses?: string[]
-              p_taxpayer_search?: string
-              p_type_labels?: string[]
             }
             Returns: Json
           }
