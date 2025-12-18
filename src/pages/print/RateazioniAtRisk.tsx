@@ -91,7 +91,7 @@ export default function RateazioniAtRisk() {
     
     switch (riskLevel) {
       case 'critical':
-        return { label: `🔴 CRITICO - ${formattedDate}`, class: 'bg-red-100 text-red-800' };
+        return { label: `🔴 CRITICO${daysOverdue ? ` (${daysOverdue}gg)` : ''} - ${formattedDate}`, class: 'bg-red-100 text-red-800' };
       case 'warning':
         return { label: `🟡 ATTENZIONE - ${formattedDate}`, class: 'bg-yellow-100 text-yellow-800' };
       case 'info':
@@ -212,10 +212,10 @@ export default function RateazioniAtRisk() {
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.class}`}>
                         {risk.label}
                       </span>
-                      {/* Dettaglio compatto in riga unica per PROMEMORIA */}
-                      {f24.riskLevel === 'info' && (
+                      {/* Dettaglio compatto per TUTTE le F24 con rate scadute (critical E info) */}
+                      {f24.overdueCount > 0 && (
                         <div className="mt-0.5 text-[8px] text-gray-700 leading-tight">
-                          ✓ {f24.overdueCount} {f24.overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} da {f24.daysOverdue}gg · ✓ Prossima: {f24.daysRemaining}gg · ✓ Non a rischio
+                          ✓ {f24.overdueCount} {f24.overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} da {f24.daysOverdue}gg · ✓ Prossima: {f24.daysRemaining}gg · {f24.riskLevel === 'critical' ? '⚠️ A rischio' : '✓ Non a rischio'}
                         </div>
                       )}
                     </td>
