@@ -62,7 +62,12 @@ export class PrintService {
     const absolute = /^https?:\/\//i.test(pathOrUrl)
       ? pathOrUrl
       : `${window.location.origin}${pathOrUrl}`;
-    setTimeout(() => win.location.replace(absolute), 80);
+    
+    // Aggiunge cache buster per evitare problemi di versioni React miste
+    const separator = absolute.includes('?') ? '&' : '?';
+    const urlWithCacheBuster = `${absolute}${separator}_t=${Date.now()}`;
+    
+    setTimeout(() => win.location.replace(urlWithCacheBuster), 80);
   }
 
   /** Anteprima riepilogo: apertura immediata (client-side) */
