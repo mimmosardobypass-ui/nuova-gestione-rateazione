@@ -22,7 +22,9 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom"],
+    // Rebuild optimized deps to avoid stale duplicated React instances
+    force: true,
+    include: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
     rollupOptions: {
