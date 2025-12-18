@@ -19,6 +19,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Ensure a single React instance (prevents Invalid Hook Call)
+    dedupe: ["react", "react-dom"],
   },
   build: {
     rollupOptions: {

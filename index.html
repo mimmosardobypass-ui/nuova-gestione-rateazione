@@ -30,7 +30,7 @@
     <script>
       // Forza la rimozione di eventuali vecchi service worker e cache residue.
       // Se troviamo qualcosa da pulire, facciamo un solo reload (evita loop) per caricare chunk coerenti.
-      const CLEANUP_FLAG = 'sw_cache_cleanup_done_v1';
+      const CLEANUP_FLAG = 'sw_cache_cleanup_done_v2';
       const canReloadOnce = !sessionStorage.getItem(CLEANUP_FLAG);
 
       const tasks: Promise<any>[] = [];
@@ -62,6 +62,6 @@
     </script>
 
     <!-- Cache buster: Version parameter forces browser to reload on updates -->
-    <script type="module" src="/src/main.tsx?v=20251218181"></script>
+    <script type="module" src="/src/main.tsx?v=20251218182"></script>
   </body>
 </html>
