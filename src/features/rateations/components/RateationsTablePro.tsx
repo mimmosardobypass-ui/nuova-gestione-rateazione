@@ -408,11 +408,13 @@ export function RateationsTablePro({
                             onDataChanged={onDataChanged}
                             pagopaKpis={r.is_pagopa ? {
                               unpaid_overdue_today: r.unpaid_overdue_today ?? 0,
-                              unpaid_due_today: r.unpaid_due_today,
-                              max_skips_effective: r.max_skips_effective ?? 8,
-                              skip_remaining: Math.max(0, Math.min(r.max_skips_effective ?? 8, r.skip_remaining ?? 8)),
-                              is_pagopa: r.is_pagopa,
-                              at_risk_decadence: r.at_risk_decadence
+                              unpaid_due_today: r.unpaid_due_today ?? 0,
+                              max_skips_effective: 8,
+                              // CORREZIONE: Calcolare skip_remaining da unpaid_overdue_today
+                              skip_remaining: Math.max(0, 8 - (r.unpaid_overdue_today ?? 0)),
+                              is_pagopa: true,
+                              // CORREZIONE: Calcolare at_risk_decadence da unpaid_overdue_today
+                              at_risk_decadence: (r.unpaid_overdue_today ?? 0) >= 8
                             } : undefined}
                           />
                         </div>

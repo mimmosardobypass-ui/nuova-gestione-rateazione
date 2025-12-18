@@ -24,7 +24,7 @@ interface UseRateationsReturn {
   deleteRateation: (id: string) => Promise<void>;
 }
 
-const CACHE_KEY = "rateations_cache_v6_realtime_amounts"; // Updated after implementing realtime view calculations
+const CACHE_KEY = "rateations_cache_v7_skip_remaining_fix"; // Fixed PagoPA skip_remaining calculation
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CacheData {
@@ -247,13 +247,19 @@ export const useRateations = (): UseRateationsReturn => {
         type_id: Number(r.type_id),
         type_name: r.tipo || 'N/A',
         
-        // PagoPA KPIs from DB - robust fallbacks to avoid "0/8" display issues
+        // PagoPA KPIs - calcolare skip_remaining da unpaid_overdue_today (fix salti residui)
         is_pagopa: !!r.is_pagopa, // Use DB-calculated field directly
         unpaid_overdue_today: r.unpaid_overdue_today || 0,
         unpaid_due_today: r.unpaid_due_today || 0,
-        max_skips_effective: r.max_skips_effective ?? 8, // Default 8 if missing
-        skip_remaining: r.skip_remaining ?? 8, // Default 8 prevents false "0/8" warnings
-        at_risk_decadence: !!r.at_risk_decadence,
+        max_skips_effective: 8, // Fisso a 8 per piani PagoPA
+        // CORREZIONE: Calcolare skip_remaining invece di usare fallback
+        skip_remaining: r.is_pagopa 
+          ? Math.max(0, 8 - (r.unpaid_overdue_today ?? 0))
+          : 8,
+        // CORREZIONE: Calcolare at_risk_decadence invece di usare fallback
+        at_risk_decadence: r.is_pagopa 
+          ? (r.unpaid_overdue_today ?? 0) >= 8 
+          : false,
         
         // Migration fields from DB
         debts_total: r.debts_total || 0,
