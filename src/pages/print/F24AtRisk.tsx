@@ -47,11 +47,22 @@ export default function F24AtRisk() {
   }
 
   if (error) {
+    const isAuthError = error.toLowerCase().includes('auth') || 
+                        error.toLowerCase().includes('session') ||
+                        error.toLowerCase().includes('jwt');
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-destructive font-semibold">Errore caricamento dati</p>
-          <p className="text-sm text-muted-foreground mt-2">{error}</p>
+        <div className="text-center space-y-4">
+          <p className="text-destructive font-semibold">
+            {isAuthError ? 'Sessione scaduta' : 'Errore caricamento dati'}
+          </p>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <button 
+            onClick={() => window.close()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Chiudi finestra
+          </button>
         </div>
       </div>
     );
