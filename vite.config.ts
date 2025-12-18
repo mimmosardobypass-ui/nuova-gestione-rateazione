@@ -19,12 +19,6 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom"],
-  },
-  optimizeDeps: {
-    // Rebuild optimized deps to avoid stale duplicated React instances
-    force: true,
-    include: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
     rollupOptions: {
