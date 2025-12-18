@@ -19,20 +19,12 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Ensure a single React instance (prevents "Invalid hook call")
     dedupe: ["react", "react-dom"],
   },
   optimizeDeps: {
-    // Avoid pre-bundling React to prevent duplicate module instances
-    exclude: ["react", "react-dom"],
-    esbuildOptions: {
-      define: {
-        global: "globalThis",
-      },
-    },
+    include: ["react", "react-dom"],
   },
   build: {
-    // Cache busting: Generate unique file names with content hash
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name]-[hash].js`,
@@ -42,3 +34,4 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }));
+
