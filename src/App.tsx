@@ -125,46 +125,15 @@ function App() {
                       <RateationsDebug />
                     </ProtectedRoute>
                   } />
-                  <Route path="/print/scadenze" element={
-                    <ProtectedRoute>
-                      <ScadenzePrint />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/riepilogo" element={
-                    <ProtectedRoute>
-                      <RiepilogoReport />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/rateazione/:id" element={
-                    <ProtectedRoute>
-                      <SchedaRateazione />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/annual-matrix" element={
-                    <ProtectedRoute>
-                      <AnnualMatrix />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/rateazioni-a-rischio" element={
-                    <ProtectedRoute>
-                      <RateazioniAtRisk />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/f24-a-rischio" element={
-                    <ProtectedRoute>
-                      <F24AtRisk />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/pagopa-a-rischio" element={
-                    <ProtectedRoute>
-                      <PagopaAtRisk />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/print/quater-a-rischio" element={
-                    <ProtectedRoute>
-                      <QuaterAtRisk />
-                    </ProtectedRoute>
-                  } />
+                  {/* Print routes - senza ProtectedRoute per evitare conflitti React */}
+                  <Route path="/print/scadenze" element={<ScadenzePrint />} />
+                  <Route path="/print/riepilogo" element={<RiepilogoReport />} />
+                  <Route path="/print/rateazione/:id" element={<SchedaRateazione />} />
+                  <Route path="/print/annual-matrix" element={<AnnualMatrix />} />
+                  <Route path="/print/rateazioni-a-rischio" element={<RateazioniAtRisk />} />
+                  <Route path="/print/f24-a-rischio" element={<F24AtRisk />} />
+                  <Route path="/print/pagopa-a-rischio" element={<PagopaAtRisk />} />
+                  <Route path="/print/quater-a-rischio" element={<QuaterAtRisk />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
