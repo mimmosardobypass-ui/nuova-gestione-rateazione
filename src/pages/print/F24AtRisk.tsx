@@ -72,21 +72,29 @@ export default function F24AtRisk() {
     ? Math.round(atRiskF24s.reduce((sum, f) => sum + (f.daysRemaining || 0), 0) / atRiskF24s.length)
     : 0;
 
-  // ✅ Usa il riskLevel dal hook invece di calcolare sul client
+  // ✅ Usa il riskLevel dal hook - mostra dettagli per tutte le F24 con rate scadute
   const getRiskBadge = (item: typeof atRiskF24s[0]) => {
-    switch (item.riskLevel) {
-      case 'critical':
-        return { label: "🚨 URGENTE", className: "bg-red-100 text-red-800 border-red-300" };
-      case 'info': {
-        const rataLabel = item.overdueCount === 1 ? 'RATA SCADUTA' : 'RATE SCADUTE';
+    // Se ha rate scadute, mostra sempre i dettagli (sia critical che info)
+    if (item.overdueCount > 0) {
+      const rataLabel = item.overdueCount === 1 ? 'RATA SCADUTA' : 'RATE SCADUTE';
+      const daysLabel = item.daysOverdue ? ` (${item.daysOverdue}gg)` : '';
+      
+      // Critical: sfondo rosso
+      if (item.riskLevel === 'critical') {
         return { 
-          label: `ℹ️ ${item.overdueCount} ${rataLabel}${item.daysOverdue ? ` (${item.daysOverdue}gg)` : ''}`, 
-          className: "bg-blue-100 text-blue-800 border-blue-300" 
+          label: `🚨 ${item.overdueCount} ${rataLabel}${daysLabel}`, 
+          className: "bg-red-100 text-red-800 border-red-300" 
         };
       }
-      default: // warning
-        return { label: "⚠️ ATTENZIONE", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
+      // Info: sfondo blu
+      return { 
+        label: `ℹ️ ${item.overdueCount} ${rataLabel}${daysLabel}`, 
+        className: "bg-blue-100 text-blue-800 border-blue-300" 
+      };
     }
+    
+    // Warning: nessuna rata scaduta
+    return { label: "⚠️ ATTENZIONE", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
   };
 
   return (
@@ -153,10 +161,10 @@ export default function F24AtRisk() {
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${risk.className}`}>
                         {risk.label}
                       </span>
-                      {/* Dettaglio compatto in riga unica per PROMEMORIA */}
-                      {f24.riskLevel === 'info' && (
+                      {/* Dettaglio compatto per TUTTE le F24 con rate scadute (critical E info) */}
+                      {f24.overdueCount > 0 && (
                         <div className="mt-0.5 text-[8px] text-gray-700 leading-tight">
-                          ✓ {f24.overdueCount} {f24.overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} da {f24.daysOverdue}gg · ✓ Prossima: {f24.daysRemaining}gg · ✓ Non a rischio
+                          ✓ {f24.overdueCount} {f24.overdueCount === 1 ? 'rata scaduta' : 'rate scadute'} da {f24.daysOverdue}gg · ✓ Prossima: {f24.daysRemaining}gg · {f24.riskLevel === 'critical' ? '⚠️ A rischio' : '✓ Non a rischio'}
                         </div>
                       )}
                     </td>
