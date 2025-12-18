@@ -18,23 +18,16 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Forza una singola risoluzione di React/ReactDOM (evita dispatcher null)
-      react: path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
-      "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
-      "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
     },
-    // Force single React instance to prevent "Cannot read properties of null (reading 'useState')" errors
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    // Ensure a single React instance (prevents "Invalid hook call")
+    dedupe: ["react", "react-dom"],
   },
   optimizeDeps: {
-    // Force re-bundling of dependencies on every restart
-    force: true,
-    include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    // Avoid pre-bundling React to prevent duplicate module instances
+    exclude: ["react", "react-dom"],
     esbuildOptions: {
-      // Force fresh build
       define: {
-        global: 'globalThis',
+        global: "globalThis",
       },
     },
   },
@@ -42,14 +35,10 @@ export default defineConfig(({ mode }) => ({
     // Cache busting: Generate unique file names with content hash
     rollupOptions: {
       output: {
-        // Forza React in un singolo chunk per evitare errori useState in finestre separate
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
-        },
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
-        assetFileNames: `assets/[name]-[hash].[ext]`
-      }
-    }
+        assetFileNames: `assets/[name]-[hash].[ext]`,
+      },
+    },
   },
 }));
