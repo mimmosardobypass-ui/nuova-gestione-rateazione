@@ -135,9 +135,9 @@ export function useF24AtRisk(): UseF24AtRiskResult {
             let daysOverdue = 0;
             let nextInstallmentAmountCents: number | null = null;
             
-            try {
-              // Prima rata scaduta non pagata
-              if (overdueCount > 0) {
+            // Query 1: Prima rata scaduta (per daysOverdue) - TRY/CATCH SEPARATO
+            if (overdueCount > 0) {
+              try {
                 const { data: firstOverdue } = await supabase
                   .from('installments')
                   .select('due_date')
@@ -153,9 +153,13 @@ export function useF24AtRisk(): UseF24AtRiskResult {
                   const todayDate = new Date(today);
                   daysOverdue = Math.floor((todayDate.getTime() - overdueDate.getTime()) / (1000 * 60 * 60 * 24));
                 }
+              } catch {
+                // Ignore error, keep daysOverdue = 0
               }
+            }
 
-              // Prossima rata non pagata (per importo)
+            // Query 2: Prima rata non pagata (per importo) - TRY/CATCH SEPARATO
+            try {
               const { data: installment } = await supabase
                 .from('installments')
                 .select('amount_cents')
@@ -167,7 +171,7 @@ export function useF24AtRisk(): UseF24AtRiskResult {
               
               nextInstallmentAmountCents = installment?.amount_cents ?? null;
             } catch {
-              // Ignore errors, keep defaults
+              // Ignore error, keep nextInstallmentAmountCents = null
             }
             
             return {

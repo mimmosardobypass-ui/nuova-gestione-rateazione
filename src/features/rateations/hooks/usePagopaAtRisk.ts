@@ -108,13 +108,12 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
               try {
                 if (!supabase) return item;
                 
-                // Query for next unpaid installment
+                // Query for next unpaid installment (include overdue ones too)
                 const { data: nextInstallment } = await supabase
                   .from('installments')
                   .select('due_date, amount_cents')
                   .eq('rateation_id', Number(item.rateationId))
                   .eq('is_paid', false)
-                  .gte('due_date', new Date().toISOString().split('T')[0])
                   .order('due_date', { ascending: true })
                   .limit(1)
                   .single();
