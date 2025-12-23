@@ -197,7 +197,7 @@ export default function RateazioniAtRisk() {
                     <td className="font-mono text-sm">{f24.numero}</td>
                     <td>{f24.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">
-                      {f24.nextInstallmentAmountCents 
+                      {f24.nextInstallmentAmountCents != null 
                         ? formatCurrency(f24.nextInstallmentAmountCents / 100) 
                         : 'N/D'}
                     </td>
@@ -227,7 +227,7 @@ export default function RateazioniAtRisk() {
               <tr className="bg-red-50 font-bold border-t-2">
                 <td colSpan={2} className="text-right">TOTALE F24:</td>
                 <td className="text-right">
-                  {formatCurrency(f24AtRisk.reduce((sum, f) => sum + (f.nextInstallmentAmountCents || 0), 0) / 100)}
+                  {formatCurrency(f24AtRisk.reduce((sum, f) => sum + (f.nextInstallmentAmountCents ?? 0), 0) / 100)}
                 </td>
                 <td className="text-right">{f24AtRisk.reduce((sum, f) => sum + f.overdueCount, 0)}</td>
                 <td colSpan={3}></td>
@@ -288,7 +288,7 @@ export default function RateazioniAtRisk() {
                     <td className="font-mono text-sm">{pagopa.numero}</td>
                     <td>{pagopa.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">
-                      {pagopa.nextInstallmentAmountCents 
+                      {pagopa.nextInstallmentAmountCents != null 
                         ? formatCurrency(pagopa.nextInstallmentAmountCents / 100) 
                         : 'N/D'}
                     </td>
@@ -313,7 +313,7 @@ export default function RateazioniAtRisk() {
               <tr className="bg-orange-50 font-bold border-t-2">
                 <td colSpan={2} className="text-right">TOTALE PagoPA:</td>
                 <td className="text-right">
-                  {formatCurrency(pagopaAtRisk.reduce((sum, p) => sum + (p.nextInstallmentAmountCents || 0), 0) / 100)}
+                  {formatCurrency(pagopaAtRisk.reduce((sum, p) => sum + (p.nextInstallmentAmountCents ?? 0), 0) / 100)}
                 </td>
                 <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.unpaidOverdueCount, 0)}</td>
                 <td className="text-right">{pagopaAtRisk.reduce((sum, p) => sum + p.skipRemaining, 0)}</td>
