@@ -97,55 +97,47 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           })
           .filter((item): item is PagopaAtRiskItem => item !== null);
 
-        // Step 3.5: For each at-risk PagoPA, fetch next due date (with timeout)
-        const fetchWithTimeout = async () => {
-          const timeoutPromise = new Promise<typeof atRiskBase>((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout fetching due dates')), 8000)
-          );
+        // BATCH FETCH: Get all unpaid installments for all at-risk PagoPAs
+        const rateationIds = atRiskBase.map(item => Number(item.rateationId));
+        
+        const { data: allInstallments } = await supabase
+          .from('installments')
+          .select('rateation_id, due_date, amount_cents, amount')
+          .in('rateation_id', rateationIds)
+          .eq('is_paid', false)
+          .order('due_date', { ascending: true });
 
-          const fetchPromise = Promise.all(
-            atRiskBase.map(async (item) => {
-              try {
-                if (!supabase) return item;
-                
-                // Query for next unpaid installment (include overdue ones too)
-                const { data: nextInstallment } = await supabase
-                  .from('installments')
-                  .select('due_date, amount_cents')
-                  .eq('rateation_id', Number(item.rateationId))
-                  .eq('is_paid', false)
-                  .order('due_date', { ascending: true })
-                  .limit(1)
-                  .single();
+        // Build map: rateation_id -> first unpaid installment
+        const installmentMap = new Map<number, { due_date: string; amount_cents: number | null; amount: number | null }>();
+        for (const inst of (allInstallments || [])) {
+          if (!installmentMap.has(inst.rateation_id)) {
+            installmentMap.set(inst.rateation_id, {
+              due_date: inst.due_date,
+              amount_cents: inst.amount_cents,
+              amount: inst.amount
+            });
+          }
+        }
 
-                if (nextInstallment?.due_date) {
-                  const nextDueDate = new Date(nextInstallment.due_date);
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const daysRemaining = Math.ceil((nextDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-                  return {
-                    ...item,
-                    nextDueDate: nextInstallment.due_date,
-                    daysRemaining: Math.max(0, daysRemaining),
-                    nextInstallmentAmountCents: nextInstallment.amount_cents ?? null
-                  };
-                }
-
-                return item;
-              } catch (err) {
-                console.error(`[usePagopaAtRisk] Error fetching next due date for ${item.rateationId}:`, err);
-                return item;
-              }
-            })
-          );
-
-          return Promise.race([fetchPromise, timeoutPromise]);
-        };
-
-        const atRiskWithDueDates = await fetchWithTimeout().catch(err => {
-          console.error('[usePagopaAtRisk] Timeout or error fetching due dates:', err);
-          return atRiskBase; // Return partial data without dates on timeout
+        // Enrich atRiskBase with installment data
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const atRiskWithDueDates = atRiskBase.map(item => {
+          const instData = installmentMap.get(Number(item.rateationId));
+          if (instData) {
+            const nextDueDate = new Date(instData.due_date);
+            const daysRemaining = Math.ceil((nextDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            const amountCents = instData.amount_cents ?? (instData.amount != null ? Math.round(instData.amount * 100) : null);
+            
+            return {
+              ...item,
+              nextDueDate: instData.due_date,
+              daysRemaining: Math.max(0, daysRemaining),
+              nextInstallmentAmountCents: amountCents
+            };
+          }
+          return item;
         });
 
         if (mounted) {

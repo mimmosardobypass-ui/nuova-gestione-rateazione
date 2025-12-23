@@ -115,79 +115,80 @@ export function useF24AtRisk(): UseF24AtRiskResult {
           return;
         }
 
+        // BATCH FETCH: Get all unpaid installments for all at-risk F24s
+        const rateationIds = filteredData.map(r => r.id);
+        
+        // Query batch per tutte le rate non pagate
+        const { data: allInstallments } = await supabase
+          .from('installments')
+          .select('rateation_id, due_date, amount_cents, amount')
+          .in('rateation_id', rateationIds)
+          .eq('is_paid', false)
+          .order('due_date', { ascending: true });
+
+        // Build maps: rateation_id -> first unpaid installment data
+        const installmentMap = new Map<number, { due_date: string; amount_cents: number | null; amount: number | null }>();
+        const overdueMap = new Map<number, { due_date: string }>();
+        
+        for (const inst of (allInstallments || [])) {
+          // Prima rata non pagata (per importo)
+          if (!installmentMap.has(inst.rateation_id)) {
+            installmentMap.set(inst.rateation_id, {
+              due_date: inst.due_date,
+              amount_cents: inst.amount_cents,
+              amount: inst.amount
+            });
+          }
+          // Prima rata scaduta (per daysOverdue)
+          if (inst.due_date < today && !overdueMap.has(inst.rateation_id)) {
+            overdueMap.set(inst.rateation_id, { due_date: inst.due_date });
+          }
+        }
+
         // Build F24AtRiskItem with amounts and daysOverdue
-        const atRiskWithAmounts: F24AtRiskItem[] = await Promise.all(
-          filteredData.map(async (row) => {
-            const daysRemaining = row.f24_days_to_next_due ?? 0;
-            const unpaidCount = (row.installments_total ?? 0) - (row.installments_paid ?? 0);
-            const overdueCount = row.installments_overdue_today ?? 0;
-            
-            // 3 livelli di rischio
-            const riskLevel: 'critical' | 'warning' | 'info' = 
-              (overdueCount > 0 && daysRemaining <= 20) ? 'critical' :
-              (overdueCount > 0 && daysRemaining > 30) ? 'info' :
-              'warning';
-            
-            const nextDueDate = new Date();
-            nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
+        const atRiskWithAmounts: F24AtRiskItem[] = filteredData.map((row) => {
+          const daysRemaining = row.f24_days_to_next_due ?? 0;
+          const unpaidCount = (row.installments_total ?? 0) - (row.installments_paid ?? 0);
+          const overdueCount = row.installments_overdue_today ?? 0;
+          
+          // 3 livelli di rischio
+          const riskLevel: 'critical' | 'warning' | 'info' = 
+            (overdueCount > 0 && daysRemaining <= 20) ? 'critical' :
+            (overdueCount > 0 && daysRemaining > 30) ? 'info' :
+            'warning';
+          
+          const nextDueDate = new Date();
+          nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
 
-            // Query per prima rata scaduta (per calcolare daysOverdue)
-            let daysOverdue = 0;
-            let nextInstallmentAmountCents: number | null = null;
-            
-            // Query 1: Prima rata scaduta (per daysOverdue) - TRY/CATCH SEPARATO
-            if (overdueCount > 0) {
-              try {
-                const { data: firstOverdue } = await supabase
-                  .from('installments')
-                  .select('due_date')
-                  .eq('rateation_id', row.id)
-                  .eq('is_paid', false)
-                  .lt('due_date', today)
-                  .order('due_date', { ascending: true })
-                  .limit(1)
-                  .single();
-                
-                if (firstOverdue?.due_date) {
-                  const overdueDate = new Date(firstOverdue.due_date);
-                  const todayDate = new Date(today);
-                  daysOverdue = Math.floor((todayDate.getTime() - overdueDate.getTime()) / (1000 * 60 * 60 * 24));
-                }
-              } catch {
-                // Ignore error, keep daysOverdue = 0
-              }
-            }
+          // Calcola daysOverdue dalla mappa
+          let daysOverdue = 0;
+          const overdueData = overdueMap.get(row.id);
+          if (overdueData) {
+            const overdueDate = new Date(overdueData.due_date);
+            const todayDate = new Date(today);
+            daysOverdue = Math.floor((todayDate.getTime() - overdueDate.getTime()) / (1000 * 60 * 60 * 24));
+          }
 
-            // Query 2: Prima rata non pagata (per importo) - TRY/CATCH SEPARATO
-            try {
-              const { data: installment } = await supabase
-                .from('installments')
-                .select('amount_cents')
-                .eq('rateation_id', row.id)
-                .eq('is_paid', false)
-                .order('due_date', { ascending: true })
-                .limit(1)
-                .single();
-              
-              nextInstallmentAmountCents = installment?.amount_cents ?? null;
-            } catch {
-              // Ignore error, keep nextInstallmentAmountCents = null
-            }
-            
-            return {
-              rateationId: String(row.id),
-              numero: row.number || 'N/A',
-              contribuente: row.taxpayer_name,
-              unpaidCount,
-              overdueCount,
-              nextDueDate: nextDueDate.toISOString().split('T')[0],
-              daysRemaining,
-              daysOverdue,
-              riskLevel,
-              nextInstallmentAmountCents
-            };
-          })
-        );
+          // Calcola importo dalla mappa (con fallback difensivo)
+          let nextInstallmentAmountCents: number | null = null;
+          const instData = installmentMap.get(row.id);
+          if (instData) {
+            nextInstallmentAmountCents = instData.amount_cents ?? (instData.amount != null ? Math.round(instData.amount * 100) : null);
+          }
+          
+          return {
+            rateationId: String(row.id),
+            numero: row.number || 'N/A',
+            contribuente: row.taxpayer_name,
+            unpaidCount,
+            overdueCount,
+            nextDueDate: nextDueDate.toISOString().split('T')[0],
+            daysRemaining,
+            daysOverdue,
+            riskLevel,
+            nextInstallmentAmountCents
+          };
+        });
 
         if (mounted) {
           setAtRiskF24s(atRiskWithAmounts);
