@@ -163,7 +163,7 @@ export class PrintService {
 
   /**
    * Transfer auth session to print window via postMessage with robust handshake.
-   * Sends SUPABASE_SESSION_TRANSFER every 250ms until ACK received (max 6s).
+   * Sends SUPABASE_SESSION_TRANSFER every 250ms until ACK received (max 8s).
    */
   private static async transferSessionToWindow(win: Window, _path: string): Promise<void> {
     try {
@@ -178,7 +178,7 @@ export class PrintService {
       const transferId = `transfer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const origin = window.location.origin;
       const INTERVAL_MS = 250;
-      const TIMEOUT_MS = 6000;
+      const TIMEOUT_MS = 8000;
       
       let ackReceived = false;
       let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -188,6 +188,9 @@ export class PrintService {
       const onMessage = (event: MessageEvent) => {
         // Validate origin
         if (event.origin !== origin) return;
+        
+        // Validate source is our target window (for multi-window safety)
+        if (event.source !== win) return;
         
         // Check for ACK (with or without transferId for backwards compat)
         if (event.data?.type === 'SUPABASE_SESSION_TRANSFER_ACK') {
