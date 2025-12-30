@@ -294,7 +294,7 @@ export default function RateazioniAtRisk() {
                     </td>
                     <td className="text-right font-semibold">{pagopa.unpaidOverdueCount}</td>
                     <td className="text-right font-semibold">{pagopa.skipRemaining}</td>
-                    <td className="text-right font-semibold">{pagopa.daysRemaining || 'N/D'}</td>
+                    <td className="text-right font-semibold">{pagopa.nextDueDate ? pagopa.daysRemaining : 'N/D'}</td>
                     <td className="font-medium">
                       {pagopa.nextDueDate 
                         ? new Date(pagopa.nextDueDate).toLocaleDateString('it-IT')

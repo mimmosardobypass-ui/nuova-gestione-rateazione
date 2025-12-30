@@ -76,7 +76,7 @@ export default function PagopaAtRisk() {
     : 0;
 
   const totalInstallmentsAmount = atRiskPagopas.reduce((sum, p) => 
-    sum + (p.nextInstallmentAmountCents || 0), 0
+    sum + (p.nextInstallmentAmountCents ?? 0), 0
   );
 
   const getRiskBadge = (skipRemaining: number, dueDate: string | null) => {
@@ -144,7 +144,7 @@ export default function PagopaAtRisk() {
                     <td>{pagopa.contribuente || 'N/A'}</td>
                     <td className="text-right font-semibold">{pagopa.unpaidOverdueCount}</td>
                     <td className="text-right font-semibold">{pagopa.skipRemaining}</td>
-                    <td className="text-right font-semibold">{pagopa.daysRemaining || 'N/D'}</td>
+                    <td className="text-right font-semibold">{pagopa.nextDueDate ? pagopa.daysRemaining : 'N/D'}</td>
                     <td className="font-medium">
                       {pagopa.nextDueDate 
                         ? new Date(pagopa.nextDueDate).toLocaleDateString('it-IT')
