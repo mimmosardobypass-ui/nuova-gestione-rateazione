@@ -33,8 +33,17 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
   const [atRiskPagopas, setAtRiskPagopas] = useState<PagopaAtRiskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gracePeriodDone, setGracePeriodDone] = useState(false);
   
   const { authReady, session } = useAuth();
+
+  // Grace period: wait for session transfer in print windows
+  useEffect(() => {
+    if (authReady && !session && !gracePeriodDone) {
+      const timer = setTimeout(() => setGracePeriodDone(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [authReady, session, gracePeriodDone]);
 
   useEffect(() => {
     let mounted = true;
@@ -45,8 +54,13 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         return;
       }
       
-      // Check if session exists for RLS queries
-      if (!session) {
+      // Wait for session OR grace period to finish
+      if (!session && !gracePeriodDone) {
+        return; // Keep loading while waiting
+      }
+      
+      // After grace period, if still no session, show error
+      if (!session && gracePeriodDone) {
         if (mounted) {
           setError('Sessione non disponibile per la stampa');
           setAtRiskPagopas([]);
@@ -193,7 +207,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
       mounted = false;
       window.removeEventListener('rateations:reload-kpis', handleReload);
     };
-  }, [authReady, session]);
+  }, [authReady, session, gracePeriodDone]);
 
   return { atRiskPagopas, loading, error };
 }

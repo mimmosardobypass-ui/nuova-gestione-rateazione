@@ -161,6 +161,29 @@ export class PrintService {
     setTimeout(() => w.location.replace(`${window.location.origin}${path}`), 60);
   }
 
+  /** Transfer auth session to print window via postMessage */
+  private static async transferSessionToWindow(win: Window, path: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token && session?.refresh_token) {
+        // Wait for window to load then send session
+        const sendSession = () => {
+          try {
+            win.postMessage({
+              type: 'SUPABASE_SESSION_TRANSFER',
+              access_token: session.access_token,
+              refresh_token: session.refresh_token
+            }, window.location.origin);
+          } catch {}
+        };
+        // Send multiple times to ensure delivery
+        setTimeout(sendSession, 300);
+        setTimeout(sendSession, 800);
+        setTimeout(sendSession, 1500);
+      }
+    } catch {}
+  }
+
   /** Anteprima report unificato rateazioni a rischio (F24 + PagoPA) */
   static openUnifiedAtRiskPreview(options: PrintOptions = {}) {
     const def = this.getDefaultOptions();
@@ -177,6 +200,7 @@ export class PrintService {
       return;
     }
     this.navigate(w, path);
+    this.transferSessionToWindow(w, path);
   }
 
   /** Anteprima report F24 a rischio */
@@ -195,6 +219,7 @@ export class PrintService {
       return;
     }
     this.navigate(w, path);
+    this.transferSessionToWindow(w, path);
   }
 
   /** Anteprima report PagoPA a rischio */
@@ -213,6 +238,7 @@ export class PrintService {
       return;
     }
     this.navigate(w, path);
+    this.transferSessionToWindow(w, path);
   }
 
   /** Anteprima report Quater a rischio (Rottamazione Quater e Riam.Quater) */
@@ -231,6 +257,7 @@ export class PrintService {
       return;
     }
     this.navigate(w, path);
+    this.transferSessionToWindow(w, path);
   }
 
   /** Anteprima report scadenze (client-side, con anti-popup) */
