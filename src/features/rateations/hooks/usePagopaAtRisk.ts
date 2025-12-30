@@ -149,12 +149,18 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         // BATCH FETCH: Get all unpaid installments for all at-risk PagoPAs
         const rateationIds = atRiskBase.map(item => Number(item.rateationId));
         
+        // Get today at midnight for comparison
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+        const todayISO = todayMidnight.toISOString().split('T')[0]; // YYYY-MM-DD
+        
         const { data: allInstallments, error: installmentsError } = await supabase
           .from('installments')
           .select('rateation_id, due_date, amount_cents, amount, canceled_at')
           .in('rateation_id', rateationIds)
           .or('is_paid.eq.false,is_paid.is.null')
           .is('canceled_at', null)
+          .gte('due_date', todayISO) // Solo rate con scadenza >= oggi
           .order('due_date', { ascending: true });
 
         if (installmentsError) {
@@ -162,7 +168,8 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           throw installmentsError;
         }
 
-        // Build map: rateation_id -> first unpaid installment
+        // Build map: rateation_id -> prima rata non pagata FUTURA (>= oggi)
+        // Questa è la rata che se non pagata farà scattare la decadenza
         const installmentMap = new Map<number, { due_date: string; amount_cents: number | null; amount: number | null }>();
         for (const inst of (allInstallments || [])) {
           if (!installmentMap.has(inst.rateation_id)) {
@@ -175,14 +182,13 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         }
 
         // Enrich atRiskBase with installment data
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
         const atRiskWithDueDates = atRiskBase.map(item => {
           const instData = installmentMap.get(Number(item.rateationId));
           if (instData) {
             const nextDueDate = new Date(instData.due_date);
-            const daysRemaining = Math.ceil((nextDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            nextDueDate.setHours(0, 0, 0, 0);
+            // Calcola giorni rimanenti dalla mezzanotte di oggi alla data di scadenza
+            const daysRemaining = Math.ceil((nextDueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
             const amountCents = instData.amount_cents ?? (instData.amount != null ? Math.round(instData.amount * 100) : null);
             
             return {
