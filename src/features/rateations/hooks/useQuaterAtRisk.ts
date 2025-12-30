@@ -1,19 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
+import { useAuth } from '@/contexts/AuthContext';
 
 /** Costanti per la logica Quater */
 export const QUATER_TOLERANCE_DAYS = 5;
 export const QUATER_VISIBILITY_WINDOW = 20;
 
+/** Grace period matching the session transfer timeout (8s) */
+const GRACE_PERIOD_MS = 8000;
+
 export interface QuaterAtRiskItem {
   rateationId: string;
   numero: string;
   contribuente: string | null;
-  tipoQuater: string; // 'Rottamazione Quater' | 'Riam.Quater'
+  tipoQuater: string;
   importoRata: number;
-  dueDateRata: string;        // Scadenza rata originale
-  decadenceDate: string;      // Scadenza + 5 giorni
-  daysToDecadence: number;    // Countdown verso decadenza
+  dueDateRata: string;
+  decadenceDate: string;
+  daysToDecadence: number;
   riskLevel: 'critical' | 'warning' | 'caution' | 'ok';
 }
 
@@ -40,18 +44,67 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
   const [atRiskQuaters, setAtRiskQuaters] = useState<QuaterAtRiskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gracePeriodDone, setGracePeriodDone] = useState(false);
+  
+  const { authReady, session } = useAuth();
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Grace period: wait for session transfer in print windows (8s to match handshake)
+  useEffect(() => {
+    // Start grace timer if auth is ready but no session yet
+    if (authReady && !session && !gracePeriodDone) {
+      graceTimerRef.current = setTimeout(() => setGracePeriodDone(true), GRACE_PERIOD_MS);
+      return () => {
+        if (graceTimerRef.current) {
+          clearTimeout(graceTimerRef.current);
+          graceTimerRef.current = null;
+        }
+      };
+    }
+    
+    // If session arrives, mark grace as done immediately
+    if (session && !gracePeriodDone) {
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+      setGracePeriodDone(true);
+    }
+  }, [authReady, session, gracePeriodDone]);
+
+  // Main fetch effect - depends on session?.user?.id for deterministic refetch
   useEffect(() => {
     let mounted = true;
+    const userId = session?.user?.id;
 
     async function fetchQuaterAtRisk() {
+      // Wait for auth to be ready
+      if (!authReady) {
+        return;
+      }
+      
+      // Wait for session OR grace period to finish
+      if (!session && !gracePeriodDone) {
+        return; // Keep loading while waiting
+      }
+      
+      // After grace period, if still no session, show error
+      if (!session && gracePeriodDone) {
+        if (mounted) {
+          setError('Sessione non disponibile per la stampa');
+          setAtRiskQuaters([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       // Check supabase client availability
       if (!supabase) {
         console.warn('[useQuaterAtRisk] Supabase client not available');
         if (mounted) {
           setAtRiskQuaters([]);
           setLoading(false);
-          setError(null); // Non mostrare errore, solo skip silenzioso
+          setError(null);
         }
         return;
       }
@@ -60,7 +113,7 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
         setLoading(true);
         setError(null);
 
-        // Query rateazioni Quater attive con rate non pagate
+        // Query rateazioni Quater attive
         const { data, error: queryError } = await supabase
           .from('v_rateations_list_ui')
           .select(`
@@ -80,7 +133,6 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
         if (!mounted) return;
 
         if (!data || data.length === 0) {
-          console.log('[useQuaterAtRisk] No Quater rateations found');
           setAtRiskQuaters([]);
           setLoading(false);
           return;
@@ -89,29 +141,24 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
         // Per ogni rateazione Quater, recupera la prossima rata non pagata
         const quaterIds = data.map(r => r.id);
         
-        let installmentsData: any[] = [];
-        try {
-          const { data: instData, error: instError } = await supabase
-            .from('installments')
-            .select('rateation_id, due_date, amount, is_paid')
-            .in('rateation_id', quaterIds)
-            .eq('is_paid', false)
-            .order('due_date', { ascending: true });
+        // ROBUST QUERY: is_paid = false OR is_paid IS NULL, and canceled_at IS NULL
+        const { data: installmentsData, error: instError } = await supabase
+          .from('installments')
+          .select('rateation_id, due_date, amount, is_paid, canceled_at')
+          .in('rateation_id', quaterIds)
+          .or('is_paid.eq.false,is_paid.is.null')
+          .is('canceled_at', null)
+          .order('due_date', { ascending: true });
 
-          if (instError) {
-            console.warn('[useQuaterAtRisk] Installments query warning:', instError);
-            // Non bloccare, continua senza dati installments
-          } else {
-            installmentsData = instData || [];
-          }
-        } catch (instQueryErr) {
-          console.error('[useQuaterAtRisk] Installments query error:', instQueryErr);
-          // Non bloccare, continua con array vuoto
+        if (instError) {
+          console.error('[useQuaterAtRisk] Installments query error:', instError);
+          throw instError;
         }
+        if (!mounted) return;
 
         // Raggruppa per rateation_id e prendi la più vicina
         const installmentsByRateation = new Map<number, typeof installmentsData[0]>();
-        for (const inst of installmentsData || []) {
+        for (const inst of (installmentsData || [])) {
           if (!installmentsByRateation.has(inst.rateation_id)) {
             installmentsByRateation.set(inst.rateation_id, inst);
           }
@@ -130,41 +177,39 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
             
             // Validazione date
             if (!nextInstallment.due_date) {
-              console.warn('[useQuaterAtRisk] Missing due_date for rateation:', row.id);
               continue;
             }
             
             const dueDate = new Date(nextInstallment.due_date);
             if (isNaN(dueDate.getTime())) {
-              console.warn('[useQuaterAtRisk] Invalid due_date for rateation:', row.id, nextInstallment.due_date);
               continue;
             }
             dueDate.setHours(0, 0, 0, 0);
           
-          // Data decadenza = scadenza rata + 5 giorni di tolleranza
-          const decadenceDate = new Date(dueDate);
-          decadenceDate.setDate(decadenceDate.getDate() + QUATER_TOLERANCE_DAYS);
-          
-          // Giorni alla decadenza
-          const daysToDecadence = Math.ceil(
-            (decadenceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          
-          // Filtra solo quelle entro la finestra di visibilità (20 giorni)
-          if (daysToDecadence > QUATER_VISIBILITY_WINDOW) continue;
-          
-          // Classifica per livello di rischio
-          let riskLevel: 'critical' | 'warning' | 'caution' | 'ok';
-          if (daysToDecadence <= 0) {
-            riskLevel = 'critical'; // 🔴 Decadenza!
-          } else if (daysToDecadence <= 5) {
-            riskLevel = 'warning';  // 🟠 Urgente (dentro tolleranza)
-          } else if (daysToDecadence <= 10) {
-            riskLevel = 'caution';  // 🟡 Attenzione
-          } else {
-            riskLevel = 'ok';       // 🟢 Monitoraggio
-          }
-          
+            // Data decadenza = scadenza rata + 5 giorni di tolleranza
+            const decadenceDate = new Date(dueDate);
+            decadenceDate.setDate(decadenceDate.getDate() + QUATER_TOLERANCE_DAYS);
+            
+            // Giorni alla decadenza
+            const daysToDecadence = Math.ceil(
+              (decadenceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            
+            // Filtra solo quelle entro la finestra di visibilità (20 giorni)
+            if (daysToDecadence > QUATER_VISIBILITY_WINDOW) continue;
+            
+            // Classifica per livello di rischio
+            let riskLevel: 'critical' | 'warning' | 'caution' | 'ok';
+            if (daysToDecadence <= 0) {
+              riskLevel = 'critical';
+            } else if (daysToDecadence <= 5) {
+              riskLevel = 'warning';
+            } else if (daysToDecadence <= 10) {
+              riskLevel = 'caution';
+            } else {
+              riskLevel = 'ok';
+            }
+            
             atRisk.push({
               rateationId: String(row.id),
               numero: row.number || 'N/A',
@@ -178,7 +223,6 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
             });
           } catch (rowErr) {
             console.warn('[useQuaterAtRisk] Error processing row:', row.id, rowErr);
-            // Skip this row and continue
           }
         }
 
@@ -203,7 +247,6 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
 
     fetchQuaterAtRisk();
 
-    // Listen for rateations:reload-kpis event to refresh
     const handleReload = () => {
       fetchQuaterAtRisk();
     };
@@ -214,7 +257,7 @@ export function useQuaterAtRisk(): UseQuaterAtRiskResult {
       mounted = false;
       window.removeEventListener('rateations:reload-kpis', handleReload);
     };
-  }, []);
+  }, [authReady, session?.user?.id, gracePeriodDone]);
 
   return { atRiskQuaters, loading, error };
 }
