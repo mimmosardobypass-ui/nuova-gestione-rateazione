@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
+import { useAuth } from '@/contexts/AuthContext';
 
 console.log('📦 [useF24AtRisk] Module loaded');
 
@@ -48,12 +49,29 @@ export function useF24AtRisk(): UseF24AtRiskResult {
   const [atRiskF24s, setAtRiskF24s] = useState<F24AtRiskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { authReady, session } = useAuth();
 
   useEffect(() => {
     let mounted = true;
-    console.log('🔄 [useF24AtRisk] useEffect running, fetching data...');
+    console.log('🔄 [useF24AtRisk] useEffect running, authReady:', authReady, 'session:', !!session);
 
     async function fetchF24AtRisk() {
+      // Wait for auth to be ready
+      if (!authReady) {
+        return;
+      }
+      
+      // Check if session exists for RLS queries
+      if (!session) {
+        if (mounted) {
+          setError('Sessione non disponibile per la stampa');
+          setAtRiskF24s([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -116,15 +134,21 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         }
 
         // BATCH FETCH: Get all unpaid installments for all at-risk F24s
+        // Use robust query: is_paid = false OR is_paid IS NULL (since is_paid can be nullable)
         const rateationIds = filteredData.map(r => r.id);
         
-        // Query batch per tutte le rate non pagate
-        const { data: allInstallments } = await supabase
+        const { data: allInstallments, error: installmentsError } = await supabase
           .from('installments')
-          .select('rateation_id, due_date, amount_cents, amount')
+          .select('rateation_id, due_date, amount_cents, amount, canceled_at')
           .in('rateation_id', rateationIds)
-          .eq('is_paid', false)
+          .or('is_paid.eq.false,is_paid.is.null')
+          .is('canceled_at', null)
           .order('due_date', { ascending: true });
+
+        if (installmentsError) {
+          console.error('[useF24AtRisk] Installments query error:', installmentsError);
+          throw installmentsError;
+        }
 
         // Build maps: rateation_id -> first unpaid installment data
         const installmentMap = new Map<number, { due_date: string; amount_cents: number | null; amount: number | null }>();
@@ -218,7 +242,7 @@ export function useF24AtRisk(): UseF24AtRiskResult {
       mounted = false;
       window.removeEventListener('rateations:reload-kpis', handleReload);
     };
-  }, []);
+  }, [authReady, session]);
 
   return { atRiskF24s, loading, error };
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
-import { ALERT_CONFIG } from '@/constants/alertConfig';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface PagopaAtRiskItem {
   rateationId: string;
@@ -33,11 +33,28 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
   const [atRiskPagopas, setAtRiskPagopas] = useState<PagopaAtRiskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { authReady, session } = useAuth();
 
   useEffect(() => {
     let mounted = true;
 
     async function fetchPagopaAtRisk() {
+      // Wait for auth to be ready
+      if (!authReady) {
+        return;
+      }
+      
+      // Check if session exists for RLS queries
+      if (!session) {
+        if (mounted) {
+          setError('Sessione non disponibile per la stampa');
+          setAtRiskPagopas([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -98,14 +115,21 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           .filter((item): item is PagopaAtRiskItem => item !== null);
 
         // BATCH FETCH: Get all unpaid installments for all at-risk PagoPAs
+        // Use robust query: is_paid = false OR is_paid IS NULL (since is_paid can be nullable)
         const rateationIds = atRiskBase.map(item => Number(item.rateationId));
         
-        const { data: allInstallments } = await supabase
+        const { data: allInstallments, error: installmentsError } = await supabase
           .from('installments')
-          .select('rateation_id, due_date, amount_cents, amount')
+          .select('rateation_id, due_date, amount_cents, amount, canceled_at')
           .in('rateation_id', rateationIds)
-          .eq('is_paid', false)
+          .or('is_paid.eq.false,is_paid.is.null')
+          .is('canceled_at', null)
           .order('due_date', { ascending: true });
+
+        if (installmentsError) {
+          console.error('[usePagopaAtRisk] Installments query error:', installmentsError);
+          throw installmentsError;
+        }
 
         // Build map: rateation_id -> first unpaid installment
         const installmentMap = new Map<number, { due_date: string; amount_cents: number | null; amount: number | null }>();
@@ -169,7 +193,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
       mounted = false;
       window.removeEventListener('rateations:reload-kpis', handleReload);
     };
-  }, []);
+  }, [authReady, session]);
 
   return { atRiskPagopas, loading, error };
 }
