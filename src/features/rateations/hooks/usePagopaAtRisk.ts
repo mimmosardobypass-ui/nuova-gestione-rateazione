@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,15 +19,16 @@ export interface UsePagopaAtRiskResult {
   error: string | null;
 }
 
+/** Grace period matching the session transfer timeout (8s) */
+const GRACE_PERIOD_MS = 8000;
+
 /**
  * Hook to fetch PagoPA rateations at risk of decadence
  * 
  * LOGIC: PagoPA is at risk if:
- * - Has >= preWarningSkips unpaid overdue installments (default: 7)
+ * - Has >= 7 unpaid overdue installments
  * - AND status is 'attiva'
- * - AND next unpaid installment is within daysThreshold days (default: 30)
- * 
- * Uses configurable thresholds from ALERT_CONFIG
+ * - AND skip_remaining <= 1
  */
 export function usePagopaAtRisk(): UsePagopaAtRiskResult {
   const [atRiskPagopas, setAtRiskPagopas] = useState<PagopaAtRiskItem[]>([]);
@@ -36,17 +37,35 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
   const [gracePeriodDone, setGracePeriodDone] = useState(false);
   
   const { authReady, session } = useAuth();
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Grace period: wait for session transfer in print windows
+  // Grace period: wait for session transfer in print windows (8s to match handshake)
   useEffect(() => {
+    // Start grace timer if auth is ready but no session yet
     if (authReady && !session && !gracePeriodDone) {
-      const timer = setTimeout(() => setGracePeriodDone(true), 2000);
-      return () => clearTimeout(timer);
+      graceTimerRef.current = setTimeout(() => setGracePeriodDone(true), GRACE_PERIOD_MS);
+      return () => {
+        if (graceTimerRef.current) {
+          clearTimeout(graceTimerRef.current);
+          graceTimerRef.current = null;
+        }
+      };
+    }
+    
+    // If session arrives, mark grace as done immediately
+    if (session && !gracePeriodDone) {
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+      setGracePeriodDone(true);
     }
   }, [authReady, session, gracePeriodDone]);
 
+  // Main fetch effect - depends on session?.user?.id for deterministic refetch
   useEffect(() => {
     let mounted = true;
+    const userId = session?.user?.id;
 
     async function fetchPagopaAtRisk() {
       // Wait for auth to be ready
@@ -108,11 +127,10 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
         if (rateationError) throw rateationError;
         if (!mounted) return;
 
-        // Step 3: Merge KPIs with rateation details (filter out interrupted)
+        // Step 3: Merge KPIs with rateation details
         const atRiskBase: PagopaAtRiskItem[] = kpisData
           .map(kpi => {
             const rat = rateations?.find(r => r.id === kpi.rateation_id);
-            // Skip if not found (means it was filtered out by status)
             if (!rat) return null;
             
             return {
@@ -129,7 +147,6 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           .filter((item): item is PagopaAtRiskItem => item !== null);
 
         // BATCH FETCH: Get all unpaid installments for all at-risk PagoPAs
-        // Use robust query: is_paid = false OR is_paid IS NULL (since is_paid can be nullable)
         const rateationIds = atRiskBase.map(item => Number(item.rateationId));
         
         const { data: allInstallments, error: installmentsError } = await supabase
@@ -196,7 +213,6 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
 
     fetchPagopaAtRisk();
 
-    // Listen for reload events
     const handleReload = () => {
       fetchPagopaAtRisk();
     };
@@ -207,7 +223,7 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
       mounted = false;
       window.removeEventListener('rateations:reload-kpis', handleReload);
     };
-  }, [authReady, session, gracePeriodDone]);
+  }, [authReady, session?.user?.id, gracePeriodDone]);
 
   return { atRiskPagopas, loading, error };
 }

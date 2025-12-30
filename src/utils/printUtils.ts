@@ -161,27 +161,105 @@ export class PrintService {
     setTimeout(() => w.location.replace(`${window.location.origin}${path}`), 60);
   }
 
-  /** Transfer auth session to print window via postMessage */
-  private static async transferSessionToWindow(win: Window, path: string) {
+  /**
+   * Transfer auth session to print window via postMessage with robust handshake.
+   * Sends SUPABASE_SESSION_TRANSFER every 250ms until ACK received (max 6s).
+   */
+  private static async transferSessionToWindow(win: Window, _path: string): Promise<void> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token && session?.refresh_token) {
-        // Wait for window to load then send session
-        const sendSession = () => {
-          try {
-            win.postMessage({
-              type: 'SUPABASE_SESSION_TRANSFER',
-              access_token: session.access_token,
-              refresh_token: session.refresh_token
-            }, window.location.origin);
-          } catch {}
-        };
-        // Send multiple times to ensure delivery
-        setTimeout(sendSession, 300);
-        setTimeout(sendSession, 800);
-        setTimeout(sendSession, 1500);
+      
+      // Skip if no valid session/tokens
+      if (!session?.access_token || !session?.refresh_token) {
+        console.warn('[PrintService] No session to transfer');
+        return;
       }
-    } catch {}
+
+      const transferId = `transfer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const origin = window.location.origin;
+      const INTERVAL_MS = 250;
+      const TIMEOUT_MS = 6000;
+      
+      let ackReceived = false;
+      let intervalId: ReturnType<typeof setInterval> | null = null;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      // Handler for ACK messages
+      const onMessage = (event: MessageEvent) => {
+        // Validate origin
+        if (event.origin !== origin) return;
+        
+        // Check for ACK (with or without transferId for backwards compat)
+        if (event.data?.type === 'SUPABASE_SESSION_TRANSFER_ACK') {
+          // If transferId present, must match; otherwise accept any ACK
+          if (!event.data.transferId || event.data.transferId === transferId) {
+            ackReceived = true;
+            cleanup();
+            console.log('[PrintService] Session transfer ACK received');
+          }
+        }
+        
+        // Also handle PRINT_READY - immediately send session
+        if (event.data?.type === 'PRINT_READY') {
+          sendSessionMessage();
+        }
+      };
+
+      const cleanup = () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        window.removeEventListener('message', onMessage);
+      };
+
+      const sendSessionMessage = () => {
+        // Check if window is still open
+        if (win.closed) {
+          cleanup();
+          return;
+        }
+        
+        try {
+          win.postMessage({
+            type: 'SUPABASE_SESSION_TRANSFER',
+            transferId,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          }, origin);
+        } catch (e) {
+          // Window might be navigating, ignore
+        }
+      };
+
+      // Register listener first
+      window.addEventListener('message', onMessage);
+
+      // Start sending session every 250ms
+      sendSessionMessage(); // Send immediately once
+      intervalId = setInterval(() => {
+        if (ackReceived || win.closed) {
+          cleanup();
+          return;
+        }
+        sendSessionMessage();
+      }, INTERVAL_MS);
+
+      // Hard timeout after 6 seconds
+      timeoutId = setTimeout(() => {
+        if (!ackReceived) {
+          console.warn('[PrintService] Session transfer timeout - no ACK received');
+        }
+        cleanup();
+      }, TIMEOUT_MS);
+
+    } catch (err) {
+      console.error('[PrintService] transferSessionToWindow error:', err);
+    }
   }
 
   /** Anteprima report unificato rateazioni a rischio (F24 + PagoPA) */

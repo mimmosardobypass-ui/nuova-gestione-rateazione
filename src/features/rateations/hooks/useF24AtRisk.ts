@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client-resilient';
 import { useAuth } from '@/contexts/AuthContext';
-
-console.log('📦 [useF24AtRisk] Module loaded');
 
 export interface F24AtRiskItem {
   rateationId: string;
@@ -12,7 +10,7 @@ export interface F24AtRiskItem {
   overdueCount: number;
   nextDueDate: string;
   daysRemaining: number;
-  daysOverdue: number; // Giorni da cui la prima rata è scaduta
+  daysOverdue: number;
   riskLevel: 'critical' | 'warning' | 'info';
   nextInstallmentAmountCents: number | null;
 }
@@ -23,6 +21,9 @@ export interface UseF24AtRiskResult {
   error: string | null;
 }
 
+/** Grace period matching the session transfer timeout (8s) */
+const GRACE_PERIOD_MS = 8000;
+
 /**
  * Hook to fetch F24 rateations at risk of decadence
  * 
@@ -31,17 +32,14 @@ export interface UseF24AtRiskResult {
  * 🔴 CRITICAL (Rischio decadenza immediato):
  * - Has OVERDUE installments (installments_overdue_today > 0)
  * - AND next due date is within 20 days (f24_days_to_next_due <= 20)
- * - Richiede azione URGENTE
  * 
  * 🟡 WARNING (Attenzione preventiva):
  * - Has UNPAID installments (unpaid > 0) but NO overdue (overdue = 0)
  * - AND next due date is within 30 days (f24_days_to_next_due <= 30)
- * - Richiede pianificazione pagamento
  * 
  * 🔵 INFO (Promemoria):
  * - Has OVERDUE installments (installments_overdue_today > 0)
  * - BUT next due date is > 30 days (tempo per recuperare)
- * - Non a rischio decadenza, pagamento consigliato
  */
 export function useF24AtRisk(): UseF24AtRiskResult {
   const [atRiskF24s, setAtRiskF24s] = useState<F24AtRiskItem[]>([]);
@@ -50,17 +48,35 @@ export function useF24AtRisk(): UseF24AtRiskResult {
   const [gracePeriodDone, setGracePeriodDone] = useState(false);
   
   const { authReady, session } = useAuth();
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Grace period: wait for session transfer in print windows
+  // Grace period: wait for session transfer in print windows (8s to match handshake)
   useEffect(() => {
+    // Start grace timer if auth is ready but no session yet
     if (authReady && !session && !gracePeriodDone) {
-      const timer = setTimeout(() => setGracePeriodDone(true), 2000);
-      return () => clearTimeout(timer);
+      graceTimerRef.current = setTimeout(() => setGracePeriodDone(true), GRACE_PERIOD_MS);
+      return () => {
+        if (graceTimerRef.current) {
+          clearTimeout(graceTimerRef.current);
+          graceTimerRef.current = null;
+        }
+      };
+    }
+    
+    // If session arrives, mark grace as done immediately (no need to wait)
+    if (session && !gracePeriodDone) {
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+      setGracePeriodDone(true);
     }
   }, [authReady, session, gracePeriodDone]);
 
+  // Main fetch effect - depends on session?.user?.id for deterministic refetch
   useEffect(() => {
     let mounted = true;
+    const userId = session?.user?.id;
 
     async function fetchF24AtRisk() {
       // Wait for auth to be ready
@@ -145,7 +161,6 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         }
 
         // BATCH FETCH: Get all unpaid installments for all at-risk F24s
-        // Use robust query: is_paid = false OR is_paid IS NULL (since is_paid can be nullable)
         const rateationIds = filteredData.map(r => r.id);
         
         const { data: allInstallments, error: installmentsError } = await supabase
@@ -166,7 +181,6 @@ export function useF24AtRisk(): UseF24AtRiskResult {
         const overdueMap = new Map<number, { due_date: string }>();
         
         for (const inst of (allInstallments || [])) {
-          // Prima rata non pagata (per importo)
           if (!installmentMap.has(inst.rateation_id)) {
             installmentMap.set(inst.rateation_id, {
               due_date: inst.due_date,
@@ -174,7 +188,6 @@ export function useF24AtRisk(): UseF24AtRiskResult {
               amount: inst.amount
             });
           }
-          // Prima rata scaduta (per daysOverdue)
           if (inst.due_date < today && !overdueMap.has(inst.rateation_id)) {
             overdueMap.set(inst.rateation_id, { due_date: inst.due_date });
           }
@@ -186,7 +199,6 @@ export function useF24AtRisk(): UseF24AtRiskResult {
           const unpaidCount = (row.installments_total ?? 0) - (row.installments_paid ?? 0);
           const overdueCount = row.installments_overdue_today ?? 0;
           
-          // 3 livelli di rischio
           const riskLevel: 'critical' | 'warning' | 'info' = 
             (overdueCount > 0 && daysRemaining <= 20) ? 'critical' :
             (overdueCount > 0 && daysRemaining > 30) ? 'info' :
@@ -195,7 +207,6 @@ export function useF24AtRisk(): UseF24AtRiskResult {
           const nextDueDate = new Date();
           nextDueDate.setDate(nextDueDate.getDate() + daysRemaining);
 
-          // Calcola daysOverdue dalla mappa
           let daysOverdue = 0;
           const overdueData = overdueMap.get(row.id);
           if (overdueData) {
@@ -204,7 +215,6 @@ export function useF24AtRisk(): UseF24AtRiskResult {
             daysOverdue = Math.floor((todayDate.getTime() - overdueDate.getTime()) / (1000 * 60 * 60 * 24));
           }
 
-          // Calcola importo dalla mappa (con fallback difensivo)
           let nextInstallmentAmountCents: number | null = null;
           const instData = installmentMap.get(row.id);
           if (instData) {
@@ -253,7 +263,7 @@ export function useF24AtRisk(): UseF24AtRiskResult {
       mounted = false;
       window.removeEventListener('rateations:reload-kpis', handleReload);
     };
-  }, [authReady, session, gracePeriodDone]);
+  }, [authReady, session?.user?.id, gracePeriodDone]);
 
   return { atRiskF24s, loading, error };
 }
