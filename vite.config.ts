@@ -30,6 +30,11 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     force: true,
     include: ['react', 'react-dom', 'react/jsx-runtime'],
+    esbuildOptions: {
+      define: {
+        __BUILD_TIME__: JSON.stringify('2026-01-25T21:00:00'),
+      },
+    },
   },
   build: {
     rollupOptions: {
