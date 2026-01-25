@@ -90,8 +90,13 @@ function CategoryRow({ category, data }: CategoryRowProps) {
 export function F24Card({ breakdown, loading = false }: F24CardProps) {
   const data = extractAllF24Data(breakdown);
   
-  // Totali solo per F24 Attive
-  const activeTotals = data['F24'];
+  // Totali: Dovuto e Residuo solo Attive, Pagato include anche Completate
+  const totalPaid = data['F24'].paid + data['F24 Completate'].paid;
+  const activeTotals = {
+    due: data['F24'].due,
+    paid: totalPaid,
+    residual: data['F24'].residual,
+  };
 
   // Check if sections have data
   const hasStoricoData = (['F24 Completate', 'F24 Migrate', 'F24 In Attesa'] as F24Categories[])
