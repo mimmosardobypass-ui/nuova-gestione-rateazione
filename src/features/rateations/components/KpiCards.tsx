@@ -6,7 +6,15 @@ import { Info } from "lucide-react";
 import type { KpiBreakdown, KpiBreakdownItem } from "../api/kpi";
 
 // Tipi che devono apparire sempre nei breakdown, anche con €0,00
-const ALWAYS_SHOW_TYPES = ['Rottamazione Quinquies', 'F24 Migrate', 'F24 In Attesa'];
+const ALWAYS_SHOW_TYPES = [
+  'Rottamazione Quinquies',
+  'F24 Migrate',
+  'F24 In Attesa',
+  'F24 Completate',
+  'PagoPA Migrate RQ',
+  'PagoPA Migrate R5',
+  'PagoPA Completate',
+];
 
 // Garantisce che i tipi obbligatori siano sempre presenti nel breakdown
 function ensureRequiredTypes(breakdown: KpiBreakdown): KpiBreakdown {
@@ -65,14 +73,21 @@ function Kpi({
             .filter(item => item.amount_cents > 0 || ALWAYS_SHOW_TYPES.includes(item.type_label))
             .sort((a, b) => {
               const typeOrder: Record<string, number> = {
+                // F24
                 'F24': 1,
-                'F24 Migrate': 2,
-                'F24 In Attesa': 3,
-                'PagoPa': 4,
-                'Rottamazione Quater': 5,
-                'Rottamazione Quinquies': 6,
-                'Riam. Quater': 7,
-                'Altro': 8,
+                'F24 Completate': 2,
+                'F24 Migrate': 3,
+                'F24 In Attesa': 4,
+                // PagoPA
+                'PagoPa': 5,
+                'PagoPA Completate': 6,
+                'PagoPA Migrate RQ': 7,
+                'PagoPA Migrate R5': 8,
+                // Altri
+                'Rottamazione Quater': 9,
+                'Rottamazione Quinquies': 10,
+                'Riam. Quater': 11,
+                'Altro': 99,
               };
               const orderA = typeOrder[a.type_label] ?? 999;
               const orderB = typeOrder[b.type_label] ?? 999;
