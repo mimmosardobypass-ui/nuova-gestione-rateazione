@@ -53,6 +53,17 @@ function hasData(catData: F24CategoryData): boolean {
   return catData.due > 0 || catData.paid > 0 || catData.residual > 0;
 }
 
+function HeaderRow() {
+  return (
+    <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-2 pb-1.5 mb-1 border-b text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div></div>
+      <div className="text-right">Dovuto</div>
+      <div className="text-right">Pagato</div>
+      <div className="text-right">Residuo</div>
+    </div>
+  );
+}
+
 interface CategoryRowProps {
   category: F24Categories;
   data: F24CategoryData;
@@ -69,18 +80,9 @@ function CategoryRow({ category, data }: CategoryRowProps) {
         <span className={cn("w-2 h-2 rounded-full flex-shrink-0", config.colorClass)} />
         <span className="font-medium">{config.label}</span>
       </div>
-      <div className="text-right">
-        <span className="text-[10px] text-muted-foreground">Dovuto </span>
-        <span className="tabular-nums font-medium text-foreground">{formatEuroFromCents(data.due)}</span>
-      </div>
-      <div className="text-right">
-        <span className="text-[10px] text-muted-foreground">Pagato </span>
-        <span className="tabular-nums text-foreground">{formatEuroFromCents(data.paid)}</span>
-      </div>
-      <div className="text-right">
-        <span className="text-[10px] text-muted-foreground">Res </span>
-        <span className="tabular-nums text-foreground">{formatEuroFromCents(data.residual)}</span>
-      </div>
+      <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.due)}</div>
+      <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.paid)}</div>
+      <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.residual)}</div>
     </div>
   );
 }
@@ -116,6 +118,7 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
         </div>
       ) : (
         <div className="space-y-0.5">
+          <HeaderRow />
           <CategoryRow category="F24" data={data['F24']} />
           
           {hasStoricoData && (

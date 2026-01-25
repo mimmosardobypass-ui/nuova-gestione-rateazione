@@ -48,6 +48,17 @@ function extractTypeData(breakdown: KpiBreakdown, typeLabel: RottamazioneType): 
   return breakdown.find(b => b.type_label === typeLabel)?.amount_cents ?? 0;
 }
 
+function HeaderRow() {
+  return (
+    <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 pb-1.5 mb-1 border-b text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div></div>
+      <div className="text-right">Dovuto</div>
+      <div className="text-right">Pagato</div>
+      <div className="text-right">Residuo</div>
+    </div>
+  );
+}
+
 interface TypeRowProps {
   type: RottamazioneType;
   data: TypeData;
@@ -61,37 +72,31 @@ function TypeRow({ type, data, saving }: TypeRowProps) {
   if (!hasData) return null;
   
   return (
-    <div className="space-y-1 py-2 border-b border-border/30 last:border-0">
-      {/* Row: Type label + financial data */}
-      <div className="flex items-center gap-3 text-xs">
-        <div className="flex items-center gap-1.5 min-w-[80px]">
+    <>
+      <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 py-1.5 text-xs items-center border-b border-border/30">
+        <div className="flex items-center gap-1.5">
           <span className={cn("w-2 h-2 rounded-full flex-shrink-0", config.colorClass)} />
           <span className="font-medium">{config.label}</span>
         </div>
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <span className="text-[10px]">Dovuto</span>
-          <span className="tabular-nums font-medium text-foreground">{formatEuroFromCents(data.due)}</span>
-        </div>
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <span className="text-[10px]">Pagato</span>
-          <span className="tabular-nums text-green-600 dark:text-green-400">{formatEuroFromCents(data.paid)}</span>
-        </div>
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <span className="text-[10px]">Res</span>
-          <span className="tabular-nums">{formatEuroFromCents(data.residual)}</span>
-        </div>
+        <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.due)}</div>
+        <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.paid)}</div>
+        <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.residual)}</div>
       </div>
       
-      {/* Row: Risparmio (if applicable) */}
-      {config.showSaving && saving !== undefined && (
-        <div className="flex items-center gap-1 pl-[92px] text-xs">
-          <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">Risparmio</span>
-          <span className="tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+      {/* Risparmio row (indented) */}
+      {config.showSaving && saving !== undefined && saving > 0 && (
+        <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 py-1 text-xs items-center border-b border-border/30 last:border-0">
+          <div className="flex items-center gap-1.5 pl-4">
+            <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">└─ Risparmio</span>
+          </div>
+          <div></div>
+          <div></div>
+          <div className="text-right tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
             {formatEuro(saving)}
-          </span>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -131,6 +136,7 @@ export function RottamazioniCard({ breakdown, savingRQ, savingR5, loading = fals
         </div>
       ) : (
         <div className="space-y-0">
+          <HeaderRow />
           {types.map(type => (
             <TypeRow 
               key={type} 
