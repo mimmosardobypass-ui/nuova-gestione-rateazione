@@ -26,7 +26,7 @@ export function TypeBreakdownCards({
         loading={loading} 
       />
       <PagopaCard 
-        breakdown={{ due: breakdown.due, residual: breakdown.residual }} 
+        breakdown={{ due: breakdown.due, paid: breakdown.paid, residual: breakdown.residual }} 
         loading={loading} 
       />
       <RottamazioniCard 
