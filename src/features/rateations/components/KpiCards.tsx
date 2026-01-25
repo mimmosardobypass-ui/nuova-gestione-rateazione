@@ -36,7 +36,8 @@ function Kpi({
   loading, 
   sparklineData,
   tooltip,
-  breakdown
+  breakdown,
+  showBreakdown = true
 }: { 
   label: string; 
   value: number; 
@@ -44,6 +45,7 @@ function Kpi({
   sparklineData?: Array<{ month: string; paid: number; due: number }>;
   tooltip?: string;
   breakdown?: KpiBreakdown;
+  showBreakdown?: boolean;
 }) {
   return (
     <div className="rounded-lg border p-4">
@@ -66,8 +68,8 @@ function Kpi({
         {loading ? "—" : formatEuro(value)}
       </div>
       
-      {/* Breakdown per tipo */}
-      {!loading && breakdown && (
+      {/* Breakdown per tipo - solo se showBreakdown è true */}
+      {showBreakdown && !loading && breakdown && (
         <div className="mt-3 space-y-1 text-xs border-t pt-2">
           {ensureRequiredTypes(breakdown)
             .filter(item => item.amount_cents > 0 || ALWAYS_SHOW_TYPES.includes(item.type_label))
@@ -117,6 +119,7 @@ export function KpiCards({
   loading,
   stats,
   previousStats,
+  showBreakdown = true,
 }: {
   loading: boolean;
   stats: { 
@@ -161,6 +164,7 @@ export function KpiCards({
       };
     };
   } | null;
+  showBreakdown?: boolean;
 }) {
   const display = loading && previousStats ? previousStats : stats;
   const showLoading = loading && !previousStats;
@@ -180,6 +184,7 @@ export function KpiCards({
         loading={showLoading} 
         sparklineData={sparklineData}
         breakdown={display.breakdown_by_type?.due}
+        showBreakdown={showBreakdown}
         tooltip="Totale dovuto delle rateazioni attive e F24 decadute in attesa di cartella (esclude PagoPA interrotte già migrate a RQ)"
       />
       <Kpi 
@@ -188,6 +193,7 @@ export function KpiCards({
         loading={showLoading} 
         sparklineData={sparklineData}
         breakdown={display.breakdown_by_type?.paid}
+        showBreakdown={showBreakdown}
       />
       <Kpi 
         label="Totale residuo" 
@@ -195,6 +201,7 @@ export function KpiCards({
         loading={showLoading} 
         sparklineData={sparklineData}
         breakdown={display.breakdown_by_type?.residual}
+        showBreakdown={showBreakdown}
         tooltip="Residuo da pagare su rateazioni attive e F24 decadute non agganciate (esclude PagoPA interrotte già migrate a RQ)"
       />
       <Kpi 
@@ -203,6 +210,7 @@ export function KpiCards({
         loading={showLoading} 
         sparklineData={sparklineData}
         breakdown={display.breakdown_by_type?.overdue}
+        showBreakdown={showBreakdown}
         tooltip="Importo in ritardo su rateazioni attive (esclude PagoPA interrotte già migrate a RQ)"
       />
     </section>
