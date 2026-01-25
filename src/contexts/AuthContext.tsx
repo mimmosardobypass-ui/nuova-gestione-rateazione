@@ -1,4 +1,4 @@
-// Force rebuild: 2026-01-25T19:45
+// Force rebuild: 2026-01-25T20:05:00 - Fixed React duplication with explicit aliases
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client-resilient';
