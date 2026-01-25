@@ -3,3 +3,4 @@ export { PagopaCard } from './PagopaCard';
 export { QuaterCard } from './QuaterCard';
 export { RiamQuaterCard } from './RiamQuaterCard';
 export { QuinquiesCard } from './QuinquiesCard';
+export { RottamazioniCard } from './RottamazioniCard';

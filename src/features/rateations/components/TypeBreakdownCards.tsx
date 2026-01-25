@@ -1,5 +1,5 @@
 import type { KpiBreakdown } from "../api/kpi";
-import { F24Card, PagopaCard, QuaterCard, RiamQuaterCard, QuinquiesCard } from "./type-cards";
+import { F24Card, PagopaCard, RottamazioniCard } from "./type-cards";
 
 interface TypeBreakdownCardsProps {
   loading: boolean;
@@ -20,7 +20,7 @@ export function TypeBreakdownCards({
   savingR5 
 }: TypeBreakdownCardsProps) {
   return (
-    <section className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+    <section className="grid gap-3 grid-cols-1 md:grid-cols-3">
       <F24Card 
         breakdown={{ due: breakdown.due, paid: breakdown.paid, residual: breakdown.residual }} 
         loading={loading} 
@@ -29,18 +29,10 @@ export function TypeBreakdownCards({
         breakdown={{ due: breakdown.due, residual: breakdown.residual }} 
         loading={loading} 
       />
-      <QuaterCard 
+      <RottamazioniCard 
         breakdown={{ due: breakdown.due, paid: breakdown.paid, residual: breakdown.residual }} 
-        saving={savingRQ}
-        loading={loading} 
-      />
-      <RiamQuaterCard 
-        breakdown={{ due: breakdown.due, paid: breakdown.paid, residual: breakdown.residual }} 
-        loading={loading} 
-      />
-      <QuinquiesCard 
-        breakdown={{ due: breakdown.due, paid: breakdown.paid, residual: breakdown.residual }} 
-        saving={savingR5}
+        savingRQ={savingRQ}
+        savingR5={savingR5}
         loading={loading} 
       />
     </section>
