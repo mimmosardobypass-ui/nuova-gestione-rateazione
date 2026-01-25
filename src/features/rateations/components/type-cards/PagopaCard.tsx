@@ -88,10 +88,8 @@ function CategoryRow({ category, data }: CategoryRowProps) {
 export function PagopaCard({ breakdown, loading = false }: PagopaCardProps) {
   const data = extractAllPagopaData(breakdown);
   
-  // Calculate totals
-  const totalDue = Object.values(data).reduce((sum, d) => sum + d.due, 0);
-  const totalPaid = Object.values(data).reduce((sum, d) => sum + d.paid, 0);
-  const totalResidual = Object.values(data).reduce((sum, d) => sum + d.residual, 0);
+  // Totali solo per PagoPA Attive (come F24Card)
+  const activeTotals = data['PagoPa'];
 
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
@@ -117,22 +115,22 @@ export function PagopaCard({ breakdown, loading = false }: PagopaCardProps) {
           <CategoryRow category="PagoPA Migrate RQ" data={data['PagoPA Migrate RQ']} />
           <CategoryRow category="PagoPA Migrate R5" data={data['PagoPA Migrate R5']} />
           
-          {/* Footer: Riepilogo */}
+          {/* Footer: Riepilogo Debito Attivo */}
           <div className="border-t pt-2 mt-2 space-y-1 bg-muted/30 -mx-4 px-4 py-2 rounded-b-lg">
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-              Riepilogo
+              Riepilogo Debito Attivo
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="font-medium">Totale Dovuto</span>
-              <span className="font-bold tabular-nums">{formatEuroFromCents(totalDue)}</span>
+              <span className="font-bold tabular-nums">{formatEuroFromCents(activeTotals.due)}</span>
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Totale Pagato</span>
-              <span className="tabular-nums font-medium">{formatEuroFromCents(totalPaid)}</span>
+              <span className="tabular-nums font-medium">{formatEuroFromCents(activeTotals.paid)}</span>
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Totale Residuo</span>
-              <span className="tabular-nums font-medium">{formatEuroFromCents(totalResidual)}</span>
+              <span className="tabular-nums font-medium">{formatEuroFromCents(activeTotals.residual)}</span>
             </div>
           </div>
         </div>
