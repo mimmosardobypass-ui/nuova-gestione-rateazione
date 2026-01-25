@@ -18,15 +18,13 @@ interface F24CategoryData {
   residual: number;
 }
 
-type F24Categories = 'F24' | 'F24 Completate' | 'F24 Migrate' | 'F24 In Attesa' | 'F24 Decadute' | 'F24 Interrotte';
+type F24Categories = 'F24' | 'F24 Completate' | 'F24 Migrate' | 'F24 Decadute';
 
 const CATEGORY_CONFIG: Record<F24Categories, { label: string; colorClass: string }> = {
   'F24': { label: 'Attive', colorClass: 'bg-blue-500' },
   'F24 Completate': { label: 'Completate', colorClass: 'bg-green-500' },
   'F24 Migrate': { label: 'Migrate', colorClass: 'bg-orange-500' },
-  'F24 In Attesa': { label: 'In Attesa', colorClass: 'bg-yellow-500' },
   'F24 Decadute': { label: 'Decadute', colorClass: 'bg-red-500' },
-  'F24 Interrotte': { label: 'Interrotte', colorClass: 'bg-purple-500' },
 };
 
 function extractAllF24Data(breakdown: {
@@ -34,7 +32,7 @@ function extractAllF24Data(breakdown: {
   paid: KpiBreakdown;
   residual: KpiBreakdown;
 }): Record<F24Categories, F24CategoryData> {
-  const categories: F24Categories[] = ['F24', 'F24 Completate', 'F24 Migrate', 'F24 In Attesa', 'F24 Decadute', 'F24 Interrotte'];
+  const categories: F24Categories[] = ['F24', 'F24 Completate', 'F24 Migrate', 'F24 Decadute'];
   
   const data = {} as Record<F24Categories, F24CategoryData>;
   
@@ -98,13 +96,6 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
     residual: data['F24'].residual,
   };
 
-  // Check if sections have data
-  const hasStoricoData = (['F24 Completate', 'F24 Migrate', 'F24 In Attesa'] as F24Categories[])
-    .some(cat => hasData(data[cat]));
-
-  const hasDecaduteData = (['F24 Decadute', 'F24 Interrotte'] as F24Categories[])
-    .some(cat => hasData(data[cat]));
-
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
       {/* Header */}
@@ -117,7 +108,7 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
       
       {loading ? (
         <div className="space-y-2">
-          {[1,2,3,4,5,6].map(i => (
+          {[1,2,3,4].map(i => (
             <div key={i} className="h-4 bg-muted animate-pulse rounded" />
           ))}
         </div>
@@ -125,21 +116,9 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
         <div className="space-y-0.5">
           <HeaderRow />
           <CategoryRow category="F24" data={data['F24']} />
-          
-          {hasStoricoData && (
-            <>
-              <CategoryRow category="F24 Completate" data={data['F24 Completate']} />
-              <CategoryRow category="F24 Migrate" data={data['F24 Migrate']} />
-              <CategoryRow category="F24 In Attesa" data={data['F24 In Attesa']} />
-            </>
-          )}
-          
-          {hasDecaduteData && (
-            <>
-              <CategoryRow category="F24 Decadute" data={data['F24 Decadute']} />
-              <CategoryRow category="F24 Interrotte" data={data['F24 Interrotte']} />
-            </>
-          )}
+          <CategoryRow category="F24 Completate" data={data['F24 Completate']} />
+          <CategoryRow category="F24 Migrate" data={data['F24 Migrate']} />
+          <CategoryRow category="F24 Decadute" data={data['F24 Decadute']} />
           
           {/* Footer: Riepilogo Debito Attivo */}
           <div className="border-t pt-2 mt-2 space-y-1 bg-muted/30 -mx-4 px-4 py-2 rounded-b-lg">
