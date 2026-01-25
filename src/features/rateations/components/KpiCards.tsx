@@ -51,8 +51,9 @@ function Kpi({
                 'F24': 1,
                 'PagoPa': 2,
                 'Rottamazione Quater': 3,
-                'Riam. Quater': 4,
-                'Altro': 5,
+                'Rottamazione Quinquies': 4,
+                'Riam. Quater': 5,
+                'Altro': 6,
               };
               const orderA = typeOrder[a.type_label] ?? 999;
               const orderB = typeOrder[b.type_label] ?? 999;
