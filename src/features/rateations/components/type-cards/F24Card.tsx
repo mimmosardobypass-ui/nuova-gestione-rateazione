@@ -21,7 +21,10 @@ function extractF24Data(breakdown: KpiBreakdown) {
     completate,
     migrate,
     inAttesa,
-    totale: attive + completate + migrate + inAttesa
+    // Totale dovuto: solo Attive + In Attesa (Completate e Migrate non sono più debiti F24)
+    totaleDebito: attive + inAttesa,
+    // Totale storico per riferimento
+    totaleStorico: attive + completate + migrate + inAttesa
   };
 }
 
@@ -77,12 +80,12 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
           
           <div className="border-t pt-2 mt-2">
             <div className="flex justify-between items-center">
-              <span className="font-medium">Totale Dovuto</span>
-              <span className="font-bold tabular-nums">{formatEuroFromCents(dueData.totale)}</span>
+              <span className="font-medium">Debito F24</span>
+              <span className="font-bold tabular-nums">{formatEuroFromCents(dueData.totaleDebito)}</span>
             </div>
             <div className="flex justify-between items-center text-muted-foreground">
               <span>Residuo</span>
-              <span className="tabular-nums">{formatEuroFromCents(residualData.totale)}</span>
+              <span className="tabular-nums">{formatEuroFromCents(residualData.totaleDebito)}</span>
             </div>
           </div>
         </div>
