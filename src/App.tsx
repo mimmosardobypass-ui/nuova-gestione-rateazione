@@ -1,5 +1,4 @@
-// Force cache invalidation: 2026-01-25T23:35:00 - React deduplication fix
-import React from "react";
+// CRITICAL: 2026-01-25T23:40:00 - Removed React namespace import to fix duplication
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";

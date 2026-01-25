@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-// Cache bust: 2026-01-25T23:35:00
+// Cache bust: 2026-01-25T23:40:00
 // CRITICAL FIX v2: Aggressive cache invalidation + React deduplication
 
 // https://vitejs.dev/config/
@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => ({
     include: ['react', 'react-dom', 'react/jsx-runtime'],
     esbuildOptions: {
       define: {
-        __BUILD_TIME__: JSON.stringify('2026-01-25T23:35:00'),
+        __BUILD_TIME__: JSON.stringify('2026-01-25T23:40:00'),
       },
     },
   },

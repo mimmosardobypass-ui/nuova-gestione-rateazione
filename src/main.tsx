@@ -1,22 +1,14 @@
-import React from 'react'
+// CRITICAL FIX: 2026-01-25T23:40:00 - Named imports only
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './styles/print.css'
 import 'flatpickr/dist/themes/material_blue.css'
 
-// Force Vite cache invalidation - build timestamp: 2026-01-25T21:00:00
+// Force Vite cache invalidation - build timestamp: 2026-01-25T23:40:00
 // Global error handlers for debugging black screen issues
 console.log('🚀 [App] Starting application initialization...');
-
-// React integrity check - detect duplicate instances
-console.log('🔍 [React Check] Version:', React.version);
-console.log('🔍 [React Check] useState type:', typeof React.useState);
-
-if (typeof React.useState !== 'function') {
-  console.error('❌ React.useState non è una funzione! Possibile duplicazione React.');
-  throw new Error('React hooks non disponibili - ricarica la pagina');
-}
 
 window.onerror = (message, source, lineno, colno, error) => {
   console.error('❌ [Global Error]', {
@@ -48,9 +40,9 @@ try {
   console.log('🔧 [App] Root element found, creating React root...');
   
   createRoot(rootElement).render(
-    <React.StrictMode>
+    <StrictMode>
       <App />
-    </React.StrictMode>
+    </StrictMode>
   );
   
   console.log('✅ [App] React root created and rendering started');
