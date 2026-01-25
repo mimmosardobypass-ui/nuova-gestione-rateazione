@@ -1,4 +1,4 @@
-// Force rebuild: 2026-01-25T21:00:00 - Fixed React duplication with named imports
+// FORCE REBUILD: 2026-01-25T23:35:00 - Aggressive cache invalidation + React dedup
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';

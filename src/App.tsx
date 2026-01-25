@@ -1,3 +1,4 @@
+// Force cache invalidation: 2026-01-25T23:35:00 - React deduplication fix
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
