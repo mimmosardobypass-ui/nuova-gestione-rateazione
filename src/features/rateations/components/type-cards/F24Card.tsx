@@ -53,18 +53,6 @@ function hasData(catData: F24CategoryData): boolean {
   return catData.due > 0 || catData.paid > 0 || catData.residual > 0;
 }
 
-interface SectionHeaderProps {
-  title: string;
-}
-
-function SectionHeader({ title }: SectionHeaderProps) {
-  return (
-    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pt-3 pb-1 first:pt-0">
-      {title}
-    </div>
-  );
-}
-
 interface CategoryRowProps {
   category: F24Categories;
   data: F24CategoryData;
@@ -128,25 +116,18 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
         </div>
       ) : (
         <div className="space-y-0.5">
-          
-          {/* DEBITO ATTIVO - sempre visibile */}
-          <SectionHeader title="Debito Attivo" />
           <CategoryRow category="F24" data={data['F24']} />
           
-          {/* STORICO / MIGRATO - solo se ci sono dati */}
           {hasStoricoData && (
             <>
-              <SectionHeader title="Storico / Migrato" />
               <CategoryRow category="F24 Completate" data={data['F24 Completate']} />
               <CategoryRow category="F24 Migrate" data={data['F24 Migrate']} />
               <CategoryRow category="F24 In Attesa" data={data['F24 In Attesa']} />
             </>
           )}
           
-          {/* DECADUTE / INTERROTTE - solo se ci sono dati */}
           {hasDecaduteData && (
             <>
-              <SectionHeader title="Decadute / Interrotte" />
               <CategoryRow category="F24 Decadute" data={data['F24 Decadute']} />
               <CategoryRow category="F24 Interrotte" data={data['F24 Interrotte']} />
             </>
