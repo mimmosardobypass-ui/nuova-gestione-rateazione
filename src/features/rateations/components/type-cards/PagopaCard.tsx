@@ -6,6 +6,7 @@ import type { KpiBreakdown } from "../../api/kpi";
 interface PagopaCardProps {
   breakdown: {
     due: KpiBreakdown;
+    paid: KpiBreakdown;
     residual: KpiBreakdown;
   };
   loading?: boolean;
@@ -22,11 +23,13 @@ const CATEGORY_CONFIG: Record<PagopaCategory, { label: string; colorClass: strin
 
 interface CategoryData {
   due: number;
+  paid: number;
   residual: number;
 }
 
 function extractAllPagopaData(breakdown: {
   due: KpiBreakdown;
+  paid: KpiBreakdown;
   residual: KpiBreakdown;
 }): Record<PagopaCategory, CategoryData> {
   const categories: PagopaCategory[] = ['PagoPa', 'PagoPA Completate', 'PagoPA Migrate RQ', 'PagoPA Migrate R5'];
@@ -36,6 +39,7 @@ function extractAllPagopaData(breakdown: {
   for (const cat of categories) {
     data[cat] = {
       due: breakdown.due.find(b => b.type_label === cat)?.amount_cents ?? 0,
+      paid: breakdown.paid.find(b => b.type_label === cat)?.amount_cents ?? 0,
       residual: breakdown.residual.find(b => b.type_label === cat)?.amount_cents ?? 0,
     };
   }
@@ -44,14 +48,15 @@ function extractAllPagopaData(breakdown: {
 }
 
 function hasData(catData: CategoryData): boolean {
-  return catData.due > 0 || catData.residual > 0;
+  return catData.due > 0 || catData.paid > 0 || catData.residual > 0;
 }
 
 function HeaderRow() {
   return (
-    <div className="grid grid-cols-[100px_1fr_1fr] gap-2 pb-1.5 mb-1 border-b text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+    <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 pb-1.5 mb-1 border-b text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
       <div></div>
       <div className="text-right">Dovuto</div>
+      <div className="text-right">Pagato</div>
       <div className="text-right">Residuo</div>
     </div>
   );
@@ -68,12 +73,13 @@ function CategoryRow({ category, data }: CategoryRowProps) {
   if (!hasData(data)) return null;
   
   return (
-    <div className="grid grid-cols-[100px_1fr_1fr] gap-2 py-1.5 text-xs items-center border-b border-border/30 last:border-0">
+    <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 py-1.5 text-xs items-center border-b border-border/30 last:border-0">
       <div className="flex items-center gap-1.5">
         <span className={cn("w-2 h-2 rounded-full flex-shrink-0", config.colorClass)} />
         <span className="font-medium">{config.label}</span>
       </div>
       <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.due)}</div>
+      <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.paid)}</div>
       <div className="text-right tabular-nums text-foreground">{formatEuroFromCents(data.residual)}</div>
     </div>
   );
@@ -84,6 +90,7 @@ export function PagopaCard({ breakdown, loading = false }: PagopaCardProps) {
   
   // Calculate totals
   const totalDue = Object.values(data).reduce((sum, d) => sum + d.due, 0);
+  const totalPaid = Object.values(data).reduce((sum, d) => sum + d.paid, 0);
   const totalResidual = Object.values(data).reduce((sum, d) => sum + d.residual, 0);
 
   return (
@@ -118,6 +125,10 @@ export function PagopaCard({ breakdown, loading = false }: PagopaCardProps) {
             <div className="flex justify-between items-center text-xs">
               <span className="font-medium">Totale Dovuto</span>
               <span className="font-bold tabular-nums">{formatEuroFromCents(totalDue)}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Totale Pagato</span>
+              <span className="tabular-nums font-medium">{formatEuroFromCents(totalPaid)}</span>
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Totale Residuo</span>
