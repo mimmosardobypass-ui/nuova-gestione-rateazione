@@ -7,6 +7,7 @@ import { useAllRateations } from "@/hooks/useAllRateations";
 import { useRateationStats } from "@/features/rateations/hooks/useRateationStats";
 import { useDebouncedReload } from "@/hooks/useDebouncedReload";
 import { useQuaterSaving } from "@/hooks/useQuaterSaving";
+import { useQuinquiesSaving } from "@/hooks/useQuinquiesSaving";
 import { RateationsTablePro } from "@/features/rateations/components/RateationsTablePro";
 import type { RateationRowPro } from "@/features/rateations/components/RateationsTablePro";
 import { NewRateationDialog } from "@/features/rateations/components/NewRateationDialog";
@@ -14,6 +15,7 @@ import { RateationFilters } from "@/features/rateations/components/RateationFilt
 import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { KpiCards } from "@/features/rateations/components/KpiCards";
+import { TypeBreakdownCards } from "@/features/rateations/components/TypeBreakdownCards";
 import { SaldoDecadutoCard } from "@/features/rateations/components/SaldoDecadutoCard";
 import { FinancialBalanceCard } from "@/components/kpi/FinancialBalanceCard";
 import { DecadenceDetailView } from "@/features/rateations/components/DecadenceDetailView";
@@ -40,6 +42,7 @@ export default function Rateations() {
   
   const { stats, previousStats, loading: statsLoading, error: statsError, reload: reloadStats } = useRateationStats();
   const { saving: quaterSaving, loading: savingLoading, reload: reloadSaving } = useQuaterSaving();
+  const { saving: quinquiesSaving, loading: r5Loading, reload: reloadR5 } = useQuinquiesSaving();
   const { cost: f24PagopaCost, loading: costLoading, reload: reloadCost } = useF24PagopaCost();
   
   // Decadence state
@@ -80,13 +83,14 @@ export default function Rateations() {
     const handleKpiReload = () => {
       reloadStats();          // Reload KPI stats
       reloadSaving();         // Reload Quater saving
+      reloadR5();             // Reload Quinquies saving
       reloadCost();           // Reload F24→PagoPA cost
       loadDecadenceData();    // Reload Saldo Decaduto
     };
     
     window.addEventListener('rateations:reload-kpis', handleKpiReload);
     return () => window.removeEventListener('rateations:reload-kpis', handleKpiReload);
-  }, [reloadStats, reloadSaving, reloadCost, loadDecadenceData]);
+  }, [reloadStats, reloadSaving, reloadR5, reloadCost, loadDecadenceData]);
 
   // Cleanup timeouts on unmount
   React.useEffect(() => cleanup, [cleanup]);
@@ -235,15 +239,28 @@ export default function Rateations() {
       {/* Health Check Banner */}
       <RateationsHealthBanner />
 
-      {/* KPI Cards and Saldo Decaduto - Always visible */}
-      <div className="grid gap-4 mb-6">
+      {/* KPI Cards - Aggregati (senza breakdown) */}
+      <div className="grid gap-4 mb-4">
         <KpiCards 
           loading={statsLoading} 
           stats={stats} 
           previousStats={previousStats}
+          showBreakdown={false}
         />
-        
-        {/* Financial Balance Card */}
+      </div>
+      
+      {/* Type Breakdown Cards - Dettagli per tipo */}
+      <div className="mb-4">
+        <TypeBreakdownCards
+          loading={statsLoading || savingLoading || r5Loading}
+          breakdown={stats.breakdown_by_type}
+          savingRQ={quaterSaving}
+          savingR5={quinquiesSaving}
+        />
+      </div>
+      
+      {/* Financial Balance Card + Saldo Decaduto */}
+      <div className="grid gap-4 mb-6 lg:grid-cols-2">
         <FinancialBalanceCard 
           savingRQ={quaterSaving}
           costF24PagoPA={f24PagopaCost}
@@ -251,15 +268,12 @@ export default function Rateations() {
           onClick={() => navigate("/risparmio-rq")}
         />
         
-        {/* Saldo Decaduto Card */}
         {decadenceDashboard && (
-          <div className="grid gap-4">
-            <SaldoDecadutoCard 
-              data={decadenceDashboard}
-              previewCents={decadencePreviewCents}
-              onClick={openDecadenze}
-            />
-          </div>
+          <SaldoDecadutoCard 
+            data={decadenceDashboard}
+            previewCents={decadencePreviewCents}
+            onClick={openDecadenze}
+          />
         )}
       </div>
 
