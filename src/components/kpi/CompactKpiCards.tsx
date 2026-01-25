@@ -6,6 +6,10 @@ import { AlertCircle, RotateCcw, TrendingUp, ShieldX, Clock, Target } from "luci
 import { cn } from "@/lib/utils";
 
 import { formatEuro } from "@/lib/formatters";
+import { FinancialBalanceCard } from "./FinancialBalanceCard";
+import { useQuaterSaving } from "@/hooks/useQuaterSaving";
+import { useQuinquiesSaving } from "@/hooks/useQuinquiesSaving";
+import { useF24PagopaCost } from "@/hooks/useF24PagopaCost";
 
 type CompactKpiCardProps = {
   title: string;
@@ -74,7 +78,7 @@ export function CompactKpiCard({
   return cardContent;
 }
 
-// Block with 4 cards side by side (responsive)
+// Block with 5 cards side by side (responsive) + Financial Balance Card
 type ResidualDecadenceRowProps = {
   residualEuro: number;
   decNetEuro: number;
@@ -82,6 +86,7 @@ type ResidualDecadenceRowProps = {
   overdueEffectiveEuro: number;
   loading?: boolean;
   onOpenDecadenze?: () => void;
+  onOpenRisparmi?: () => void;
 };
 
 export function ResidualDecadenceRow({
@@ -91,10 +96,18 @@ export function ResidualDecadenceRow({
   overdueEffectiveEuro,
   loading,
   onOpenDecadenze,
+  onOpenRisparmi,
 }: ResidualDecadenceRowProps) {
+  // Fetch data for FinancialBalanceCard
+  const { saving: savingRQ, loading: loadingRQ } = useQuaterSaving();
+  const { saving: savingQuinquies, loading: loadingR5 } = useQuinquiesSaving();
+  const { cost: costF24PagoPA, loading: loadingCost } = useF24PagopaCost();
+
+  const financialLoading = loadingRQ || loadingR5 || loadingCost;
+
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <CompactKpiCard
           title="Totale residuo"
           value={residualEuro}
@@ -131,6 +144,15 @@ export function ResidualDecadenceRow({
           icon={<Target className="h-4 w-4 text-muted-foreground" />}
           loading={loading}
           highlight="primary"
+        />
+
+        {/* Financial Balance Card integrata nella row */}
+        <FinancialBalanceCard
+          savingRQ={savingRQ}
+          savingQuinquies={savingQuinquies}
+          costF24PagoPA={costF24PagoPA}
+          loading={financialLoading}
+          onClick={onOpenRisparmi}
         />
       </div>
     </TooltipProvider>

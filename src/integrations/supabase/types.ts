@@ -704,6 +704,304 @@ export type Database = {
         }
         Relationships: []
       }
+      quinquies_links: {
+        Row: {
+          allocated_residual_cents: number | null
+          created_at: string
+          id: string
+          pagopa_id: number
+          pagopa_residual_at_link_cents: number | null
+          pagopa_taxpayer_at_link: string | null
+          quinquies_id: number
+          quinquies_taxpayer_at_link: string | null
+          quinquies_total_at_link_cents: number | null
+          reason: string | null
+          risparmio_at_link_cents: number | null
+          unlinked_at: string | null
+        }
+        Insert: {
+          allocated_residual_cents?: number | null
+          created_at?: string
+          id?: string
+          pagopa_id: number
+          pagopa_residual_at_link_cents?: number | null
+          pagopa_taxpayer_at_link?: string | null
+          quinquies_id: number
+          quinquies_taxpayer_at_link?: string | null
+          quinquies_total_at_link_cents?: number | null
+          reason?: string | null
+          risparmio_at_link_cents?: number | null
+          unlinked_at?: string | null
+        }
+        Update: {
+          allocated_residual_cents?: number | null
+          created_at?: string
+          id?: string
+          pagopa_id?: number
+          pagopa_residual_at_link_cents?: number | null
+          pagopa_taxpayer_at_link?: string | null
+          quinquies_id?: number
+          quinquies_taxpayer_at_link?: string | null
+          quinquies_total_at_link_cents?: number | null
+          reason?: string | null
+          risparmio_at_link_cents?: number | null
+          unlinked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_f24_linked_status"
+            referencedColumns: ["f24_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_type_label"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_list_ui"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_stats_source"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_stats_source_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_stats_v3"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_pagopa_id_fkey"
+            columns: ["pagopa_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_contribuenti_aggregati"
+            referencedColumns: ["riam_quater_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "rateations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_decadute_dettaglio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_f24_linked_status"
+            referencedColumns: ["f24_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_migrable_pagopa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_allocations"
+            referencedColumns: ["pagopa_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_today_kpis"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_pagopa_unpaid_today"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateation_type_label"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_list_ui"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_stats_source"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_stats_source_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_stats_v3"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary"
+            referencedColumns: ["rateation_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_summary_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rateations_with_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_allocations"
+            referencedColumns: ["rq_id"]
+          },
+          {
+            foreignKeyName: "quinquies_links_quinquies_id_fkey"
+            columns: ["quinquies_id"]
+            isOneToOne: false
+            referencedRelation: "v_rq_contribuenti_aggregati"
+            referencedColumns: ["riam_quater_id"]
+          },
+        ]
+      }
       rateation_debts: {
         Row: {
           created_at: string
@@ -1041,6 +1339,7 @@ export type Database = {
           is_deleted: boolean
           is_f24: boolean
           is_quater: boolean | null
+          is_quinquies: boolean | null
           notes: string | null
           number: string
           original_total_due_cents: number | null
@@ -1078,6 +1377,7 @@ export type Database = {
           is_deleted?: boolean
           is_f24?: boolean
           is_quater?: boolean | null
+          is_quinquies?: boolean | null
           notes?: string | null
           number: string
           original_total_due_cents?: number | null
@@ -1115,6 +1415,7 @@ export type Database = {
           is_deleted?: boolean
           is_f24?: boolean
           is_quater?: boolean | null
+          is_quinquies?: boolean | null
           notes?: string | null
           number?: string
           original_total_due_cents?: number | null
@@ -3100,6 +3401,13 @@ export type Database = {
         Relationships: []
       }
       v_quater_saving_per_user: {
+        Row: {
+          owner_uid: string | null
+          saving_eur: number | null
+        }
+        Relationships: []
+      }
+      v_quinquies_saving_per_user: {
         Row: {
           owner_uid: string | null
           saving_eur: number | null

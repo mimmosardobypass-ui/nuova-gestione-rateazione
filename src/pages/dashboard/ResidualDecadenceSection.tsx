@@ -22,6 +22,7 @@ export default function ResidualDecadenceSection() {
         overdueEffectiveEuro={overdueEffectiveEuro}
         loading={loading}
         onOpenDecadenze={() => nav("/rateazioni?view=decadenze")}
+        onOpenRisparmi={() => nav("/risparmi-rq")}
       />
     </div>
   );
