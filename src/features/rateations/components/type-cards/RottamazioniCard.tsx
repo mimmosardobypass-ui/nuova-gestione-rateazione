@@ -24,12 +24,12 @@ const TYPE_CONFIG: Record<RottamazioneType, {
   'Rottamazione Quater': { 
     label: 'Quater', 
     colorClass: 'bg-amber-500',
-    showSaving: true 
+    showSaving: false 
   },
   'Riam. Quater': { 
     label: 'Riam. Quater', 
     colorClass: 'bg-purple-500',
-    showSaving: false 
+    showSaving: true 
   },
   'Rottamazione Quinquies': { 
     label: 'Quinquies', 
@@ -63,13 +63,14 @@ interface TypeRowProps {
   type: RottamazioneType;
   data: TypeData;
   saving?: number;
+  forceShow?: boolean;
 }
 
-function TypeRow({ type, data, saving }: TypeRowProps) {
+function TypeRow({ type, data, saving, forceShow = false }: TypeRowProps) {
   const config = TYPE_CONFIG[type];
   const hasData = data.due > 0 || data.paid > 0 || data.residual > 0 || (saving && saving > 0);
   
-  if (!hasData) return null;
+  if (!hasData && !forceShow) return null;
   
   return (
     <>
@@ -113,10 +114,19 @@ export function RottamazioniCard({ breakdown, savingRQ, savingR5, loading = fals
   }
   
   const getSaving = (type: RottamazioneType): number | undefined => {
-    if (type === 'Rottamazione Quater') return savingRQ;
+    if (type === 'Riam. Quater') return savingRQ;
     if (type === 'Rottamazione Quinquies') return savingR5;
     return undefined;
   };
+  
+  const totals = types.reduce(
+    (acc, type) => ({
+      due: acc.due + dataByType[type].due,
+      paid: acc.paid + dataByType[type].paid,
+      residual: acc.residual + dataByType[type].residual,
+    }),
+    { due: 0, paid: 0, residual: 0 }
+  );
 
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
@@ -143,8 +153,16 @@ export function RottamazioniCard({ breakdown, savingRQ, savingR5, loading = fals
               type={type} 
               data={dataByType[type]} 
               saving={getSaving(type)}
+              forceShow={type === 'Rottamazione Quinquies'}
             />
           ))}
+          {/* Totals row */}
+          <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 pt-2 mt-1 border-t-2 border-border text-xs items-center">
+            <div className="font-semibold text-muted-foreground">Totale</div>
+            <div className="text-right tabular-nums font-bold">{formatEuroFromCents(totals.due)}</div>
+            <div className="text-right tabular-nums font-bold">{formatEuroFromCents(totals.paid)}</div>
+            <div className="text-right tabular-nums font-bold">{formatEuroFromCents(totals.residual)}</div>
+          </div>
         </div>
       )}
     </div>
