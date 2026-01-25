@@ -3,7 +3,24 @@ import { formatEuro, formatEuroFromCents } from "@/lib/formatters";
 import { Sparkline } from "@/components/ui/sparkline";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
-import type { KpiBreakdown } from "../api/kpi";
+import type { KpiBreakdown, KpiBreakdownItem } from "../api/kpi";
+
+// Tipi che devono apparire sempre nei breakdown, anche con €0,00
+const ALWAYS_SHOW_TYPES = ['Rottamazione Quinquies'];
+
+// Garantisce che i tipi obbligatori siano sempre presenti nel breakdown
+function ensureRequiredTypes(breakdown: KpiBreakdown): KpiBreakdown {
+  const existingTypes = new Set(breakdown.map(item => item.type_label));
+  const result = [...breakdown];
+  
+  for (const type of ALWAYS_SHOW_TYPES) {
+    if (!existingTypes.has(type)) {
+      result.push({ type_label: type, amount_cents: 0 });
+    }
+  }
+  
+  return result;
+}
 
 function Kpi({ 
   label, 
@@ -42,10 +59,10 @@ function Kpi({
       </div>
       
       {/* Breakdown per tipo */}
-      {!loading && breakdown && breakdown.length > 0 && (
+      {!loading && breakdown && (
         <div className="mt-3 space-y-1 text-xs border-t pt-2">
-          {breakdown
-            .filter(item => item.amount_cents > 0)
+          {ensureRequiredTypes(breakdown)
+            .filter(item => item.amount_cents > 0 || ALWAYS_SHOW_TYPES.includes(item.type_label))
             .sort((a, b) => {
               const typeOrder: Record<string, number> = {
                 'F24': 1,
