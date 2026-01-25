@@ -9,7 +9,7 @@ import type { KpiBreakdown, KpiBreakdownItem } from "../api/kpi";
 const ALWAYS_SHOW_TYPES = [
   'Rottamazione Quinquies',
   'F24 Migrate',
-  'F24 In Attesa',
+  'F24 Decadute',
   'F24 Completate',
   'PagoPA Migrate RQ',
   'PagoPA Migrate R5',
