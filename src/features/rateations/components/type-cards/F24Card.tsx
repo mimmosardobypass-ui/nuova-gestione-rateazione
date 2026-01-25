@@ -64,22 +64,22 @@ function CategoryRow({ category, data }: CategoryRowProps) {
   if (!hasData(data)) return null;
   
   return (
-    <div className="flex items-center gap-3 py-1.5 text-xs border-b border-border/30 last:border-0">
-      <div className="flex items-center gap-1.5 min-w-[72px]">
+    <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-2 py-1.5 text-xs items-center border-b border-border/30 last:border-0">
+      <div className="flex items-center gap-1.5">
         <span className={cn("w-2 h-2 rounded-full flex-shrink-0", config.colorClass)} />
         <span className="font-medium">{config.label}</span>
       </div>
-      <div className="flex items-center gap-1 text-muted-foreground">
-        <span className="text-[10px]">Dovuto</span>
+      <div className="text-right">
+        <span className="text-[10px] text-muted-foreground">Dovuto </span>
         <span className="tabular-nums font-medium text-foreground">{formatEuroFromCents(data.due)}</span>
       </div>
-      <div className="flex items-center gap-1 text-muted-foreground">
-        <span className="text-[10px]">Pagato</span>
-        <span className="tabular-nums text-green-600 dark:text-green-400">{formatEuroFromCents(data.paid)}</span>
+      <div className="text-right">
+        <span className="text-[10px] text-muted-foreground">Pagato </span>
+        <span className="tabular-nums text-foreground">{formatEuroFromCents(data.paid)}</span>
       </div>
-      <div className="flex items-center gap-1 text-muted-foreground">
-        <span className="text-[10px]">Res</span>
-        <span className="tabular-nums">{formatEuroFromCents(data.residual)}</span>
+      <div className="text-right">
+        <span className="text-[10px] text-muted-foreground">Res </span>
+        <span className="tabular-nums text-foreground">{formatEuroFromCents(data.residual)}</span>
       </div>
     </div>
   );
@@ -144,7 +144,7 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Totale Pagato</span>
-              <span className="tabular-nums text-green-600 dark:text-green-400">{formatEuroFromCents(activeTotals.paid)}</span>
+              <span className="tabular-nums text-foreground">{formatEuroFromCents(activeTotals.paid)}</span>
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Totale Residuo</span>
