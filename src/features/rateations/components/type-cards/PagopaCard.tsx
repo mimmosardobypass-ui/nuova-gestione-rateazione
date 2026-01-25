@@ -88,8 +88,13 @@ function CategoryRow({ category, data }: CategoryRowProps) {
 export function PagopaCard({ breakdown, loading = false }: PagopaCardProps) {
   const data = extractAllPagopaData(breakdown);
   
-  // Totali solo per PagoPA Attive (come F24Card)
-  const activeTotals = data['PagoPa'];
+  // Totali: Dovuto e Residuo solo Attive, Pagato include anche Completate
+  const totalPaid = data['PagoPa'].paid + data['PagoPA Completate'].paid;
+  const activeTotals = {
+    due: data['PagoPa'].due,
+    paid: totalPaid,
+    residual: data['PagoPa'].residual,
+  };
 
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
