@@ -63,19 +63,22 @@ function CategoryRow({ category, data }: CategoryRowProps) {
   if (!hasData) return null;
   
   return (
-    <div className="grid grid-cols-4 gap-1 py-1.5 text-xs border-b border-border/30 last:border-0">
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-3 py-1.5 text-xs border-b border-border/30 last:border-0">
+      <div className="flex items-center gap-1.5 min-w-[72px]">
         <span className={cn("w-2 h-2 rounded-full flex-shrink-0", config.colorClass)} />
-        <span className="font-medium truncate">{config.label}</span>
+        <span className="font-medium">{config.label}</span>
       </div>
-      <div className="text-right tabular-nums text-muted-foreground">
-        {formatEuroFromCents(data.due)}
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <span className="text-[10px]">Dovuto</span>
+        <span className="tabular-nums font-medium text-foreground">{formatEuroFromCents(data.due)}</span>
       </div>
-      <div className="text-right tabular-nums text-green-600 dark:text-green-400">
-        {formatEuroFromCents(data.paid)}
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <span className="text-[10px]">Pagato</span>
+        <span className="tabular-nums text-green-600 dark:text-green-400">{formatEuroFromCents(data.paid)}</span>
       </div>
-      <div className="text-right tabular-nums">
-        {formatEuroFromCents(data.residual)}
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <span className="text-[10px]">Res</span>
+        <span className="tabular-nums">{formatEuroFromCents(data.residual)}</span>
       </div>
     </div>
   );
@@ -140,13 +143,6 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
         </div>
       ) : (
         <div className="space-y-1">
-          {/* Column Headers */}
-          <div className="grid grid-cols-4 gap-1 text-[9px] font-medium text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">
-            <div>Stato</div>
-            <div className="text-right">Dovuto</div>
-            <div className="text-right">Pagato</div>
-            <div className="text-right">Residuo</div>
-          </div>
           
           {/* Sezione: Debito Attivo */}
           <CollapsibleSection 
