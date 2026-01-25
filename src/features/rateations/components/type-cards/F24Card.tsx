@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { FileText, ChevronDown } from "lucide-react";
+import { FileText } from "lucide-react";
 import { formatEuroFromCents } from "@/lib/formatters";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { KpiBreakdown } from "../../api/kpi";
 
@@ -51,6 +49,22 @@ function extractAllF24Data(breakdown: {
   return data;
 }
 
+function hasData(catData: F24CategoryData): boolean {
+  return catData.due > 0 || catData.paid > 0 || catData.residual > 0;
+}
+
+interface SectionHeaderProps {
+  title: string;
+}
+
+function SectionHeader({ title }: SectionHeaderProps) {
+  return (
+    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pt-3 pb-1 first:pt-0">
+      {title}
+    </div>
+  );
+}
+
 interface CategoryRowProps {
   category: F24Categories;
   data: F24CategoryData;
@@ -58,9 +72,8 @@ interface CategoryRowProps {
 
 function CategoryRow({ category, data }: CategoryRowProps) {
   const config = CATEGORY_CONFIG[category];
-  const hasData = data.due > 0 || data.paid > 0 || data.residual > 0;
   
-  if (!hasData) return null;
+  if (!hasData(data)) return null;
   
   return (
     <div className="flex items-center gap-3 py-1.5 text-xs border-b border-border/30 last:border-0">
@@ -84,46 +97,18 @@ function CategoryRow({ category, data }: CategoryRowProps) {
   );
 }
 
-interface CollapsibleSectionProps {
-  title: string;
-  categories: F24Categories[];
-  data: Record<F24Categories, F24CategoryData>;
-  defaultOpen?: boolean;
-}
-
-function CollapsibleSection({ title, categories, data, defaultOpen = true }: CollapsibleSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  
-  // Check if any category has data
-  const hasAnyData = categories.some(cat => {
-    const catData = data[cat];
-    return catData.due > 0 || catData.paid > 0 || catData.residual > 0;
-  });
-  
-  if (!hasAnyData) return null;
-  
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex items-center gap-1.5 w-full py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
-        <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
-        {title}
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="pl-1">
-          {categories.map(cat => (
-            <CategoryRow key={cat} category={cat} data={data[cat]} />
-          ))}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
 export function F24Card({ breakdown, loading = false }: F24CardProps) {
   const data = extractAllF24Data(breakdown);
   
   // Totali solo per F24 Attive
   const activeTotals = data['F24'];
+
+  // Check if sections have data
+  const hasStoricoData = (['F24 Completate', 'F24 Migrate', 'F24 In Attesa'] as F24Categories[])
+    .some(cat => hasData(data[cat]));
+
+  const hasDecaduteData = (['F24 Decadute', 'F24 Interrotte'] as F24Categories[])
+    .some(cat => hasData(data[cat]));
 
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
@@ -142,31 +127,30 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
           ))}
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           
-          {/* Sezione: Debito Attivo */}
-          <CollapsibleSection 
-            title="Debito Attivo"
-            categories={['F24']}
-            data={data}
-            defaultOpen={true}
-          />
+          {/* DEBITO ATTIVO - sempre visibile */}
+          <SectionHeader title="Debito Attivo" />
+          <CategoryRow category="F24" data={data['F24']} />
           
-          {/* Sezione: Storico / Migrato */}
-          <CollapsibleSection 
-            title="Storico / Migrato"
-            categories={['F24 Completate', 'F24 Migrate', 'F24 In Attesa']}
-            data={data}
-            defaultOpen={false}
-          />
+          {/* STORICO / MIGRATO - solo se ci sono dati */}
+          {hasStoricoData && (
+            <>
+              <SectionHeader title="Storico / Migrato" />
+              <CategoryRow category="F24 Completate" data={data['F24 Completate']} />
+              <CategoryRow category="F24 Migrate" data={data['F24 Migrate']} />
+              <CategoryRow category="F24 In Attesa" data={data['F24 In Attesa']} />
+            </>
+          )}
           
-          {/* Sezione: Decadute / Interrotte */}
-          <CollapsibleSection 
-            title="Decadute / Interrotte"
-            categories={['F24 Decadute', 'F24 Interrotte']}
-            data={data}
-            defaultOpen={false}
-          />
+          {/* DECADUTE / INTERROTTE - solo se ci sono dati */}
+          {hasDecaduteData && (
+            <>
+              <SectionHeader title="Decadute / Interrotte" />
+              <CategoryRow category="F24 Decadute" data={data['F24 Decadute']} />
+              <CategoryRow category="F24 Interrotte" data={data['F24 Interrotte']} />
+            </>
+          )}
           
           {/* Footer: Riepilogo Debito Attivo */}
           <div className="border-t pt-2 mt-2 space-y-1 bg-muted/30 -mx-4 px-4 py-2 rounded-b-lg">
