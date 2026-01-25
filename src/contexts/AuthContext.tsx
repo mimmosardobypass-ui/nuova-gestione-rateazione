@@ -1,5 +1,6 @@
-// Force rebuild: 2026-01-25T20:05:00 - Fixed React duplication with explicit aliases
-import React, { createContext, useContext, useEffect, useState } from 'react';
+// Force rebuild: 2026-01-25T21:00:00 - Fixed React duplication with named imports
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client-resilient';
 
@@ -24,7 +25,7 @@ export const useAuth = () => {
 };
 
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {

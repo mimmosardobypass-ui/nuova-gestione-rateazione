@@ -5,9 +5,18 @@ import './index.css'
 import './styles/print.css'
 import 'flatpickr/dist/themes/material_blue.css'
 
-// Force Vite cache invalidation - build timestamp: 2025-12-03T20:10:00
+// Force Vite cache invalidation - build timestamp: 2026-01-25T21:00:00
 // Global error handlers for debugging black screen issues
 console.log('🚀 [App] Starting application initialization...');
+
+// React integrity check - detect duplicate instances
+console.log('🔍 [React Check] Version:', React.version);
+console.log('🔍 [React Check] useState type:', typeof React.useState);
+
+if (typeof React.useState !== 'function') {
+  console.error('❌ React.useState non è una funzione! Possibile duplicazione React.');
+  throw new Error('React hooks non disponibili - ricarica la pagina');
+}
 
 window.onerror = (message, source, lineno, colno, error) => {
   console.error('❌ [Global Error]', {
