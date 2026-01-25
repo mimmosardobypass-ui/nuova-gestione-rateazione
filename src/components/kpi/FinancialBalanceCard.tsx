@@ -1,4 +1,4 @@
-import { Leaf, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { Leaf, Sprout, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -8,6 +8,7 @@ import { formatEuroFromCents } from "@/lib/formatters";
 
 interface FinancialBalanceCardProps {
   savingRQ: number;
+  savingQuinquies?: number;  // NEW: Risparmio R5 (Rottamazione Quinquies 2026)
   costF24PagoPA: number;
   loading?: boolean;
   onClick?: () => void;
@@ -15,11 +16,13 @@ interface FinancialBalanceCardProps {
 
 export function FinancialBalanceCard({ 
   savingRQ, 
+  savingQuinquies = 0,  // Default 0 for backward compatibility
   costF24PagoPA, 
   loading = false,
   onClick 
 }: FinancialBalanceCardProps) {
-  const netBalance = savingRQ - costF24PagoPA;
+  // NEW: Formula aggiornata con risparmio R5
+  const netBalance = (savingRQ + savingQuinquies) - costF24PagoPA;
   const isPositive = netBalance >= 0;
 
   if (loading) {
@@ -32,6 +35,7 @@ export function FinancialBalanceCard({
           <Skeleton className="h-8 w-1/2" />
           <Separator />
           <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
           </div>
@@ -81,7 +85,7 @@ export function FinancialBalanceCard({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Risparmio RQ - Costo F24→PagoPA</p>
+              <p>(Risparmio RQ + Risparmio R5) - Costo F24→PagoPA</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -105,7 +109,27 @@ export function FinancialBalanceCard({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Differenza tra debito originario e importo ridotto con Rottamazione Quater</p>
+                <p>Differenza tra debito originario e importo ridotto con Rottamazione Quater 2024</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* NEW: Saving R5 (Quinquies) */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between group hover:bg-muted/50 p-2 rounded-md transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Sprout className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    <span className="font-medium">Risparmio R5</span>
+                  </div>
+                  <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800">
+                    +{formatEuroFromCents(Math.round(savingQuinquies * 100))}
+                  </Badge>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Risparmio dalla Rottamazione Quinquies 2026</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
