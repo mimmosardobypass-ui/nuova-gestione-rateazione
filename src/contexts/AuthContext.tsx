@@ -1,4 +1,4 @@
-// Force rebuild: 2025-12-08T16:55
+// Force rebuild: 2026-01-25T19:30
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client-resilient';
