@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 // Cache bust: 2026-01-25T19:45:00
+// Force rebuild: 2026-01-25T20:00:00
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -21,6 +22,10 @@ export default defineConfig(({ mode }) => ({
     },
     // Ensure a single React instance (prevents Invalid Hook Call)
     dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    force: true,
+    include: ['react', 'react-dom'],
   },
   build: {
     rollupOptions: {
