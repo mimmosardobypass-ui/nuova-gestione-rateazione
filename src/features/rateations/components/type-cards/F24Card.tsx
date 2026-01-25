@@ -5,6 +5,7 @@ import type { KpiBreakdown } from "../../api/kpi";
 interface F24CardProps {
   breakdown: {
     due: KpiBreakdown;
+    paid: KpiBreakdown;
     residual: KpiBreakdown;
   };
   loading?: boolean;
@@ -21,15 +22,14 @@ function extractF24Data(breakdown: KpiBreakdown) {
     completate,
     migrate,
     inAttesa,
-    // Totale dovuto: solo Attive + In Attesa (Completate e Migrate non sono più debiti F24)
-    totaleDebito: attive + inAttesa,
-    // Totale storico per riferimento
-    totaleStorico: attive + completate + migrate + inAttesa
+    // Totale = SOLO F24 Attive (esclude Completate, Migrate, In Attesa)
+    totale: attive
   };
 }
 
 export function F24Card({ breakdown, loading = false }: F24CardProps) {
   const dueData = extractF24Data(breakdown.due);
+  const paidData = extractF24Data(breakdown.paid);
   const residualData = extractF24Data(breakdown.residual);
 
   return (
@@ -78,14 +78,18 @@ export function F24Card({ breakdown, loading = false }: F24CardProps) {
             <span className="font-medium tabular-nums">{formatEuroFromCents(dueData.inAttesa)}</span>
           </div>
           
-          <div className="border-t pt-2 mt-2">
+          <div className="border-t pt-2 mt-2 space-y-1">
             <div className="flex justify-between items-center">
-              <span className="font-medium">Debito F24</span>
-              <span className="font-bold tabular-nums">{formatEuroFromCents(dueData.totaleDebito)}</span>
+              <span className="font-medium">Totale Dovuto</span>
+              <span className="font-bold tabular-nums">{formatEuroFromCents(dueData.totale)}</span>
             </div>
-            <div className="flex justify-between items-center text-muted-foreground">
-              <span>Residuo</span>
-              <span className="tabular-nums">{formatEuroFromCents(residualData.totaleDebito)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Totale Pagato</span>
+              <span className="tabular-nums text-green-600 dark:text-green-400">{formatEuroFromCents(paidData.totale)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Totale Residuo</span>
+              <span className="tabular-nums">{formatEuroFromCents(residualData.totale)}</span>
             </div>
           </div>
         </div>
