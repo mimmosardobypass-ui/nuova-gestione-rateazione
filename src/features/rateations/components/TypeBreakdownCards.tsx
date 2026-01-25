@@ -22,7 +22,7 @@ export function TypeBreakdownCards({
   return (
     <section className="grid gap-3 grid-cols-2 lg:grid-cols-5">
       <F24Card 
-        breakdown={{ due: breakdown.due, residual: breakdown.residual }} 
+        breakdown={{ due: breakdown.due, paid: breakdown.paid, residual: breakdown.residual }} 
         loading={loading} 
       />
       <PagopaCard 
