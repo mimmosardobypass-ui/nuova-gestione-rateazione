@@ -2,8 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
-import { PrintKpi } from "@/components/print/PrintKpi";
 import { PrintBreakdownSection } from "@/components/print/PrintBreakdownSection";
+import {
+  PrintKpiCard,
+  PrintKpiResidual,
+  PrintF24Card,
+  PrintPagopaCard,
+  PrintRottamazioniCard,
+  PrintFinancialBalanceCard,
+  PrintSaldoDecadutoCard,
+} from "@/components/print/PrintDashboardCards";
 import { formatEuro } from "@/lib/formatters";
 import { ensureStringId } from "@/lib/utils/ids";
 import { totalsForExport } from "@/utils/rateation-export";
@@ -30,10 +38,8 @@ interface RiepilogoRow {
   first_due_date: string | null;
   last_due_date: string | null;
   last_activity: string | null;
-  // Campi aggiuntivi per logica PagoPA interrotte
   status?: string;
   interrupted_by_rateation_id?: number | null;
-  // Residuo calcolato con logica corretta
   calculated_residual?: number;
 }
 
@@ -60,7 +66,8 @@ export default function RiepilogoReport() {
     totalPaid: 0,
     totalResidual: 0,
     totalResidualPending: 0,
-    totalResidualCombined: 0
+    totalResidualCombined: 0,
+    totalLate: 0,
   });
   const [breakdown, setBreakdown] = useState<{
     due: KpiBreakdown;
@@ -68,6 +75,12 @@ export default function RiepilogoReport() {
     residual: KpiBreakdown;
   }>({ due: [], paid: [], residual: [] });
   const [savings, setSavings] = useState({ rq: 0, r5: 0 });
+  const [costF24PagoPA, setCostF24PagoPA] = useState(0);
+  const [decadenceData, setDecadenceData] = useState({
+    grossDecayed: 0,
+    transferred: 0,
+    netToTransfer: 0,
+  });
 
   const theme = searchParams.get("theme") === "bn" ? "theme-bn" : "";
   const density = searchParams.get("density") === "compact" ? "density-compact" : "";
@@ -83,7 +96,6 @@ export default function RiepilogoReport() {
     if (!loading) {
       const go = async () => {
         try { await (document as any).fonts?.ready; } catch {}
-        // piccolo buffer per QR/logo/font
         setTimeout(() => {
           window.focus();
           window.print();
@@ -95,11 +107,18 @@ export default function RiepilogoReport() {
 
   const loadData = async () => {
     try {
-      // Get current user for savings queries
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Carica KPI dalla stessa fonte della dashboard + savings
-      const [dueByType, paidByType, residualByType, savingRQData, savingR5Data] = await Promise.all([
+      // Carica tutti i dati necessari in parallelo
+      const [
+        dueByType, 
+        paidByType, 
+        residualByType, 
+        savingRQData, 
+        savingR5Data,
+        costData,
+        decadutoData,
+      ] = await Promise.all([
         fetchDueByType(),
         fetchPaidByType(),
         fetchResidualByType(),
@@ -113,13 +132,28 @@ export default function RiepilogoReport() {
           .select("saving_eur")
           .eq("owner_uid", user.id)
           .maybeSingle() : Promise.resolve({ data: null }),
+        user ? supabase
+          .from("v_f24_pagopa_cost_per_user")
+          .select("cost_eur")
+          .eq("owner_uid", user.id)
+          .maybeSingle() : Promise.resolve({ data: null }),
+        supabase
+          .from("v_dashboard_decaduto")
+          .select("*")
+          .maybeSingle(),
       ]);
       
-      // Store breakdown for PrintBreakdownSection
+      // Store breakdown for cards
       setBreakdown({ due: dueByType, paid: paidByType, residual: residualByType });
       setSavings({ 
         rq: savingRQData?.data?.saving_eur ?? 0, 
         r5: savingR5Data?.data?.saving_eur ?? 0 
+      });
+      setCostF24PagoPA(costData?.data?.cost_eur ?? 0);
+      setDecadenceData({
+        grossDecayed: Number(decadutoData?.data?.gross_decayed_cents ?? 0) / 100,
+        transferred: Number(decadutoData?.data?.transferred_cents ?? 0) / 100,
+        netToTransfer: Number(decadutoData?.data?.net_to_transfer_cents ?? 0) / 100,
       });
 
       // Applica stessa logica di computeHeaderFromCards
@@ -137,12 +171,17 @@ export default function RiepilogoReport() {
 
       const f24DecaduteCents = sumByTypes(residualByType, F24_DECADUTE);
 
+      // Calculate "In ritardo" from overdue items
+      const overdueF24 = residualByType.find(b => b.type_label === 'F24')?.amount_cents ?? 0;
+      const overduePagopa = residualByType.find(b => b.type_label === 'PagoPa')?.amount_cents ?? 0;
+      
       setKpiTotals({
         totalDue: (f24DueCents + pagopaDueCents + rottDueCents) / 100,
         totalPaid: (f24PaidCents + pagopaPaidCents + rottPaidCents) / 100,
         totalResidual: (f24ResidualCents + pagopaResidualCents + rottResidualCents) / 100,
         totalResidualPending: f24DecaduteCents / 100,
         totalResidualCombined: (f24ResidualCents + pagopaResidualCents + rottResidualCents + f24DecaduteCents) / 100,
+        totalLate: (overdueF24 + overduePagopa) / 100, // Placeholder - would need proper overdue calculation
       });
 
       // Carica dati dalla vista per la tabella
@@ -231,10 +270,10 @@ export default function RiepilogoReport() {
         // Calcola residuo corretto usando la stessa logica dell'UI
         let calculated_residual = row.totale_residuo;
         if (additional) {
-        const totals = totalsForExport(row, installments, {
-          status: additional.status,
-          interrupted_by_rateation_id: additional.interrupted_by_rateation_id ? String(additional.interrupted_by_rateation_id) : null
-        });
+          const totals = totalsForExport(row, installments, {
+            status: additional.status,
+            interrupted_by_rateation_id: additional.interrupted_by_rateation_id ? String(additional.interrupted_by_rateation_id) : null
+          });
           calculated_residual = totals.residual;
         }
 
@@ -257,7 +296,6 @@ export default function RiepilogoReport() {
   const sum = (field: keyof RiepilogoRow) => 
     rows.reduce((s, r) => s + Number(r[field] || 0), 0);
 
-  // Somma residuo usando sempre totalsForExport per consistenza totale
   const sumResidual = () => 
     rows.reduce((s, r) => s + (r.calculated_residual ?? 0), 0);
 
@@ -268,7 +306,7 @@ export default function RiepilogoReport() {
   ].filter(Boolean).join(" • ");
 
   if (loading) {
-    return <div>Caricamento...</div>;
+    return <div className="p-8 text-center">Caricamento...</div>;
   }
 
   return (
@@ -278,27 +316,58 @@ export default function RiepilogoReport() {
       logoUrl={logoUrl}
       bodyClass={bodyClass}
     >
-      {/* KPI Section - Aligned with Dashboard */}
-      <section className="grid grid-cols-4 gap-3 mb-6">
-        <PrintKpi label="Totale dovuto" value={formatEuro(kpiTotals.totalDue)} />
-        <PrintKpi label="Totale pagato" value={formatEuro(kpiTotals.totalPaid)} />
-        <PrintKpi label="Extra ravvedimento" value={formatEuro(sum("extra_ravv_pagati"))} />
-        <PrintKpi 
-          label="Residuo" 
-          value={formatEuro(kpiTotals.totalResidualCombined)} 
+      {/* ===== DASHBOARD SECTION ===== */}
+      
+      {/* Row 1: KPI Header (4 cards) - exactly like dashboard */}
+      <section className="grid grid-cols-4 gap-3 mb-4">
+        <PrintKpiCard 
+          label="Totale dovuto" 
+          value={formatEuro(kpiTotals.totalDue)} 
+        />
+        <PrintKpiCard 
+          label="Totale pagato" 
+          value={formatEuro(kpiTotals.totalPaid)} 
+        />
+        <PrintKpiResidual 
+          residualActive={kpiTotals.totalResidual}
+          residualPending={kpiTotals.totalResidualPending}
+          residualTotal={kpiTotals.totalResidualCombined}
+        />
+        <PrintKpiCard 
+          label="In ritardo" 
+          value={formatEuro(sum("rate_in_ritardo") * 100)} // Convert to cents then format
+          variant="danger"
         />
       </section>
-      
-      {/* Breakdown Residuo se presente pending */}
-      {kpiTotals.totalResidualPending > 0 && (
-        <p className="text-xs text-muted-foreground mb-4">
-          Residuo Attivo: {formatEuro(kpiTotals.totalResidual)} + In Attesa Cartelle: {formatEuro(kpiTotals.totalResidualPending)}
-        </p>
-      )}
 
-      {/* Breakdown Section - Detailed by Type */}
-      <section className="mb-6">
-        <h2 className="text-sm font-semibold mb-3 border-b pb-1">Dettaglio per Tipologia</h2>
+      {/* Row 2: Type Cards (F24, PagoPA, Rottamazioni) */}
+      <section className="grid grid-cols-3 gap-3 mb-4">
+        <PrintF24Card breakdown={breakdown} />
+        <PrintPagopaCard breakdown={breakdown} />
+        <PrintRottamazioniCard 
+          breakdown={breakdown} 
+          savingRQ={savings.rq} 
+          savingR5={savings.r5} 
+        />
+      </section>
+
+      {/* Row 3: Financial Balance + Saldo Decaduto */}
+      <section className="grid grid-cols-2 gap-3 mb-6">
+        <PrintFinancialBalanceCard 
+          savingRQ={savings.rq}
+          savingR5={savings.r5}
+          costF24PagoPA={costF24PagoPA}
+        />
+        <PrintSaldoDecadutoCard 
+          grossDecayed={decadenceData.grossDecayed}
+          transferred={decadenceData.transferred}
+          netToTransfer={decadenceData.netToTransfer}
+        />
+      </section>
+
+      {/* ===== DETAIL BREAKDOWN SECTION ===== */}
+      <section className="mb-6 avoid-break">
+        <h2 className="text-sm font-semibold mb-3 border-b pb-1">Dettaglio per Tipologia (tabella)</h2>
         <PrintBreakdownSection 
           breakdown={breakdown}
           savingRQ={savings.rq}
@@ -325,7 +394,7 @@ export default function RiepilogoReport() {
         </div>
         {kpiTotals.totalResidualPending > 0 && (
           <div className="text-center mt-2 pt-2 border-t text-xs">
-            <span className="text-warning">+ In Attesa Cartelle: {formatEuro(kpiTotals.totalResidualPending)}</span>
+            <span className="text-amber-600">+ In Attesa Cartelle: {formatEuro(kpiTotals.totalResidualPending)}</span>
             <span className="font-bold ml-2">= DEBITO TOTALE: {formatEuro(kpiTotals.totalResidualCombined)}</span>
           </div>
         )}
@@ -341,7 +410,11 @@ export default function RiepilogoReport() {
         )}
       </section>
 
+      {/* Page break before table */}
+      <div className="page-break" />
+
       {/* Data Table */}
+      <h2 className="text-sm font-semibold mb-3 border-b pb-1">Elenco Rateazioni</h2>
       <table className="print-table">
         <thead>
           <tr>
