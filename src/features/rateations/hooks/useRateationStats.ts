@@ -12,6 +12,7 @@ import {
 // F24 Card: Dovuto/Residuo = solo Attive, Pagato = Attive + Completate
 const F24_ACTIVE = ['F24'];
 const F24_PAID = ['F24', 'F24 Completate'];
+const F24_DECADUTE = ['F24 Decadute'];  // F24 decadute in attesa di cartella
 
 // PagoPA Card: Dovuto/Residuo = solo Attive, Pagato = Attive + Completate
 const PAGOPA_ACTIVE = ['PagoPa'];
@@ -54,10 +55,17 @@ function computeHeaderFromCards(breakdown: {
   const rottResidualCents = sumBreakdownByTypes(breakdown.residual, ROTTAMAZIONI_TYPES);
   const rottOverdueCents = sumBreakdownByTypes(breakdown.overdue, ROTTAMAZIONI_TYPES);
 
+  // F24 Decadute: residuo in attesa di cartella (debito potenziale)
+  const f24DecadutePendingCents = sumBreakdownByTypes(breakdown.residual, F24_DECADUTE);
+
+  const totalResidualCents = f24ResidualCents + pagopaResidualCents + rottResidualCents;
+
   return {
     totalDueCents: f24DueCents + pagopaDueCents + rottDueCents,
     totalPaidCents: f24PaidCents + pagopaPaidCents + rottPaidCents,
-    totalResidualCents: f24ResidualCents + pagopaResidualCents + rottResidualCents,
+    totalResidualCents,
+    totalResidualPendingCents: f24DecadutePendingCents,
+    totalResidualCombinedCents: totalResidualCents + f24DecadutePendingCents,
     totalOverdueCents: f24OverdueCents + pagopaOverdueCents + rottOverdueCents,
   };
 }
@@ -67,6 +75,8 @@ type Stats = {
   total_paid: number; 
   total_late: number; 
   total_residual: number;
+  total_residual_pending: number;   // F24 Decadute in attesa di cartella
+  total_residual_combined: number;  // Residuo attivo + pending
   paid_count: number;
   total_count: number;
   breakdown_by_type: {
@@ -92,6 +102,8 @@ export function useRateationStats() {
     total_paid: 0, 
     total_late: 0, 
     total_residual: 0,
+    total_residual_pending: 0,
+    total_residual_combined: 0,
     paid_count: 0,
     total_count: 0,
     breakdown_by_type: {
@@ -268,6 +280,8 @@ export function useRateationStats() {
         total_paid: headerTotals.totalPaidCents / 100,    // ✅ Sum of card footers
         total_late: headerTotals.totalOverdueCents / 100, // ✅ Sum of card footers
         total_residual: headerTotals.totalResidualCents / 100, // ✅ Sum of card footers
+        total_residual_pending: headerTotals.totalResidualPendingCents / 100, // F24 Decadute
+        total_residual_combined: headerTotals.totalResidualCombinedCents / 100, // Totale reale
         paid_count: 0, // Not used in UI
         total_count: rateationIds.length,
         breakdown_by_type,
@@ -293,6 +307,8 @@ export function useRateationStats() {
         total_paid: 0, 
         total_late: 0, 
         total_residual: 0,
+        total_residual_pending: 0,
+        total_residual_combined: 0,
         paid_count: 0,
         total_count: 0,
         breakdown_by_type: {
