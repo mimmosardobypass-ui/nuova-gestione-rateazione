@@ -115,6 +115,71 @@ function Kpi({
   );
 }
 
+// Componente speciale per la card "Totale Residuo" con breakdown a 3 righe
+function KpiResidual({ 
+  residualActive, 
+  residualPending, 
+  residualTotal,
+  loading,
+  tooltip 
+}: { 
+  residualActive: number;
+  residualPending: number;
+  residualTotal: number;
+  loading: boolean;
+  tooltip?: string;
+}) {
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span>Totale residuo</span>
+        {tooltip && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+      
+      {loading ? (
+        <div className="mt-2 text-xl font-semibold">—</div>
+      ) : (
+        <div className="mt-2 space-y-1.5">
+          {/* Riga 1: Residuo Attivo */}
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Residuo Attivo</span>
+            <span className="font-semibold tabular-nums">{formatEuro(residualActive)}</span>
+          </div>
+          
+          {/* Riga 2: In Attesa Cartelle (solo se > 0) */}
+          {residualPending > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">In Attesa Cartelle</span>
+              <span className="font-semibold tabular-nums text-warning">
+                {formatEuro(residualPending)}
+              </span>
+            </div>
+          )}
+          
+          {/* Riga 3: Totale (evidenziato) - solo se c'è pending */}
+          {residualPending > 0 && (
+            <div className="flex justify-between items-center text-base border-t pt-1.5 mt-1">
+              <span className="font-medium">Totale</span>
+              <span className="font-bold tabular-nums text-lg">{formatEuro(residualTotal)}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function KpiCards({
   loading,
   stats,
@@ -125,7 +190,9 @@ export function KpiCards({
   stats: { 
     total_due: number; 
     total_paid: number; 
-    total_residual: number; 
+    total_residual: number;
+    total_residual_pending: number;
+    total_residual_combined: number;
     total_late: number;
     breakdown_by_type: {
       due: KpiBreakdown;
@@ -146,7 +213,9 @@ export function KpiCards({
   previousStats?: { 
     total_due: number; 
     total_paid: number; 
-    total_residual: number; 
+    total_residual: number;
+    total_residual_pending?: number;
+    total_residual_combined?: number;
     total_late: number;
     breakdown_by_type?: {
       due: KpiBreakdown;
@@ -195,14 +264,12 @@ export function KpiCards({
         breakdown={display.breakdown_by_type?.paid}
         showBreakdown={showBreakdown}
       />
-      <Kpi 
-        label="Totale residuo" 
-        value={display.total_residual} 
-        loading={showLoading} 
-        sparklineData={sparklineData}
-        breakdown={display.breakdown_by_type?.residual}
-        showBreakdown={showBreakdown}
-        tooltip="Residuo da pagare su rateazioni attive e F24 decadute non agganciate (esclude PagoPA interrotte già migrate a RQ)"
+      <KpiResidual 
+        residualActive={display.total_residual}
+        residualPending={display.total_residual_pending ?? 0}
+        residualTotal={display.total_residual_combined ?? display.total_residual}
+        loading={showLoading}
+        tooltip="Residuo attivo + F24 decadute in attesa di cartella (esclude PagoPA interrotte già migrate a RQ)"
       />
       <Kpi 
         label="In ritardo" 
