@@ -1,16 +1,41 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client-resilient";
 import { 
-  fetchResidualEuro, 
-  fetchOverdueEffectiveEuro, 
-  fetchTotalDueEuro, 
-  fetchTotalPaidEuro,
   fetchDueByType,
   fetchPaidByType,
   fetchResidualByType,
   fetchOverdueByType,
   type KpiBreakdown
 } from "@/features/rateations/api/kpi";
+
+// Category constants for each card - header totals = sum of all these
+const F24_TYPES = ['F24', 'F24 Completate', 'F24 Migrate', 'F24 Decadute'];
+const PAGOPA_TYPES = ['PagoPa', 'PagoPA Completate', 'PagoPA Migrate RQ', 'PagoPA Migrate R5'];
+const ROTTAMAZIONI_TYPES = ['Rottamazione Quater', 'Riam. Quater', 'Rottamazione Quinquies'];
+const ALL_CARD_TYPES = [...F24_TYPES, ...PAGOPA_TYPES, ...ROTTAMAZIONI_TYPES];
+
+// Helper: sum breakdown values for specified types (in cents)
+function sumBreakdownByTypes(breakdown: KpiBreakdown, types: string[]): number {
+  return types.reduce((sum, type) => {
+    const found = breakdown.find(b => b.type_label === type);
+    return sum + (found?.amount_cents ?? 0);
+  }, 0);
+}
+
+// Helper: compute header totals as exact sum of card footers
+function computeHeaderFromCards(breakdown: {
+  due: KpiBreakdown;
+  paid: KpiBreakdown;
+  residual: KpiBreakdown;
+  overdue: KpiBreakdown;
+}) {
+  return {
+    totalDueCents: sumBreakdownByTypes(breakdown.due, ALL_CARD_TYPES),
+    totalPaidCents: sumBreakdownByTypes(breakdown.paid, ALL_CARD_TYPES),
+    totalResidualCents: sumBreakdownByTypes(breakdown.residual, ALL_CARD_TYPES),
+    totalOverdueCents: sumBreakdownByTypes(breakdown.overdue, ALL_CARD_TYPES),
+  };
+}
 
 type Stats = { 
   total_due: number; 
@@ -191,12 +216,8 @@ export function useRateationStats() {
         }
       }
       
-      // Use DB views for ALL effective KPIs (centralized DB logic with consistent filtering)
-      const [totalDueEuro, totalPaidEuro, residualEuro, overdueEuro, dueByType, paidByType, residualByType, overdueByType] = await Promise.all([
-        fetchTotalDueEuro(controller.signal),
-        fetchTotalPaidEuro(controller.signal),
-        fetchResidualEuro(controller.signal),
-        fetchOverdueEffectiveEuro(controller.signal),
+      // Fetch breakdown by type from DB views
+      const [dueByType, paidByType, residualByType, overdueByType] = await Promise.all([
         fetchDueByType(controller.signal),
         fetchPaidByType(controller.signal),
         fetchResidualByType(controller.signal),
@@ -205,19 +226,26 @@ export function useRateationStats() {
       
       if (controller.signal.aborted) return;
       
+      // Build breakdown object
+      const breakdown_by_type = {
+        due: dueByType,
+        paid: paidByType,
+        residual: residualByType,
+        overdue: overdueByType,
+      };
+      
+      // CRITICAL: Calculate header totals as exact sum of card footers
+      // Header = F24 card total + PagoPA card total + Rottamazioni card total
+      const headerTotals = computeHeaderFromCards(breakdown_by_type);
+      
       setStats({
-        total_due: totalDueEuro,      // ✅ From DB view
-        total_paid: totalPaidEuro,    // ✅ From DB view
-        total_late: overdueEuro,      // ✅ From DB view
-        total_residual: residualEuro, // ✅ From DB view
+        total_due: headerTotals.totalDueCents / 100,      // ✅ Sum of card footers
+        total_paid: headerTotals.totalPaidCents / 100,    // ✅ Sum of card footers
+        total_late: headerTotals.totalOverdueCents / 100, // ✅ Sum of card footers
+        total_residual: headerTotals.totalResidualCents / 100, // ✅ Sum of card footers
         paid_count: 0, // Not used in UI
         total_count: rateationIds.length,
-        breakdown_by_type: {
-          due: dueByType,
-          paid: paidByType,
-          residual: residualByType,
-          overdue: overdueByType,
-        },
+        breakdown_by_type,
         series: {
           last12: {
             months: last12Months,
