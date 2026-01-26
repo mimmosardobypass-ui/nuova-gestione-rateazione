@@ -163,3 +163,212 @@
     print-color-adjust: exact;
   }
 }
+
+/* ============================================================================
+   Dashboard Cards for Print
+   ============================================================================ */
+
+.print-card {
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.print-card-header .icon {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Grid tabellare per breakdown */
+.print-breakdown-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 1fr;
+  gap: 2px;
+  font-size: 10px;
+}
+
+.print-breakdown-header {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #666;
+  font-weight: 500;
+}
+
+.print-category-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Colori specifici per categorie - with print color support */
+.print-dot-blue { background: #3b82f6; }
+.print-dot-green { background: #22c55e; }
+.print-dot-orange { background: #f97316; }
+.print-dot-red { background: #ef4444; }
+.print-dot-emerald { background: #10b981; }
+.print-dot-violet { background: #8b5cf6; }
+.print-dot-amber { background: #f59e0b; }
+.print-dot-purple { background: #a855f7; }
+
+@media print {
+  .print-dot-blue { background: #3b82f6 !important; }
+  .print-dot-green { background: #22c55e !important; }
+  .print-dot-orange { background: #f97316 !important; }
+  .print-dot-red { background: #ef4444 !important; }
+  .print-dot-emerald { background: #10b981 !important; }
+  .print-dot-violet { background: #8b5cf6 !important; }
+  .print-dot-amber { background: #f59e0b !important; }
+  .print-dot-purple { background: #a855f7 !important; }
+}
+
+/* Footer card con background grigio */
+.print-card-footer {
+  background: #f5f5f5;
+  margin: 10px -12px -12px -12px;
+  padding: 10px 12px;
+  border-radius: 0 0 6px 6px;
+  border-top: 1px solid #ddd;
+}
+
+@media print {
+  .print-card-footer {
+    background: #f5f5f5 !important;
+  }
+}
+
+/* Bilancio Finanziario card styles */
+.print-balance-positive {
+  border-color: #10b981 !important;
+  border-width: 2px;
+}
+
+.print-balance-negative {
+  border-color: #ef4444 !important;
+  border-width: 2px;
+}
+
+.print-balance-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.print-balance-positive .print-balance-value {
+  color: #059669;
+}
+
+.print-balance-negative .print-balance-value {
+  color: #dc2626;
+}
+
+@media print {
+  .print-balance-positive {
+    border-color: #10b981 !important;
+  }
+  .print-balance-negative {
+    border-color: #ef4444 !important;
+  }
+  .print-balance-positive .print-balance-value {
+    color: #059669 !important;
+  }
+  .print-balance-negative .print-balance-value {
+    color: #dc2626 !important;
+  }
+}
+
+/* Badge per risparmio/costo */
+.print-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.print-badge-emerald {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.print-badge-violet {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.print-badge-red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@media print {
+  .print-badge-emerald {
+    background: #d1fae5 !important;
+    color: #065f46 !important;
+  }
+  .print-badge-violet {
+    background: #ede9fe !important;
+    color: #5b21b6 !important;
+  }
+  .print-badge-red {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+  }
+}
+
+/* Progress bar per trasferimento */
+.print-progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.print-progress-fill {
+  height: 100%;
+  background: #3b82f6;
+}
+
+@media print {
+  .print-progress-bar {
+    background: #e5e7eb !important;
+  }
+  .print-progress-fill {
+    background: #3b82f6 !important;
+  }
+}
+
+/* Icon background colors for print */
+.icon.bg-blue-100 { background: #dbeafe; }
+.icon.bg-purple-100 { background: #f3e8ff; }
+.icon.bg-emerald-100 { background: #d1fae5; }
+.icon.bg-amber-100 { background: #fef3c7; }
+.icon.bg-red-100 { background: #fee2e2; }
+
+@media print {
+  .icon.bg-blue-100 { background: #dbeafe !important; }
+  .icon.bg-purple-100 { background: #f3e8ff !important; }
+  .icon.bg-emerald-100 { background: #d1fae5 !important; }
+  .icon.bg-amber-100 { background: #fef3c7 !important; }
+  .icon.bg-red-100 { background: #fee2e2 !important; }
+}
