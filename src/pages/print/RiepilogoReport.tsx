@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
-import { PrintBreakdownSection } from "@/components/print/PrintBreakdownSection";
 import {
   PrintKpiCard,
   PrintKpiResidual,
@@ -365,15 +364,6 @@ export default function RiepilogoReport() {
         />
       </section>
 
-      {/* ===== DETAIL BREAKDOWN SECTION ===== */}
-      <section className="mb-6 avoid-break">
-        <h2 className="text-sm font-semibold mb-3 border-b pb-1">Dettaglio per Tipologia (tabella)</h2>
-        <PrintBreakdownSection 
-          breakdown={breakdown}
-          savingRQ={savings.rq}
-          savingR5={savings.r5}
-        />
-      </section>
 
       {/* General Total Summary */}
       <section className="mb-6 p-4 border-2 border-foreground rounded bg-muted/50 avoid-break">
