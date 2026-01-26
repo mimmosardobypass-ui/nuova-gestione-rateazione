@@ -88,12 +88,12 @@ function CategoryRow({ category, data }: CategoryRowProps) {
 export function F24Card({ breakdown, loading = false }: F24CardProps) {
   const data = extractAllF24Data(breakdown);
   
-  // Totali: Dovuto e Residuo solo Attive, Pagato include anche Completate
+  // Totali: Dovuto = solo Attive, Pagato = Attive + Completate, Residuo = Dovuto - Pagato
   const totalPaid = data['F24'].paid + data['F24 Completate'].paid;
   const activeTotals = {
     due: data['F24'].due,
     paid: totalPaid,
-    residual: data['F24'].residual,
+    residual: data['F24'].due - totalPaid,  // Calcolato: Dovuto - Pagato
   };
 
   return (

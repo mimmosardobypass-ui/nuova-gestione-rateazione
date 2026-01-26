@@ -39,13 +39,13 @@ function computeHeaderFromCards(breakdown: {
   // F24: Dovuto/Residuo/InRitardo = solo Attive, Pagato = Attive + Completate
   const f24DueCents = sumBreakdownByTypes(breakdown.due, F24_ACTIVE);
   const f24PaidCents = sumBreakdownByTypes(breakdown.paid, F24_PAID);
-  const f24ResidualCents = sumBreakdownByTypes(breakdown.residual, F24_ACTIVE);
+  const f24ResidualCents = f24DueCents - f24PaidCents;  // Calcolato: Dovuto - Pagato
   const f24OverdueCents = sumBreakdownByTypes(breakdown.overdue, F24_ACTIVE);
 
   // PagoPA: Dovuto/Residuo/InRitardo = solo Attive, Pagato = Attive + Completate
   const pagopaDueCents = sumBreakdownByTypes(breakdown.due, PAGOPA_ACTIVE);
   const pagopaPaidCents = sumBreakdownByTypes(breakdown.paid, PAGOPA_PAID);
-  const pagopaResidualCents = sumBreakdownByTypes(breakdown.residual, PAGOPA_ACTIVE);
+  const pagopaResidualCents = pagopaDueCents - pagopaPaidCents;  // Calcolato: Dovuto - Pagato
   const pagopaOverdueCents = sumBreakdownByTypes(breakdown.overdue, PAGOPA_ACTIVE);
 
   // Rottamazioni: sempre tutte le categorie
