@@ -8,11 +8,17 @@ import {
   type KpiBreakdown
 } from "@/features/rateations/api/kpi";
 
-// Category constants for each card - header totals = sum of all these
-const F24_TYPES = ['F24', 'F24 Completate', 'F24 Migrate', 'F24 Decadute'];
-const PAGOPA_TYPES = ['PagoPa', 'PagoPA Completate', 'PagoPA Migrate RQ', 'PagoPA Migrate R5'];
+// Category constants matching card footer logic
+// F24 Card: Dovuto/Residuo = solo Attive, Pagato = Attive + Completate
+const F24_ACTIVE = ['F24'];
+const F24_PAID = ['F24', 'F24 Completate'];
+
+// PagoPA Card: Dovuto/Residuo = solo Attive, Pagato = Attive + Completate
+const PAGOPA_ACTIVE = ['PagoPa'];
+const PAGOPA_PAID = ['PagoPa', 'PagoPA Completate'];
+
+// Rottamazioni Card: sempre tutte le categorie
 const ROTTAMAZIONI_TYPES = ['Rottamazione Quater', 'Riam. Quater', 'Rottamazione Quinquies'];
-const ALL_CARD_TYPES = [...F24_TYPES, ...PAGOPA_TYPES, ...ROTTAMAZIONI_TYPES];
 
 // Helper: sum breakdown values for specified types (in cents)
 function sumBreakdownByTypes(breakdown: KpiBreakdown, types: string[]): number {
@@ -23,17 +29,36 @@ function sumBreakdownByTypes(breakdown: KpiBreakdown, types: string[]): number {
 }
 
 // Helper: compute header totals as exact sum of card footers
+// Each card has different logic for what counts as "active" vs "paid"
 function computeHeaderFromCards(breakdown: {
   due: KpiBreakdown;
   paid: KpiBreakdown;
   residual: KpiBreakdown;
   overdue: KpiBreakdown;
 }) {
+  // F24: Dovuto/Residuo/InRitardo = solo Attive, Pagato = Attive + Completate
+  const f24DueCents = sumBreakdownByTypes(breakdown.due, F24_ACTIVE);
+  const f24PaidCents = sumBreakdownByTypes(breakdown.paid, F24_PAID);
+  const f24ResidualCents = sumBreakdownByTypes(breakdown.residual, F24_ACTIVE);
+  const f24OverdueCents = sumBreakdownByTypes(breakdown.overdue, F24_ACTIVE);
+
+  // PagoPA: Dovuto/Residuo/InRitardo = solo Attive, Pagato = Attive + Completate
+  const pagopaDueCents = sumBreakdownByTypes(breakdown.due, PAGOPA_ACTIVE);
+  const pagopaPaidCents = sumBreakdownByTypes(breakdown.paid, PAGOPA_PAID);
+  const pagopaResidualCents = sumBreakdownByTypes(breakdown.residual, PAGOPA_ACTIVE);
+  const pagopaOverdueCents = sumBreakdownByTypes(breakdown.overdue, PAGOPA_ACTIVE);
+
+  // Rottamazioni: sempre tutte le categorie
+  const rottDueCents = sumBreakdownByTypes(breakdown.due, ROTTAMAZIONI_TYPES);
+  const rottPaidCents = sumBreakdownByTypes(breakdown.paid, ROTTAMAZIONI_TYPES);
+  const rottResidualCents = sumBreakdownByTypes(breakdown.residual, ROTTAMAZIONI_TYPES);
+  const rottOverdueCents = sumBreakdownByTypes(breakdown.overdue, ROTTAMAZIONI_TYPES);
+
   return {
-    totalDueCents: sumBreakdownByTypes(breakdown.due, ALL_CARD_TYPES),
-    totalPaidCents: sumBreakdownByTypes(breakdown.paid, ALL_CARD_TYPES),
-    totalResidualCents: sumBreakdownByTypes(breakdown.residual, ALL_CARD_TYPES),
-    totalOverdueCents: sumBreakdownByTypes(breakdown.overdue, ALL_CARD_TYPES),
+    totalDueCents: f24DueCents + pagopaDueCents + rottDueCents,
+    totalPaidCents: f24PaidCents + pagopaPaidCents + rottPaidCents,
+    totalResidualCents: f24ResidualCents + pagopaResidualCents + rottResidualCents,
+    totalOverdueCents: f24OverdueCents + pagopaOverdueCents + rottOverdueCents,
   };
 }
 
