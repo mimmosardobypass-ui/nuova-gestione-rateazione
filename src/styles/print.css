@@ -150,3 +150,16 @@
   padding: 12px;
   background: #fff;
 }
+
+/* Print saving row styling */
+.print-saving-row {
+  color: #059669; /* emerald-600 */
+}
+
+@media print {
+  .print-saving-row {
+    color: #059669 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

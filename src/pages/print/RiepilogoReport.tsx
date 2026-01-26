@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PrintLayout from "@/components/print/PrintLayout";
 import { PrintKpi } from "@/components/print/PrintKpi";
+import { PrintBreakdownSection } from "@/components/print/PrintBreakdownSection";
 import { formatEuro } from "@/lib/formatters";
 import { ensureStringId } from "@/lib/utils/ids";
 import { totalsForExport } from "@/utils/rateation-export";
@@ -61,6 +62,12 @@ export default function RiepilogoReport() {
     totalResidualPending: 0,
     totalResidualCombined: 0
   });
+  const [breakdown, setBreakdown] = useState<{
+    due: KpiBreakdown;
+    paid: KpiBreakdown;
+    residual: KpiBreakdown;
+  }>({ due: [], paid: [], residual: [] });
+  const [savings, setSavings] = useState({ rq: 0, r5: 0 });
 
   const theme = searchParams.get("theme") === "bn" ? "theme-bn" : "";
   const density = searchParams.get("density") === "compact" ? "density-compact" : "";
@@ -88,12 +95,32 @@ export default function RiepilogoReport() {
 
   const loadData = async () => {
     try {
-      // Carica KPI dalla stessa fonte della dashboard
-      const [dueByType, paidByType, residualByType] = await Promise.all([
+      // Get current user for savings queries
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Carica KPI dalla stessa fonte della dashboard + savings
+      const [dueByType, paidByType, residualByType, savingRQData, savingR5Data] = await Promise.all([
         fetchDueByType(),
         fetchPaidByType(),
         fetchResidualByType(),
+        user ? supabase
+          .from("v_quater_saving_per_user")
+          .select("saving_eur")
+          .eq("owner_uid", user.id)
+          .maybeSingle() : Promise.resolve({ data: null }),
+        user ? supabase
+          .from("v_quinquies_saving_per_user")
+          .select("saving_eur")
+          .eq("owner_uid", user.id)
+          .maybeSingle() : Promise.resolve({ data: null }),
       ]);
+      
+      // Store breakdown for PrintBreakdownSection
+      setBreakdown({ due: dueByType, paid: paidByType, residual: residualByType });
+      setSavings({ 
+        rq: savingRQData?.data?.saving_eur ?? 0, 
+        r5: savingR5Data?.data?.saving_eur ?? 0 
+      });
 
       // Applica stessa logica di computeHeaderFromCards
       const f24DueCents = sumByTypes(dueByType, F24_ACTIVE);
@@ -268,6 +295,51 @@ export default function RiepilogoReport() {
           Residuo Attivo: {formatEuro(kpiTotals.totalResidual)} + In Attesa Cartelle: {formatEuro(kpiTotals.totalResidualPending)}
         </p>
       )}
+
+      {/* Breakdown Section - Detailed by Type */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold mb-3 border-b pb-1">Dettaglio per Tipologia</h2>
+        <PrintBreakdownSection 
+          breakdown={breakdown}
+          savingRQ={savings.rq}
+          savingR5={savings.r5}
+        />
+      </section>
+
+      {/* General Total Summary */}
+      <section className="mb-6 p-4 border-2 border-foreground rounded bg-muted/50 avoid-break">
+        <div className="text-center font-bold text-sm mb-2">TOTALE GENERALE</div>
+        <div className="grid grid-cols-3 gap-4 text-center text-xs">
+          <div>
+            <span className="text-muted-foreground">Dovuto:</span>{" "}
+            <span className="font-semibold tabular-nums">{formatEuro(kpiTotals.totalDue)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Pagato:</span>{" "}
+            <span className="font-semibold tabular-nums">{formatEuro(kpiTotals.totalPaid)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Residuo:</span>{" "}
+            <span className="font-semibold tabular-nums">{formatEuro(kpiTotals.totalResidual)}</span>
+          </div>
+        </div>
+        {kpiTotals.totalResidualPending > 0 && (
+          <div className="text-center mt-2 pt-2 border-t text-xs">
+            <span className="text-warning">+ In Attesa Cartelle: {formatEuro(kpiTotals.totalResidualPending)}</span>
+            <span className="font-bold ml-2">= DEBITO TOTALE: {formatEuro(kpiTotals.totalResidualCombined)}</span>
+          </div>
+        )}
+        {(savings.rq > 0 || savings.r5 > 0) && (
+          <div className="text-center mt-2 pt-2 border-t text-xs text-emerald-600">
+            Risparmio Totale: {formatEuro(savings.rq + savings.r5)} 
+            {savings.rq > 0 && savings.r5 > 0 && (
+              <span className="text-muted-foreground ml-1">
+                (RQ: {formatEuro(savings.rq)} + R5: {formatEuro(savings.r5)})
+              </span>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Data Table */}
       <table className="print-table">
