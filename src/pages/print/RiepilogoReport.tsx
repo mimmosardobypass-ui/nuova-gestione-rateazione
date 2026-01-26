@@ -6,6 +6,12 @@ import { PrintKpi } from "@/components/print/PrintKpi";
 import { formatEuro } from "@/lib/formatters";
 import { ensureStringId } from "@/lib/utils/ids";
 import { totalsForExport } from "@/utils/rateation-export";
+import { 
+  fetchDueByType, 
+  fetchPaidByType, 
+  fetchResidualByType,
+  type KpiBreakdown
+} from "@/features/rateations/api/kpi";
 
 interface RiepilogoRow {
   id: string;
@@ -30,10 +36,31 @@ interface RiepilogoRow {
   calculated_residual?: number;
 }
 
+// Costanti per categorizzazione (stessa logica di useRateationStats)
+const F24_ACTIVE = ['F24'];
+const F24_PAID = ['F24', 'F24 Completate'];
+const F24_DECADUTE = ['F24 Decadute'];
+const PAGOPA_ACTIVE = ['PagoPa'];
+const PAGOPA_PAID = ['PagoPa', 'PagoPA Completate'];
+const ROTTAMAZIONI_TYPES = ['Rottamazione Quater', 'Riam. Quater', 'Rottamazione Quinquies'];
+
+const sumByTypes = (breakdown: KpiBreakdown, types: string[]) => 
+  types.reduce((sum, type) => {
+    const found = breakdown.find(b => b.type_label === type);
+    return sum + (found?.amount_cents ?? 0);
+  }, 0);
+
 export default function RiepilogoReport() {
   const [searchParams] = useSearchParams();
   const [rows, setRows] = useState<RiepilogoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [kpiTotals, setKpiTotals] = useState({
+    totalDue: 0,
+    totalPaid: 0,
+    totalResidual: 0,
+    totalResidualPending: 0,
+    totalResidualCombined: 0
+  });
 
   const theme = searchParams.get("theme") === "bn" ? "theme-bn" : "";
   const density = searchParams.get("density") === "compact" ? "density-compact" : "";
@@ -61,7 +88,37 @@ export default function RiepilogoReport() {
 
   const loadData = async () => {
     try {
-      // Carica dati dalla vista
+      // Carica KPI dalla stessa fonte della dashboard
+      const [dueByType, paidByType, residualByType] = await Promise.all([
+        fetchDueByType(),
+        fetchPaidByType(),
+        fetchResidualByType(),
+      ]);
+
+      // Applica stessa logica di computeHeaderFromCards
+      const f24DueCents = sumByTypes(dueByType, F24_ACTIVE);
+      const f24PaidCents = sumByTypes(paidByType, F24_PAID);
+      const f24ResidualCents = f24DueCents - f24PaidCents;
+
+      const pagopaDueCents = sumByTypes(dueByType, PAGOPA_ACTIVE);
+      const pagopaPaidCents = sumByTypes(paidByType, PAGOPA_PAID);
+      const pagopaResidualCents = pagopaDueCents - pagopaPaidCents;
+
+      const rottDueCents = sumByTypes(dueByType, ROTTAMAZIONI_TYPES);
+      const rottPaidCents = sumByTypes(paidByType, ROTTAMAZIONI_TYPES);
+      const rottResidualCents = sumByTypes(residualByType, ROTTAMAZIONI_TYPES);
+
+      const f24DecaduteCents = sumByTypes(residualByType, F24_DECADUTE);
+
+      setKpiTotals({
+        totalDue: (f24DueCents + pagopaDueCents + rottDueCents) / 100,
+        totalPaid: (f24PaidCents + pagopaPaidCents + rottPaidCents) / 100,
+        totalResidual: (f24ResidualCents + pagopaResidualCents + rottResidualCents) / 100,
+        totalResidualPending: f24DecaduteCents / 100,
+        totalResidualCombined: (f24ResidualCents + pagopaResidualCents + rottResidualCents + f24DecaduteCents) / 100,
+      });
+
+      // Carica dati dalla vista per la tabella
       const { data } = await supabase
         .from("v_rateation_summary")
         .select("*")
@@ -194,13 +251,23 @@ export default function RiepilogoReport() {
       logoUrl={logoUrl}
       bodyClass={bodyClass}
     >
-      {/* KPI Section */}
+      {/* KPI Section - Aligned with Dashboard */}
       <section className="grid grid-cols-4 gap-3 mb-6">
-        <PrintKpi label="Importo totale" value={formatEuro(sum("importo_totale"))} />
-        <PrintKpi label="Pagato (quota)" value={formatEuro(sum("importo_pagato_quota"))} />
+        <PrintKpi label="Totale dovuto" value={formatEuro(kpiTotals.totalDue)} />
+        <PrintKpi label="Totale pagato" value={formatEuro(kpiTotals.totalPaid)} />
         <PrintKpi label="Extra ravvedimento" value={formatEuro(sum("extra_ravv_pagati"))} />
-        <PrintKpi label="Residuo" value={formatEuro(sumResidual())} />
+        <PrintKpi 
+          label="Residuo" 
+          value={formatEuro(kpiTotals.totalResidualCombined)} 
+        />
       </section>
+      
+      {/* Breakdown Residuo se presente pending */}
+      {kpiTotals.totalResidualPending > 0 && (
+        <p className="text-xs text-muted-foreground mb-4">
+          Residuo Attivo: {formatEuro(kpiTotals.totalResidual)} + In Attesa Cartelle: {formatEuro(kpiTotals.totalResidualPending)}
+        </p>
+      )}
 
       {/* Data Table */}
       <table className="print-table">
