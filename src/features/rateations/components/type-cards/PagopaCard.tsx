@@ -88,12 +88,12 @@ function CategoryRow({ category, data }: CategoryRowProps) {
 export function PagopaCard({ breakdown, loading = false }: PagopaCardProps) {
   const data = extractAllPagopaData(breakdown);
   
-  // Totali: Dovuto e Residuo solo Attive, Pagato include anche Completate
+  // Totali: Dovuto = solo Attive, Pagato = Attive + Completate, Residuo = Dovuto - Pagato
   const totalPaid = data['PagoPa'].paid + data['PagoPA Completate'].paid;
   const activeTotals = {
     due: data['PagoPa'].due,
     paid: totalPaid,
-    residual: data['PagoPa'].residual,
+    residual: data['PagoPa'].due - totalPaid,  // Calcolato: Dovuto - Pagato
   };
 
   return (
