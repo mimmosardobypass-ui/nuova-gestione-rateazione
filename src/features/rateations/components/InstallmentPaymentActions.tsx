@@ -34,6 +34,7 @@ export function InstallmentPaymentActions({
 }: InstallmentPaymentActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editDateOpen, setEditDateOpen] = useState(false);
+  const [pendingEditDate, setPendingEditDate] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [unpaying, setUnpaying] = useState(false);
   const [showRavvedimento, setShowRavvedimento] = useState(false);
@@ -54,6 +55,13 @@ export function InstallmentPaymentActions({
       setSelectedDate(new Date(payDate));
     }
   }, [installment]);
+
+  // Init pendingEditDate when edit popover opens
+  useEffect(() => {
+    if (editDateOpen) {
+      setPendingEditDate(new Date(currentPaymentDate));
+    }
+  }, [editDateOpen, currentPaymentDate]);
 
   const handleMarkPaidOrdinary = async (date: Date) => {
     if (!date || disabled) return;
@@ -201,17 +209,29 @@ export function InstallmentPaymentActions({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={new Date(currentPaymentDate)}
+                    selected={pendingEditDate}
                     onSelect={(date) => {
-                      if (date) {
-                        handleMarkPaidOrdinary(date);
-                        setEditDateOpen(false);
-                      }
+                      if (date) setPendingEditDate(date);
                     }}
                     initialFocus
                     locale={it}
                     className="p-3 pointer-events-auto"
                   />
+                  <div className="p-3 pt-0">
+                    <Button
+                      size="sm"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-primary-foreground"
+                      disabled={saving || !pendingEditDate || pendingEditDate.toDateString() === new Date(currentPaymentDate).toDateString()}
+                      onClick={async () => {
+                        if (pendingEditDate) {
+                          await handleMarkPaidOrdinary(pendingEditDate);
+                          setEditDateOpen(false);
+                        }
+                      }}
+                    >
+                      {saving ? "Aggiornando..." : "Aggiorna"}
+                    </Button>
+                  </div>
                 </PopoverContent>
               </Popover>
             )}
