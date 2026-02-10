@@ -1,38 +1,54 @@
 
+## Piano: Modifica data pagamento per rate gia' pagate
 
-## Piano: Rimuovere data pre-compilata dalle rate non pagate
+### Problema attuale
+Quando una rata e' gia' pagata, la data viene mostrata come testo statico. Per correggerla, l'utente deve:
+1. Annullare il pagamento
+2. Riselezionare la data corretta
 
-### Problema
-Per le rate "In ritardo" e "Da pagare", il date picker mostra la data odierna (10/02/2026) pre-compilata. L'utente vuole vedere solo il placeholder "Paga (ordinario)" con l'icona calendario, senza alcuna data pre-selezionata.
+Questo flusso e' scomodo e rischioso (si potrebbe dimenticare di ripagare).
 
-### Causa
-In `InstallmentPaymentActions.tsx`, riga 44-46, lo stato `selectedDate` viene inizializzato a `new Date()` per le rate non pagate, causando la visualizzazione della data odierna.
+### Soluzione proposta
+Rendere la data di pagamento cliccabile tramite un date picker inline. L'utente clicca sulla data, seleziona la nuova data dal calendario, e il sistema aggiorna automaticamente il pagamento.
 
-### Modifica: `src/features/rateations/components/InstallmentPaymentActions.tsx`
+### Comportamento previsto
+- La data pagamento diventa un bottone cliccabile con icona calendario
+- Al click si apre il calendario con la data attuale pre-selezionata
+- Selezionando una nuova data, il sistema aggiorna il record chiamando la stessa API `markInstallmentPaidOrdinary` con la nuova data
+- Per le rate pagate con ravvedimento, la modifica data sara' disabilitata (il ravvedimento dipende dalla data, quindi va annullato e rifatto)
+- Un toast conferma l'avvenuto aggiornamento
+- I dati esistenti non vengono mai compromessi: l'update avviene solo su conferma esplicita dell'utente
 
-**Cosa cambia:**
-- Lo stato `selectedDate` partira' come `undefined` per le rate non pagate (invece di `new Date()`)
-- Il bottone mostrera' solo "Paga (ordinario)" con l'icona calendario
-- Quando l'utente seleziona una data dal calendario, il pagamento viene registrato normalmente
-- Per le rate gia' pagate, nessun cambiamento: continuano a mostrare la data di pagamento
+### Dettaglio tecnico
 
-**Dettaglio tecnico:**
+**File: `src/features/rateations/components/InstallmentPaymentActions.tsx`**
 
-```diff
-- const [selectedDate, setSelectedDate] = useState<Date | undefined>(
--   getPaymentDate(installment) ? new Date(getPaymentDate(installment)!) : new Date()
-- );
-+ const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-+   getPaymentDate(installment) ? new Date(getPaymentDate(installment)!) : undefined
-+ );
+Nella sezione "rata pagata" (righe 158-183), sostituire il testo statico della data con un Popover + Calendar:
+
+1. Aggiungere stato `isEditingDate` e `editDateOpen` per gestire il popover di modifica
+2. Aggiungere funzione `handleUpdatePaymentDate` che chiama `markInstallmentPaidOrdinary` con il nuovo valore
+3. Sostituire il `<div className="text-muted-foreground">` con un `<Popover>` contenente un `<Calendar>`
+4. Per `payment_mode === 'ravvedimento'`, la data resta non modificabile (testo statico) con un tooltip che spiega il motivo
+
+```
+Rata pagata ordinaria:
+[Pagata]
+[20/02/2025 (icona calendario)] <-- cliccabile, apre calendario
+[Annulla pagamento]
+
+Rata pagata con ravvedimento:
+[Pagata (Rav.)]
+[20/02/2025] <-- testo statico, non modificabile
+Quota: ... Extra: ... Totale: ...
+[Annulla pagamento]
 ```
 
 ### Sicurezza dati
-- I dati esistenti (rate gia' pagate) non vengono toccati: la loro `paid_at` resta invariata nel database
-- La modifica e' solo visuale sul componente UI: cambia solo il valore iniziale dello stato React
-- Il salvataggio avviene solo quando l'utente seleziona esplicitamente una data dal calendario
-- Nessuna query di UPDATE viene eseguita, nessun dato viene sovrascritto
+- La modifica chiama la stessa RPC `mark_installment_paid_ordinary_new` gia' in uso
+- Nessuna nuova migrazione necessaria
+- I dati di ravvedimento non vengono toccati
+- L'aggiornamento avviene solo dopo selezione esplicita di una nuova data dal calendario
+- Dopo l'aggiornamento vengono ricaricati i dati (onReload, onReloadList, onStatsReload)
 
 ### File da modificare
-- `src/features/rateations/components/InstallmentPaymentActions.tsx` (1 riga)
-
+- `src/features/rateations/components/InstallmentPaymentActions.tsx` (sezione rata pagata, circa 15 righe modificate)
