@@ -602,7 +602,6 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
               <th className="px-3 py-2 text-left">Scadenza</th>
               <th className="px-3 py-2 text-left">Importo</th>
               <th className="px-3 py-2 text-left">Stato</th>
-              <th className="px-3 py-2 text-left">Pagata il</th>
               <th className="px-3 py-2 text-left">Pagamento</th>
               <th className="px-3 py-2 text-left">Azioni</th>
             </tr>
@@ -634,9 +633,6 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                     </td>
                     <td className="px-3 py-2">
                       {isPaid ? 'Pagata' : daysLate > 0 ? 'In ritardo' : 'Da pagare'}
-                    </td>
-                    <td className="px-3 py-2">
-                      {safeDate(it?.paid_date)?.toLocaleDateString('it-IT') ?? '—'}
                     </td>
                     <td className="px-3 py-2">
                       <InstallmentPaymentActions
@@ -678,7 +674,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
               } catch (rowErr) {
                 return (
                   <tr key={`err-${String(it?.id ?? it?.seq)}`}>
-                    <td colSpan={7} className="px-3 py-2 text-red-600 text-sm">
+                    <td colSpan={6} className="px-3 py-2 text-red-600 text-sm">
                       Errore rendering rata #{String(it?.seq)}: {String(rowErr)}
                     </td>
                   </tr>
