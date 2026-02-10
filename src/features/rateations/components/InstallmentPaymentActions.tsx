@@ -202,7 +202,7 @@ export function InstallmentPaymentActions({
                     className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     disabled={disabled || saving}
                   >
-                    {format(new Date(currentPaymentDate), "dd/MM/yyyy", { locale: it })}
+                    {format(selectedDate || new Date(currentPaymentDate), "dd/MM/yyyy", { locale: it })}
                     <CalendarIcon className="h-3 w-3" />
                   </button>
                 </PopoverTrigger>
@@ -221,7 +221,7 @@ export function InstallmentPaymentActions({
                     <Button
                       size="sm"
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-primary-foreground"
-                      disabled={saving || !pendingEditDate || pendingEditDate.toDateString() === new Date(currentPaymentDate).toDateString()}
+                      disabled={saving || !pendingEditDate || pendingEditDate.toDateString() === (selectedDate || new Date(currentPaymentDate)).toDateString()}
                       onClick={async () => {
                         if (pendingEditDate) {
                           await handleMarkPaidOrdinary(pendingEditDate);
