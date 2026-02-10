@@ -12,6 +12,7 @@ import { formatEuro } from "@/lib/formatters";
 import { markInstallmentPaidOrdinary, cancelInstallmentPayment } from "../api/installments";
 import { RavvedimentoModal } from "./RavvedimentoModal";
 import { getPaymentDate } from "../lib/installmentState";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { InstallmentUI } from "../types";
 
 interface InstallmentPaymentActionsProps {
@@ -32,6 +33,7 @@ export function InstallmentPaymentActions({
   disabled = false 
 }: InstallmentPaymentActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [editDateOpen, setEditDateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unpaying, setUnpaying] = useState(false);
   const [showRavvedimento, setShowRavvedimento] = useState(false);
@@ -156,14 +158,52 @@ export function InstallmentPaymentActions({
           </Button>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
           <div className="text-sm">
             <div className="font-medium">
               {installment.payment_mode === 'ravvedimento' ? 'Pagata (Rav.)' : 'Pagata'}
             </div>
-            <div className="text-muted-foreground">
-              {format(new Date(currentPaymentDate), "dd/MM/yyyy", { locale: it })}
-            </div>
+            {installment.payment_mode === 'ravvedimento' ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-muted-foreground cursor-default">
+                      {format(new Date(currentPaymentDate), "dd/MM/yyyy", { locale: it })}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Per modificare la data, annulla il pagamento e rifai il ravvedimento</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Popover open={editDateOpen} onOpenChange={setEditDateOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    disabled={disabled || saving}
+                  >
+                    {format(new Date(currentPaymentDate), "dd/MM/yyyy", { locale: it })}
+                    <CalendarIcon className="h-3 w-3" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={new Date(currentPaymentDate)}
+                    onSelect={(date) => {
+                      if (date) {
+                        handleMarkPaidOrdinary(date);
+                        setEditDateOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    locale={it}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
             {installment.payment_mode === 'ravvedimento' && (
               <div className="text-xs text-muted-foreground mt-1">
                 Quota: {formatEuro(installment.amount)} • 
