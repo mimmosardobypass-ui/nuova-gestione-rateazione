@@ -42,7 +42,7 @@ export function InstallmentPaymentActions({
   }, [installment]);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    getPaymentDate(installment) ? new Date(getPaymentDate(installment)!) : new Date()
+    getPaymentDate(installment) ? new Date(getPaymentDate(installment)!) : undefined
   );
 
   const handleMarkPaidOrdinary = async (date: Date) => {
