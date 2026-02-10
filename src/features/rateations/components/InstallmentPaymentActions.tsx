@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -47,6 +47,14 @@ export function InstallmentPaymentActions({
     getPaymentDate(installment) ? new Date(getPaymentDate(installment)!) : undefined
   );
 
+  // Sync selectedDate when installment prop updates from server
+  useEffect(() => {
+    const payDate = getPaymentDate(installment);
+    if (payDate) {
+      setSelectedDate(new Date(payDate));
+    }
+  }, [installment]);
+
   const handleMarkPaidOrdinary = async (date: Date) => {
     if (!date || disabled) return;
     
@@ -58,6 +66,9 @@ export function InstallmentPaymentActions({
         paidDate: isoDate
       });
       
+      // Optimistic update: aggiorna la data visualizzata immediatamente
+      setSelectedDate(date);
+
       toast({
         title: "Rata pagata",
         description: "Pagamento ordinario registrato"
