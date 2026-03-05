@@ -639,6 +639,7 @@ export function RateationRowDetailsPro({ rateationId, onDataChanged, pagopaKpis 
                         rateationId={rateationId}
                         installment={it}
                         onReload={load}
+                        onReloadList={onDataChanged}
                         onStatsReload={debouncedReloadStats}
                         disabled={!online || rateationInfo?.status === 'ESTINTA'}
                       />
