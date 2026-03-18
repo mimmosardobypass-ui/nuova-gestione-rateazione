@@ -196,11 +196,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     [selectedPagopaIds]
   );
 
-  // Load RQ options when PagoPA is selected (PagoPA migration mode only)
+  // Load RQ/R5 options when PagoPA is selected (PagoPA migration mode only)
   useEffect(() => {
     let cancelled = false;
     
-    async function loadRqOptions() {
+    async function loadDestOptions() {
       if (migrationMode !== 'pagopa' || !selectedPagopaIdNumber) {
         setRqOptions([]);
         return;
@@ -208,19 +208,21 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       
       setRqLoading(true);
       try {
-        const rows = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
+        const rows = destType === 'r5'
+          ? await fetchSelectableR5ForPagopa(selectedPagopaIdNumber)
+          : await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
         if (!cancelled) setRqOptions(rows);
       } catch (error) {
-        console.error('Error loading RQ options:', error);
+        console.error('Error loading destination options:', error);
         if (!cancelled) setRqOptions([]);
       } finally {
         if (!cancelled) setRqLoading(false);
       }
     }
     
-    loadRqOptions();
+    loadDestOptions();
     return () => { cancelled = true; };
-  }, [selectedPagopaIdNumber, migrationMode]);
+  }, [selectedPagopaIdNumber, migrationMode, destType]);
 
   // Disable migrate button logic
   const disableMigrate = processing || nothingSelected;
