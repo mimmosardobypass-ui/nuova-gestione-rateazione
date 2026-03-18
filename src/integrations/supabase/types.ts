@@ -3675,8 +3675,11 @@ export type Database = {
           is_f24: boolean | null
           is_pagopa: boolean | null
           is_quater: boolean | null
+          latest_linked_r5_number: string | null
           latest_linked_rq_number: string | null
+          latest_r5_id: number | null
           latest_rq_id: number | null
+          linked_r5_count: number | null
           linked_rq_count: number | null
           number: string | null
           original_total_due_cents: number | null

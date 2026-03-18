@@ -22,6 +22,10 @@ interface RateationNumberCellProps {
     // F24 link fields
     is_f24?: boolean;
     interruption_reason?: string | null;
+    // R5 link fields
+    linked_r5_count?: number;
+    latest_linked_r5_number?: string | null;
+    latest_r5_id?: number | null;
     // Note fields
     notes?: string | null;
     notes_updated_at?: string | null;
@@ -51,6 +55,7 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
   const isCompletata = row.status === 'COMPLETATA';
   const isPagopa = !!row.is_pagopa;
   const hasLinks = isPagopa && (row.linked_rq_count ?? 0) > 0;
+  const hasR5Links = isPagopa && (row.linked_r5_count ?? 0) > 0;
   
   // F24 link detection
   const isF24 = !!row.is_f24;
@@ -111,6 +116,14 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
               </>
             )}
 
+            {/* Conteggio R5 collegate (PagoPA) */}
+            {hasR5Links && (
+              <>
+                {(isInterrotta || isDecaduta || hasLinks) && <span>•</span>}
+                <span>→ collegata a {row.latest_linked_r5_number}</span>
+              </>
+            )}
+
             {/* PagoPA collegata (F24) */}
             {isF24Linked && f24LinkData && (
               <>
@@ -139,6 +152,22 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Chip numero R5 (PagoPA → Quinquies) */}
+          {hasR5Links && row.latest_linked_r5_number && (
+            <div className="flex flex-wrap gap-1 text-xs">
+              <button
+                type="button"
+                className="px-1.5 py-0.5 rounded bg-violet-100 border border-violet-200 text-violet-700 hover:bg-violet-200 transition-colors"
+                onClick={() => {
+                  if (row.latest_r5_id) navigateToRateation(String(row.latest_r5_id));
+                }}
+                title={`Apri ${row.latest_linked_r5_number}`}
+              >
+                {row.latest_linked_r5_number}
+              </button>
             </div>
           )}
 

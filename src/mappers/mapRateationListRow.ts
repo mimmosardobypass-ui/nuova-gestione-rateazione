@@ -80,5 +80,10 @@ export function mapListRowToUI(r: RateationListRow): RateationRow {
     
     // F24 Recovery Window field (from view)
     f24_days_to_next_due: r.f24_days_to_next_due ?? null,
+    
+    // R5 (Quinquies) link fields
+    linked_r5_count: Number(r.linked_r5_count || 0),
+    latest_linked_r5_number: r.latest_linked_r5_number ?? null,
+    latest_r5_id: r.latest_r5_id ?? null,
   } as RateationRow;
 }
