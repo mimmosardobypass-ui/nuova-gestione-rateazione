@@ -45,6 +45,47 @@ export async function migratePagopaAttachRq(
  * FASE 3: Sgancio atomico PagoPA ↔ RQ
  * Chiude i link specificati; se non restano link attivi, PagoPA torna ATTIVA
  */
+/**
+ * Migrazione atomica PagoPA → R5 (Rottamazione Quinquies)
+ * Usa pagopa_link_r5_v2 per inserire in quinquies_links
+ */
+export async function migratePagopaAttachR5(
+  pagopaId: number,
+  r5Ids: number[],
+  note?: string
+) {
+  if (!Number.isSafeInteger(pagopaId)) {
+    throw new Error(`pagopaId non numerico: ${pagopaId}`);
+  }
+  const badIds = r5Ids.filter(v => !Number.isSafeInteger(v));
+  if (badIds.length > 0) {
+    throw new Error(`r5Ids non numerici: ${badIds.join(', ')}`);
+  }
+
+  const payload = {
+    pagopa_id: pagopaId,
+    r5_ids: r5Ids,
+    note: note ?? null
+  };
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug('[DBG/RPC] pagopa_link_r5_v2 payload:', payload);
+  }
+
+  const { data, error } = await (supabase.rpc as any)('pagopa_link_r5_v2', { payload });
+  
+  if (error) {
+    console.error('Error in pagopa_link_r5_v2:', error);
+    throw new Error(`Migrazione R5 fallita: ${error.message}`);
+  }
+  
+  return data ?? [];
+}
+
+/**
+ * FASE 3: Sgancio atomico PagoPA ↔ RQ
+ * Chiude i link specificati; se non restano link attivi, PagoPA torna ATTIVA
+ */
 export async function undoPagopaLinks(
   pagopaId: string | number,
   rqIds?: (string | number)[]
