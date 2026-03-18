@@ -832,7 +832,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                       
                       {migrationMode === 'pagopa' && selectedRqIds.length > 0 && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          Selezionate {selectedRqIds.length} RQ
+                          Selezionate {selectedRqIds.length} {destType === 'r5' ? 'R5' : 'RQ'}
                         </div>
                       )}
                       
