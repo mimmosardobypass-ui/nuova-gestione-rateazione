@@ -1,33 +1,34 @@
 
 
-## Fix: Deleted R5 rateations appearing in migration dialog
+## Bug: Conteggio rate pagate e importo pagato non si aggiornano
 
-### Root Cause
-The `get_r5_available_for_pagopa` RPC does not filter out soft-deleted rateations (`is_deleted = true`). IDs 66 and 67 have `is_deleted = true` but still appear.
+### Causa
+In `RateationRowDetailsPro.tsx` riga 638-644, il componente `InstallmentPaymentActions` riceve `onReload={load}` e `onStatsReload={debouncedReloadStats}`, ma **non riceve `onReloadList`**. 
 
-### Solution
-Single DB migration to update the RPC, adding `AND r.is_deleted = false` to the WHERE clause.
+`InstallmentPaymentActions` chiama `onReloadList?.()` dopo ogni pagamento (righe 86, 116, 268) per aggiornare la riga padre nella tabella principale. Siccome non viene passato, il numero di rate pagate e l'importo pagato nella riga di riepilogo restano invariati.
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_r5_available_for_pagopa(p_pagopa_id bigint)
-RETURNS TABLE(id bigint, number text, taxpayer_name text, quater_total_due_cents bigint)
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT r.id, r.number, r.taxpayer_name, r.quater_total_due_cents
-  FROM rateations r
-  WHERE r.owner_uid = auth.uid()
-    AND r.is_quinquies = true
-    AND r.is_deleted = false
-    AND r.status != 'decaduta'
-    AND NOT EXISTS (
-      SELECT 1 FROM quinquies_links l
-      WHERE l.quinquies_id = r.id AND l.unlinked_at IS NULL
-    )
-    AND r.id <> p_pagopa_id
-  ORDER BY r.number;
-$$;
+La prop `onDataChanged` del componente esiste ed e' pensata per notificare il padre, ma non viene invocata dopo il pagamento.
+
+### Soluzione
+
+**File: `src/features/rateations/components/RateationRowDetailsPro.tsx`** (riga 638-644)
+
+Passare `onDataChanged` come `onReloadList` a `InstallmentPaymentActions`:
+
+```diff
+  <InstallmentPaymentActions
+    rateationId={rateationId}
+    installment={it}
+    onReload={load}
++   onReloadList={onDataChanged}
+    onStatsReload={debouncedReloadStats}
+    disabled={!online || rateationInfo?.status === 'ESTINTA'}
+  />
 ```
 
-No frontend changes needed. After this fix, only `N.1Quinquies` (id 68) will appear.
+Questo fa si' che dopo un pagamento, `onReloadList` chiami `onDataChanged` che risale al componente padre (`RateationsTablePro`), aggiornando il conteggio rate pagate e l'importo pagato nella riga principale.
+
+### Garanzia dati
+- Nessuna modifica al database o alle API
+- Solo collegamento di un callback gia' esistente ma non connesso
 
