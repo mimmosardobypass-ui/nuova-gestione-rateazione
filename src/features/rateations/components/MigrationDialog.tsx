@@ -15,8 +15,8 @@ import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
-import { migratePagopaAttachRq, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
-import { fetchSelectableRqForPagopa, RqLight } from '@/integrations/supabase/api/rq';
+import { migratePagopaAttachRq, migratePagopaAttachR5, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
+import { fetchSelectableRqForPagopa, fetchSelectableR5ForPagopa, RqLight } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
