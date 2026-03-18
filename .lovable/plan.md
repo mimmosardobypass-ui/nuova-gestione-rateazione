@@ -1,34 +1,36 @@
 
 
-## Bug: Conteggio rate pagate e importo pagato non si aggiornano
+## Gestione PagoPA in attesa Rottamazione Quinquies
 
-### Causa
-In `RateationRowDetailsPro.tsx` riga 638-644, il componente `InstallmentPaymentActions` riceve `onReload={load}` e `onStatsReload={debouncedReloadStats}`, ma **non riceve `onReloadList`**. 
+### Analisi
 
-`InstallmentPaymentActions` chiama `onReloadList?.()` dopo ogni pagamento (righe 86, 116, 268) per aggiornare la riga padre nella tabella principale. Siccome non viene passato, il numero di rate pagate e l'importo pagato nella riga di riepilogo restano invariati.
+Dopo aver verificato il codice, l'infrastruttura necessaria e' gia' completa:
 
-La prop `onDataChanged` del componente esiste ed e' pensata per notificare il padre, ma non viene invocata dopo il pagamento.
+- **Flag `is_quinquies`** nella tabella `rateations` 
+- **Tabella `quinquies_links`** per tracciare i collegamenti PagoPA → R5
+- **MigrationDialog** supporta gia' la selezione di destinazioni R5 (filtra per `is_quinquies`)
+- **KPI dashboard** categorizza gia' "PagoPA Migrate R5" separatamente dalle attive
+- **Badge "R5"** gia' visibile nelle tabelle per distinguere da RQ
 
-### Soluzione
+### Cosa fare (tutto da UI esistente, zero modifiche al codice)
 
-**File: `src/features/rateations/components/RateationRowDetailsPro.tsx`** (riga 638-644)
+1. **Creare una rateazione placeholder R5** tramite il dialog "Nuova Rateazione":
+   - Numero: `R5-PROVVISORIA` (o simile)
+   - Tipo: Rottamazione Quinquies
+   - Importo: €0 / 1 rata da €0
+   - Contribuente: nome del contribuente
 
-Passare `onDataChanged` come `onReloadList` a `InstallmentPaymentActions`:
+2. **Per ogni PagoPA da sospendere**, aprire il dialog "Gestisci Migrazione" e collegare alla R5 provvisoria. Il sistema automaticamente:
+   - Imposta lo stato PagoPA a `INTERROTTA`
+   - Registra snapshot del residuo al momento del collegamento
+   - Esclude la PagoPA dai KPI attivi
+   - Mostra la categorizzazione "PagoPA Migrate R5" nel dashboard
 
-```diff
-  <InstallmentPaymentActions
-    rateationId={rateationId}
-    installment={it}
-    onReload={load}
-+   onReloadList={onDataChanged}
-    onStatsReload={debouncedReloadStats}
-    disabled={!online || rateationInfo?.status === 'ESTINTA'}
-  />
-```
+3. **A luglio 2026**, quando arriva il piano definitivo:
+   - Aggiornare la rateazione R5 con importi e rate reali
+   - I link e gli snapshot restano immutati
 
-Questo fa si' che dopo un pagamento, `onReloadList` chiami `onDataChanged` che risale al componente padre (`RateationsTablePro`), aggiornando il conteggio rate pagate e l'importo pagato nella riga principale.
+### Nessuna modifica al codice necessaria
 
-### Garanzia dati
-- Nessuna modifica al database o alle API
-- Solo collegamento di un callback gia' esistente ma non connesso
+Tutte le funzionalita' sono gia' implementate. Non serve toccare ne' codice ne' dati esistenti. L'operazione si fa interamente dalla UI.
 
