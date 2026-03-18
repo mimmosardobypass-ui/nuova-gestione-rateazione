@@ -155,6 +155,22 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
             </div>
           )}
 
+          {/* Chip numero R5 (PagoPA → Quinquies) */}
+          {hasR5Links && row.latest_linked_r5_number && (
+            <div className="flex flex-wrap gap-1 text-xs">
+              <button
+                type="button"
+                className="px-1.5 py-0.5 rounded bg-violet-100 border border-violet-200 text-violet-700 hover:bg-violet-200 transition-colors"
+                onClick={() => {
+                  if (row.latest_r5_id) navigateToRateation(String(row.latest_r5_id));
+                }}
+                title={`Apri ${row.latest_linked_r5_number}`}
+              >
+                {row.latest_linked_r5_number}
+              </button>
+            </div>
+          )}
+
           {/* Riga 2: Chip numero PagoPA (F24) */}
           {isF24Linked && f24LinkData && (
             <div className="flex flex-wrap gap-1 text-xs">
