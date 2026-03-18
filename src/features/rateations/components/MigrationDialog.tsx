@@ -723,19 +723,42 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Target RQ Selection */}
+              {/* Target RQ/R5 Selection */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    {migrationMode === 'pagopa' ? 'Rateazioni RQ di Destinazione' : 'Rateazione di Destinazione'}
+                    {migrationMode === 'pagopa' 
+                      ? (destType === 'r5' ? 'Rateazioni R5 di Destinazione' : 'Rateazioni RQ di Destinazione')
+                      : 'Rateazione di Destinazione'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Destination type selector (only in pagopa mode) */}
+                  {migrationMode === 'pagopa' && (
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        variant={destType === 'rq' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => { setDestType('rq'); setSelectedRqIds([]); }}
+                      >
+                        Riam. Quater (2024)
+                      </Button>
+                      <Button
+                        variant={destType === 'r5' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => { setDestType('r5'); setSelectedRqIds([]); }}
+                      >
+                        Rott. Quinquies (2026)
+                      </Button>
+                    </div>
+                  )}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="target-rateation">
-                        {migrationMode === 'pagopa' ? 'Seleziona Piani RQ per la Migrazione' : 'Seleziona Piano RQ'}
+                        {migrationMode === 'pagopa' 
+                          ? `Seleziona Piani ${destType === 'r5' ? 'R5' : 'RQ'} per la Migrazione`
+                          : 'Seleziona Piano RQ'}
                       </Label>
                       
                       {migrationMode === 'pagopa' ? (
