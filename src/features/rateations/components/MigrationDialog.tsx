@@ -879,7 +879,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
             {processing 
               ? 'Migrazione...' 
               : migrationMode === 'pagopa' 
-                ? `Migra a ${selectedRqIds.length} RQ`.trim()
+                ? `Migra a ${selectedRqIds.length} ${destType === 'r5' ? 'R5' : 'RQ'}`.trim()
                 : `Migra ${selectedDebtIds.length > 0 ? selectedDebtIds.length : ''} cartelle`.trim()
             }
           </Button>
