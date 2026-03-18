@@ -55,6 +55,7 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
   const isCompletata = row.status === 'COMPLETATA';
   const isPagopa = !!row.is_pagopa;
   const hasLinks = isPagopa && (row.linked_rq_count ?? 0) > 0;
+  const hasR5Links = isPagopa && (row.linked_r5_count ?? 0) > 0;
   
   // F24 link detection
   const isF24 = !!row.is_f24;
