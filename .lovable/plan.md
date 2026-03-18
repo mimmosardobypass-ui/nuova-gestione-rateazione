@@ -1,36 +1,50 @@
 
 
-## Gestione PagoPA in attesa Rottamazione Quinquies
+## Migrazione PagoPA verso Rottamazione Quinquies (R5)
 
-### Analisi
+### Problema
+Il dialog di migrazione non mostra le rateazioni R5 come destinazione perche':
+1. **RPC `get_rq_available_for_pagopa`** filtra solo `is_quater = true`, escludendo R5
+2. **RPC `pagopa_link_rq_v2`** valida che la destinazione sia Quater (`is_quater = true` o tipo LIKE '%QUATER%') e scrive su `riam_quater_links`
+3. **Non esiste nessuna RPC** per collegare PagoPA a R5 (`quinquies_links`)
 
-Dopo aver verificato il codice, l'infrastruttura necessaria e' gia' completa:
+### Soluzione
 
-- **Flag `is_quinquies`** nella tabella `rateations` 
-- **Tabella `quinquies_links`** per tracciare i collegamenti PagoPA → R5
-- **MigrationDialog** supporta gia' la selezione di destinazioni R5 (filtra per `is_quinquies`)
-- **KPI dashboard** categorizza gia' "PagoPA Migrate R5" separatamente dalle attive
-- **Badge "R5"** gia' visibile nelle tabelle per distinguere da RQ
+Servono modifiche sia lato database (2 nuove RPC) che lato frontend (MigrationDialog).
 
-### Cosa fare (tutto da UI esistente, zero modifiche al codice)
+---
 
-1. **Creare una rateazione placeholder R5** tramite il dialog "Nuova Rateazione":
-   - Numero: `R5-PROVVISORIA` (o simile)
-   - Tipo: Rottamazione Quinquies
-   - Importo: €0 / 1 rata da €0
-   - Contribuente: nome del contribuente
+#### 1. Nuova RPC: `get_r5_available_for_pagopa`
+Analoga a `get_rq_available_for_pagopa` ma filtra per `is_quinquies = true`:
+- Restituisce rateazioni R5 dell'utente, non decadute, non gia' collegate nella `quinquies_links`
 
-2. **Per ogni PagoPA da sospendere**, aprire il dialog "Gestisci Migrazione" e collegare alla R5 provvisoria. Il sistema automaticamente:
-   - Imposta lo stato PagoPA a `INTERROTTA`
-   - Registra snapshot del residuo al momento del collegamento
-   - Esclude la PagoPA dai KPI attivi
-   - Mostra la categorizzazione "PagoPA Migrate R5" nel dashboard
+#### 2. Nuova RPC: `pagopa_link_r5_v2`
+Analoga a `pagopa_link_rq_v2` ma:
+- Valida che la destinazione abbia `is_quinquies = true`
+- Inserisce in `quinquies_links` (con `quinquies_id` invece di `riam_quater_id`)
+- Cattura snapshot (residuo PagoPA, totale R5, taxpayer) e calcola risparmio
+- Imposta la PagoPA come INTERROTTA
 
-3. **A luglio 2026**, quando arriva il piano definitivo:
-   - Aggiornare la rateazione R5 con importi e rate reali
-   - I link e gli snapshot restano immutati
+#### 3. Frontend: `MigrationDialog.tsx`
+- Aggiungere un selettore "Tipo destinazione" (RQ 2024 / R5 2026) quando `migrationMode === 'pagopa'`
+- In base alla scelta, caricare le opzioni da `get_rq_available_for_pagopa` o `get_r5_available_for_pagopa`
+- Alla migrazione, chiamare `pagopa_link_rq_v2` o `pagopa_link_r5_v2` rispettivamente
+- Aggiornare le label ("Migra a N RQ" → "Migra a N R5")
 
-### Nessuna modifica al codice necessaria
+#### 4. Frontend: `linkPagopa.ts`
+- Aggiungere funzione `migratePagopaAttachR5(pagopaId, r5Ids, note?)` che chiama `pagopa_link_r5_v2`
 
-Tutte le funzionalita' sono gia' implementate. Non serve toccare ne' codice ne' dati esistenti. L'operazione si fa interamente dalla UI.
+#### 5. Frontend: `rq.ts`
+- Aggiungere funzione `fetchSelectableR5ForPagopa(pagopaId)` che chiama `get_r5_available_for_pagopa`
+
+#### 6. Rigenerare tipi Supabase
+- Aggiungere le nuove RPC al file `types.ts`
+
+### Flusso utente finale
+1. Apre "Gestisci Migrazione" su una PagoPA
+2. Seleziona la PagoPA sorgente
+3. Sceglie "Rottamazione Quinquies (2026)" come tipo destinazione
+4. Vede la rateazione R5 provvisoria nella lista
+5. La seleziona e clicca "Migra a 1 R5"
+6. La PagoPA diventa INTERROTTA, il link viene salvato in `quinquies_links`
 
