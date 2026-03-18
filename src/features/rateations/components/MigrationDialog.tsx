@@ -807,7 +807,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                           )}
                           {!rqLoading && rqOptions.length > 0 && (
                             <div aria-live="polite" className="text-xs text-muted-foreground mt-1 px-2">
-                              {selectedRqIds.length > 0 ? `Selezionate ${selectedRqIds.length} RQ` : 'Nessuna RQ selezionata'}
+                              {selectedRqIds.length > 0 ? `Selezionate ${selectedRqIds.length} ${destType === 'r5' ? 'R5' : 'RQ'}` : `Nessuna ${destType === 'r5' ? 'R5' : 'RQ'} selezionata`}
                             </div>
                           )}
                         </div>
