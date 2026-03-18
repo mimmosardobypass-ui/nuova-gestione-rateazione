@@ -50,3 +50,17 @@ export async function unlockPagopaIfNoLinks(pagopaId: number): Promise<boolean> 
   if (error) throw error;
   return data ?? false;
 }
+
+/**
+ * R5 disponibili lato DB - esclude quelle già collegate (quinquies_links con unlinked_at = null)
+ */
+export async function fetchSelectableR5ForPagopa(pagopaId: number): Promise<RqLight[]> {
+  const { data, error } = await supabase.rpc('get_r5_available_for_pagopa' as any, { p_pagopa_id: pagopaId });
+  if (error) throw new Error(`get_r5_available_for_pagopa: ${error.message}`);
+  return (data ?? []).map((r: any) => ({
+    id: Number(r.id),
+    number: String(r.number ?? ''),
+    taxpayer_name: r.taxpayer_name ?? null,
+    quater_total_due_cents: Number(r.quater_total_due_cents ?? 0),
+  }));
+}

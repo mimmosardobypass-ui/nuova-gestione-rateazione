@@ -15,8 +15,8 @@ import { RateationRow, Debt, RateationDebt } from '../types';
 import { fetchActiveDebtsForRateation, migrateDebtsToRQ } from '../api/debts';
 import { getMigrablePagopaForRateation, getIneligibilityReasons, MigrablePagopa } from '../api/migrazione';
 import { markPagopaInterrupted, getRiamQuaterOptions } from '../api/rateations';
-import { migratePagopaAttachRq, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
-import { fetchSelectableRqForPagopa, RqLight } from '@/integrations/supabase/api/rq';
+import { migratePagopaAttachRq, migratePagopaAttachR5, undoPagopaLinks, getPagopaLinks } from '../api/linkPagopa';
+import { fetchSelectableRqForPagopa, fetchSelectableR5ForPagopa, RqLight } from '@/integrations/supabase/api/rq';
 
 interface MigrationDialogProps {
   rateation: RateationRow;
@@ -43,7 +43,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
   const [existingPagopaLinks, setExistingPagopaLinks] = useState<any[]>([]);
   
-  // RQ options for PagoPA migration (loaded via RPC)
+  // Destination type for PagoPA migration: 'rq' (Riammissione Quater) or 'r5' (Rottamazione Quinquies)
+  const [destType, setDestType] = useState<'rq' | 'r5'>('rq');
+  
+  // RQ/R5 options for PagoPA migration (loaded via RPC)
   const [rqOptions, setRqOptions] = useState<RqLight[]>([]);
   const [rqLoading, setRqLoading] = useState(false);
 
@@ -193,11 +196,11 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
     [selectedPagopaIds]
   );
 
-  // Load RQ options when PagoPA is selected (PagoPA migration mode only)
+  // Load RQ/R5 options when PagoPA is selected (PagoPA migration mode only)
   useEffect(() => {
     let cancelled = false;
     
-    async function loadRqOptions() {
+    async function loadDestOptions() {
       if (migrationMode !== 'pagopa' || !selectedPagopaIdNumber) {
         setRqOptions([]);
         return;
@@ -205,19 +208,21 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
       
       setRqLoading(true);
       try {
-        const rows = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
+        const rows = destType === 'r5'
+          ? await fetchSelectableR5ForPagopa(selectedPagopaIdNumber)
+          : await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
         if (!cancelled) setRqOptions(rows);
       } catch (error) {
-        console.error('Error loading RQ options:', error);
+        console.error('Error loading destination options:', error);
         if (!cancelled) setRqOptions([]);
       } finally {
         if (!cancelled) setRqLoading(false);
       }
     }
     
-    loadRqOptions();
+    loadDestOptions();
     return () => { cancelled = true; };
-  }, [selectedPagopaIdNumber, migrationMode]);
+  }, [selectedPagopaIdNumber, migrationMode, destType]);
 
   // Disable migrate button logic
   const disableMigrate = processing || nothingSelected;
@@ -326,17 +331,26 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           });
         }
 
-        // Use the new atomic RPC: migratePagopaAttachRq
-        await migratePagopaAttachRq(
-          pagopaIdNum,
-          rqIdsNum,
-          note.trim() || undefined
-        );
+        // Use the correct RPC based on destination type
+        if (destType === 'r5') {
+          await migratePagopaAttachR5(
+            pagopaIdNum,
+            rqIdsNum,
+            note.trim() || undefined
+          );
+        } else {
+          await migratePagopaAttachRq(
+            pagopaIdNum,
+            rqIdsNum,
+            note.trim() || undefined
+          );
+        }
 
+        const destLabel = destType === 'r5' ? 'R5' : 'RQ';
         const rqLabels = rqIdsNum.map(id => rqLabel(id)).join(', ');
         toast({
           title: "Migrazione completata", 
-          description: `PagoPA collegata a ${rqIdsNum.length} RQ: ${rqLabels}. Stato: INTERROTTA`,
+          description: `PagoPA collegata a ${rqIdsNum.length} ${destLabel}: ${rqLabels}. Stato: INTERROTTA`,
           duration: 5000
         });
 
@@ -344,14 +358,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         try {
           await loadData();
           
-          // NUOVO: Ricarica RQ disponibili per far sparire le RQ appena collegate
+          // NUOVO: Ricarica opzioni destinazione per far sparire quelle appena collegate
           if (selectedPagopaIdNumber) {
-            const rqAfter = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
-            setRqOptions(rqAfter);
+            const optionsAfter = destType === 'r5'
+              ? await fetchSelectableR5ForPagopa(selectedPagopaIdNumber)
+              : await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
+            setRqOptions(optionsAfter);
             
-            // Invalida cache contatori per aggiornare il badge "N RQ"
-            const { invalidatePagopaRqCache } = await import('../hooks/usePagopaLinkedRqCount');
-            invalidatePagopaRqCache(selectedPagopaIdNumber);
+            // Invalida cache contatori per aggiornare il badge
+            if (destType === 'rq') {
+              const { invalidatePagopaRqCache } = await import('../hooks/usePagopaLinkedRqCount');
+              invalidatePagopaRqCache(selectedPagopaIdNumber);
+            }
           }
           
           window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
@@ -705,31 +723,54 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Target RQ Selection */}
+              {/* Target RQ/R5 Selection */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    {migrationMode === 'pagopa' ? 'Rateazioni RQ di Destinazione' : 'Rateazione di Destinazione'}
+                    {migrationMode === 'pagopa' 
+                      ? (destType === 'r5' ? 'Rateazioni R5 di Destinazione' : 'Rateazioni RQ di Destinazione')
+                      : 'Rateazione di Destinazione'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Destination type selector (only in pagopa mode) */}
+                  {migrationMode === 'pagopa' && (
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        variant={destType === 'rq' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => { setDestType('rq'); setSelectedRqIds([]); }}
+                      >
+                        Riam. Quater (2024)
+                      </Button>
+                      <Button
+                        variant={destType === 'r5' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => { setDestType('r5'); setSelectedRqIds([]); }}
+                      >
+                        Rott. Quinquies (2026)
+                      </Button>
+                    </div>
+                  )}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="target-rateation">
-                        {migrationMode === 'pagopa' ? 'Seleziona Piani RQ per la Migrazione' : 'Seleziona Piano RQ'}
+                        {migrationMode === 'pagopa' 
+                          ? `Seleziona Piani ${destType === 'r5' ? 'R5' : 'RQ'} per la Migrazione`
+                          : 'Seleziona Piano RQ'}
                       </Label>
                       
                       {migrationMode === 'pagopa' ? (
                         // Multi-select checkbox list for PagoPA mode
                         <div className="space-y-2 max-h-64 overflow-auto border rounded-lg p-2">
                           {rqLoading ? (
-                            <div className="text-sm text-muted-foreground px-2 py-1">Caricamento RQ…</div>
+                            <div className="text-sm text-muted-foreground px-2 py-1">Caricamento {destType === 'r5' ? 'R5' : 'RQ'}…</div>
                           ) : rqOptions.length === 0 ? (
                             <div className="text-sm text-muted-foreground px-2 py-1">
                               {selectedPagopaIds.length === 0 
                                 ? 'Seleziona prima una PagoPA' 
-                                : 'Nessuna RQ disponibile per questa PagoPA'}
+                                : `Nessuna ${destType === 'r5' ? 'R5' : 'RQ'} disponibile per questa PagoPA`}
                             </div>
                           ) : (
                             rqOptions.map(rq => {
@@ -740,7 +781,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                   key={rq.id}
                                   htmlFor={inputId}
                                   className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
-                                  aria-label={`Seleziona RQ ${rq.number || rq.id}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
+                                  aria-label={`Seleziona ${destType === 'r5' ? 'R5' : 'RQ'} ${rq.number || rq.id}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
                                 >
                                   <input
                                     id={inputId}
@@ -766,7 +807,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                           )}
                           {!rqLoading && rqOptions.length > 0 && (
                             <div aria-live="polite" className="text-xs text-muted-foreground mt-1 px-2">
-                              {selectedRqIds.length > 0 ? `Selezionate ${selectedRqIds.length} RQ` : 'Nessuna RQ selezionata'}
+                              {selectedRqIds.length > 0 ? `Selezionate ${selectedRqIds.length} ${destType === 'r5' ? 'R5' : 'RQ'}` : `Nessuna ${destType === 'r5' ? 'R5' : 'RQ'} selezionata`}
                             </div>
                           )}
                         </div>
@@ -791,7 +832,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                       
                       {migrationMode === 'pagopa' && selectedRqIds.length > 0 && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          Selezionate {selectedRqIds.length} RQ
+                          Selezionate {selectedRqIds.length} {destType === 'r5' ? 'R5' : 'RQ'}
                         </div>
                       )}
                       
@@ -838,7 +879,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
             {processing 
               ? 'Migrazione...' 
               : migrationMode === 'pagopa' 
-                ? `Migra a ${selectedRqIds.length} RQ`.trim()
+                ? `Migra a ${selectedRqIds.length} ${destType === 'r5' ? 'R5' : 'RQ'}`.trim()
                 : `Migra ${selectedDebtIds.length > 0 ? selectedDebtIds.length : ''} cartelle`.trim()
             }
           </Button>
