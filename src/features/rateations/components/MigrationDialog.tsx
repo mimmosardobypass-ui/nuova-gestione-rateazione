@@ -781,7 +781,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                                   key={rq.id}
                                   htmlFor={inputId}
                                   className="flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-md cursor-pointer"
-                                  aria-label={`Seleziona RQ ${rq.number || rq.id}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
+                                  aria-label={`Seleziona ${destType === 'r5' ? 'R5' : 'RQ'} ${rq.number || rq.id}${rq.taxpayer_name ? ` — ${rq.taxpayer_name}` : ''}`}
                                 >
                                   <input
                                     id={inputId}
