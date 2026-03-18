@@ -22,6 +22,10 @@ interface RateationNumberCellProps {
     // F24 link fields
     is_f24?: boolean;
     interruption_reason?: string | null;
+    // R5 link fields
+    linked_r5_count?: number;
+    latest_linked_r5_number?: string | null;
+    latest_r5_id?: number | null;
     // Note fields
     notes?: string | null;
     notes_updated_at?: string | null;

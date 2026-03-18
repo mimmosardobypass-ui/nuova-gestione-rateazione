@@ -73,6 +73,11 @@ export interface RateationRow {
   
   // F24 Recovery Window field (from DB view, calculated server-side)
   f24_days_to_next_due?: number | null;         // Days until next unpaid F24 installment, null if not applicable
+  
+  // R5 (Quinquies) link fields for PagoPA display
+  linked_r5_count?: number;
+  latest_linked_r5_number?: string | null;
+  latest_r5_id?: number | null;
 }
 
 export interface DecadenceDashboard {

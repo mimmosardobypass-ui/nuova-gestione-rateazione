@@ -45,6 +45,11 @@ export const RateationListRowSchema = z.object({
   
   // F24 Recovery Window field (days until next unpaid due date, null if not F24 or all paid)
   f24_days_to_next_due: z.number().int().nullable().optional(),
+  
+  // R5 (Quinquies) link fields for PagoPA display
+  linked_r5_count: z.number().nonnegative().optional(),
+  latest_linked_r5_number: z.string().nullable().optional(),
+  latest_r5_id: z.number().nullable().optional(),
 });
 
 export type RateationListRow = z.infer<typeof RateationListRowSchema>;
