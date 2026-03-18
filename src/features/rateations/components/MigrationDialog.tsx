@@ -331,17 +331,26 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
           });
         }
 
-        // Use the new atomic RPC: migratePagopaAttachRq
-        await migratePagopaAttachRq(
-          pagopaIdNum,
-          rqIdsNum,
-          note.trim() || undefined
-        );
+        // Use the correct RPC based on destination type
+        if (destType === 'r5') {
+          await migratePagopaAttachR5(
+            pagopaIdNum,
+            rqIdsNum,
+            note.trim() || undefined
+          );
+        } else {
+          await migratePagopaAttachRq(
+            pagopaIdNum,
+            rqIdsNum,
+            note.trim() || undefined
+          );
+        }
 
+        const destLabel = destType === 'r5' ? 'R5' : 'RQ';
         const rqLabels = rqIdsNum.map(id => rqLabel(id)).join(', ');
         toast({
           title: "Migrazione completata", 
-          description: `PagoPA collegata a ${rqIdsNum.length} RQ: ${rqLabels}. Stato: INTERROTTA`,
+          description: `PagoPA collegata a ${rqIdsNum.length} ${destLabel}: ${rqLabels}. Stato: INTERROTTA`,
           duration: 5000
         });
 
