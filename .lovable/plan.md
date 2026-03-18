@@ -1,27 +1,34 @@
 
 
-## Fix: PagoPA detail view not showing Quinquies (R5) links
+## Bug: Conteggio rate pagate e importo pagato non si aggiornano
 
-### Problem
-The `PagopaLinks` component only queries `v_pagopa_linked_rq` (Riam.Quater links). It has no awareness of `quinquies_links`. After migrating N.43 PagoPA to N.1Quinquies, the link is stored in `quinquies_links` but never displayed.
+### Causa
+In `RateationRowDetailsPro.tsx` riga 638-644, il componente `InstallmentPaymentActions` riceve `onReload={load}` e `onStatsReload={debouncedReloadStats}`, ma **non riceve `onReloadList`**. 
 
-### Solution
+`InstallmentPaymentActions` chiama `onReloadList?.()` dopo ogni pagamento (righe 86, 116, 268) per aggiornare la riga padre nella tabella principale. Siccome non viene passato, il numero di rate pagate e l'importo pagato nella riga di riepilogo restano invariati.
 
-#### 1. API: Add `getR5LinksForPagopa()` in `links.ts`
-Query `quinquies_links` table directly (no view needed) filtering by `pagopa_id` and `unlinked_at IS NULL`. Also join to `rateations` to get the R5 number. Define a `QuinquiesLinkRow` interface.
+La prop `onDataChanged` del componente esiste ed e' pensata per notificare il padre, ma non viene invocata dopo il pagamento.
 
-#### 2. Component: Update `PagopaLinks.tsx`
-- Fetch both RQ links (existing) and R5 links (new) in parallel
-- Rename the card title from "Collegamenti Riam.Quater" to "Collegamenti Rottamazione" (generic)
-- Display R5 links in a separate section with "R5" badge, showing:
-  - R5 number, date, taxpayer, totale R5, residuo PagoPA snapshot
-- If both RQ and R5 links exist, show both sections
-- Update the empty state message accordingly
+### Soluzione
 
-#### 3. No DB changes needed
-The `quinquies_links` table already has all snapshot columns (`pagopa_residual_at_link_cents`, `quinquies_total_at_link_cents`, taxpayers, `risparmio_at_link_cents`).
+**File: `src/features/rateations/components/RateationRowDetailsPro.tsx`** (riga 638-644)
 
-### Files to modify
-- `src/features/rateations/api/links.ts` -- add `getR5LinksForPagopa()`
-- `src/features/rateations/components/PagopaLinks.tsx` -- fetch and display R5 links alongside RQ links
+Passare `onDataChanged` come `onReloadList` a `InstallmentPaymentActions`:
+
+```diff
+  <InstallmentPaymentActions
+    rateationId={rateationId}
+    installment={it}
+    onReload={load}
++   onReloadList={onDataChanged}
+    onStatsReload={debouncedReloadStats}
+    disabled={!online || rateationInfo?.status === 'ESTINTA'}
+  />
+```
+
+Questo fa si' che dopo un pagamento, `onReloadList` chiami `onDataChanged` che risale al componente padre (`RateationsTablePro`), aggiornando il conteggio rate pagate e l'importo pagato nella riga principale.
+
+### Garanzia dati
+- Nessuna modifica al database o alle API
+- Solo collegamento di un callback gia' esistente ma non connesso
 
