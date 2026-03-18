@@ -116,6 +116,14 @@ export function RateationNumberCell({ row, onRefresh }: RateationNumberCellProps
               </>
             )}
 
+            {/* Conteggio R5 collegate (PagoPA) */}
+            {hasR5Links && (
+              <>
+                {(isInterrotta || isDecaduta || hasLinks) && <span>•</span>}
+                <span>→ collegata a {row.latest_linked_r5_number}</span>
+              </>
+            )}
+
             {/* PagoPA collegata (F24) */}
             {isF24Linked && f24LinkData && (
               <>
