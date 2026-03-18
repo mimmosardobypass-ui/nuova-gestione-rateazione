@@ -5135,6 +5135,15 @@ export type Database = {
           taxpayer_name: string
         }[]
       }
+      get_r5_available_for_pagopa: {
+        Args: { p_pagopa_id: number }
+        Returns: {
+          id: number
+          number: string
+          quater_total_due_cents: number
+          taxpayer_name: string
+        }[]
+      }
       get_residual_detail: {
         Args: {
           p_end_date: string
@@ -5247,6 +5256,13 @@ export type Database = {
       }
       norm_lower_arr: { Args: { arr: string[] }; Returns: string[] }
       norm_upper_arr: { Args: { arr: string[] }; Returns: string[] }
+      pagopa_link_r5_v2: {
+        Args: { payload: Json }
+        Returns: {
+          link_id: string
+          r5_id: number
+        }[]
+      }
       pagopa_link_rq_v2: {
         Args: { payload: Json }
         Returns: {
