@@ -765,12 +765,12 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         // Multi-select checkbox list for PagoPA mode
                         <div className="space-y-2 max-h-64 overflow-auto border rounded-lg p-2">
                           {rqLoading ? (
-                            <div className="text-sm text-muted-foreground px-2 py-1">Caricamento RQ…</div>
+                            <div className="text-sm text-muted-foreground px-2 py-1">Caricamento {destType === 'r5' ? 'R5' : 'RQ'}…</div>
                           ) : rqOptions.length === 0 ? (
                             <div className="text-sm text-muted-foreground px-2 py-1">
                               {selectedPagopaIds.length === 0 
                                 ? 'Seleziona prima una PagoPA' 
-                                : 'Nessuna RQ disponibile per questa PagoPA'}
+                                : `Nessuna ${destType === 'r5' ? 'R5' : 'RQ'} disponibile per questa PagoPA`}
                             </div>
                           ) : (
                             rqOptions.map(rq => {
