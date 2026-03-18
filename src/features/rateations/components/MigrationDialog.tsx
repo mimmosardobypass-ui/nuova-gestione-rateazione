@@ -43,7 +43,10 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
   const [migrationMode, setMigrationMode] = useState<'debts' | 'pagopa'>('debts');
   const [existingPagopaLinks, setExistingPagopaLinks] = useState<any[]>([]);
   
-  // RQ options for PagoPA migration (loaded via RPC)
+  // Destination type for PagoPA migration: 'rq' (Riammissione Quater) or 'r5' (Rottamazione Quinquies)
+  const [destType, setDestType] = useState<'rq' | 'r5'>('rq');
+  
+  // RQ/R5 options for PagoPA migration (loaded via RPC)
   const [rqOptions, setRqOptions] = useState<RqLight[]>([]);
   const [rqLoading, setRqLoading] = useState(false);
 
