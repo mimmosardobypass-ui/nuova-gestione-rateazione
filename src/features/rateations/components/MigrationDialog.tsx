@@ -358,14 +358,18 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         try {
           await loadData();
           
-          // NUOVO: Ricarica RQ disponibili per far sparire le RQ appena collegate
+          // NUOVO: Ricarica opzioni destinazione per far sparire quelle appena collegate
           if (selectedPagopaIdNumber) {
-            const rqAfter = await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
-            setRqOptions(rqAfter);
+            const optionsAfter = destType === 'r5'
+              ? await fetchSelectableR5ForPagopa(selectedPagopaIdNumber)
+              : await fetchSelectableRqForPagopa(selectedPagopaIdNumber);
+            setRqOptions(optionsAfter);
             
-            // Invalida cache contatori per aggiornare il badge "N RQ"
-            const { invalidatePagopaRqCache } = await import('../hooks/usePagopaLinkedRqCount');
-            invalidatePagopaRqCache(selectedPagopaIdNumber);
+            // Invalida cache contatori per aggiornare il badge
+            if (destType === 'rq') {
+              const { invalidatePagopaRqCache } = await import('../hooks/usePagopaLinkedRqCount');
+              invalidatePagopaRqCache(selectedPagopaIdNumber);
+            }
           }
           
           window.dispatchEvent(new CustomEvent('rateations:reload-kpis'));
