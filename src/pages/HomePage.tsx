@@ -36,6 +36,7 @@ export default function HomePage() {
   const safeF24s = Array.isArray(atRiskF24s) ? atRiskF24s : [];
   const safePagopas = Array.isArray(atRiskPagopas) ? atRiskPagopas : [];
   const safeQuaters = Array.isArray(atRiskQuaters) ? atRiskQuaters : [];
+  const safeUpcoming = Array.isArray(upcomingPagopas) ? upcomingPagopas : [];
 
   // Log errors for debugging
   if (errorF24) console.error('[HomePage] F24 error:', errorF24);
