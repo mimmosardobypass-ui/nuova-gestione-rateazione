@@ -15,7 +15,7 @@ export default function RateazioniAtRisk() {
   const density = searchParams.get("density") || "compact";
   const logoUrl = searchParams.get("logo") || undefined;
 
-  const { f24AtRisk, pagopaAtRisk, quaterAtRisk, totalCount, totalResidual, loading, error } = useAllAtRisk();
+  const { f24AtRisk, pagopaAtRisk, quaterAtRisk, pagopaUpcoming, totalCount, totalResidual, loading, error } = useAllAtRisk();
 
   // Apply theme classes
   useEffect(() => {
