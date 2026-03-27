@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useF24AtRisk, F24AtRiskItem } from "./useF24AtRisk";
 import { usePagopaAtRisk, PagopaAtRiskItem } from "./usePagopaAtRisk";
 import { useQuaterAtRisk, QuaterAtRiskItem } from "./useQuaterAtRisk";
+import { usePagopaUpcoming, PagopaUpcomingItem } from "./usePagopaUpcoming";
 import { supabase } from "@/integrations/supabase/client-resilient";
 
 export interface AllAtRiskData {
   f24AtRisk: F24AtRiskItem[];
   pagopaAtRisk: PagopaAtRiskItem[];
   quaterAtRisk: QuaterAtRiskItem[];
+  pagopaUpcoming: PagopaUpcomingItem[];
   totalCount: number;
   totalResidual: bigint;
   loading: boolean;
