@@ -29,6 +29,7 @@ export default function HomePage() {
   // Alert hooks with error handling
   const { atRiskF24s, loading: loadingF24Risk, error: errorF24 } = useF24AtRisk();
   const { atRiskPagopas, loading: loadingPagopaRisk, error: errorPagopa } = usePagopaAtRisk();
+  const { upcomingPagopas, loading: loadingUpcoming, error: errorUpcoming } = usePagopaUpcoming();
   const { atRiskQuaters, loading: loadingQuater, error: errorQuater } = useQuaterAtRisk();
 
   // Safe arrays to prevent crashes
