@@ -20,13 +20,13 @@ export function useAllAtRisk(): AllAtRiskData {
   const { atRiskF24s, loading: loadingF24, error: errorF24 } = useF24AtRisk();
   const { atRiskPagopas, loading: loadingPagopa, error: errorPagopa } = usePagopaAtRisk();
   const { atRiskQuaters, loading: loadingQuater, error: errorQuater } = useQuaterAtRisk();
+  const { upcomingPagopas, loading: loadingUpcoming, error: errorUpcoming } = usePagopaUpcoming();
   
   const [totalResidual, setTotalResidual] = useState<bigint>(BigInt(0));
   const [loadingResidual, setLoadingResidual] = useState(false);
   const [errorResidual, setErrorResidual] = useState<string | null>(null);
 
-  // Check if all child hooks have finished loading (not in grace period)
-  const childHooksLoading = loadingF24 || loadingPagopa || loadingQuater;
+  const childHooksLoading = loadingF24 || loadingPagopa || loadingQuater || loadingUpcoming;
   
   // Calculate total count
   const totalCount = atRiskF24s.length + atRiskPagopas.length + atRiskQuaters.length;
