@@ -110,13 +110,14 @@ export function useAllAtRisk(): AllAtRiskData {
   let error: string | null = null;
   if (!childHooksLoading) {
     // Only show the first actual error (not just "session not available" during grace)
-    error = errorF24 || errorPagopa || errorQuater || errorResidual;
+    error = errorF24 || errorPagopa || errorQuater || errorUpcoming || errorResidual;
   }
 
   return {
     f24AtRisk: atRiskF24s,
     pagopaAtRisk: atRiskPagopas,
     quaterAtRisk: atRiskQuaters,
+    pagopaUpcoming: upcomingPagopas,
     totalCount,
     totalResidual,
     loading,
