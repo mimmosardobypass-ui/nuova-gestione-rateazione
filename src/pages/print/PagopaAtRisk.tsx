@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import PrintLayout from "@/components/print/PrintLayout";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { usePagopaUpcoming } from "@/features/rateations/hooks/usePagopaUpcoming";
 
 const formatCurrency = (amount: number): string => {
   return amount.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
@@ -13,7 +14,10 @@ export default function PagopaAtRisk() {
   const density = searchParams.get("density") || "compact";
   const logoUrl = searchParams.get("logo") || undefined;
 
-  const { atRiskPagopas, loading, error } = usePagopaAtRisk();
+  const { atRiskPagopas, loading: loadingCritical, error: errorCritical } = usePagopaAtRisk();
+  const { upcomingPagopas, loading: loadingUpcoming, error: errorUpcoming } = usePagopaUpcoming();
+  const loading = loadingCritical || loadingUpcoming;
+  const error = errorCritical || errorUpcoming;
 
   useEffect(() => {
     document.body.className = `theme-${theme} density-${density}`;
@@ -185,6 +189,70 @@ export default function PagopaAtRisk() {
             </div>
           )}
 
+          {/* Upcoming Section */}
+          {upcomingPagopas.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-lg font-semibold mb-3 border-b pb-2 text-blue-700">
+                Prossime Scadenze (30gg) - {upcomingPagopas.length} PagoPA
+              </h2>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="print-kpi">
+                  <div className="print-kpi-label">Totale</div>
+                  <div className="print-kpi-value">{upcomingPagopas.length}</div>
+                </div>
+                <div className="print-kpi">
+                  <div className="print-kpi-label">Prime Rate (Tassative)</div>
+                  <div className="print-kpi-value text-red-600">
+                    {upcomingPagopas.filter(p => p.isFirstInstallment).length}
+                  </div>
+                </div>
+                <div className="print-kpi">
+                  <div className="print-kpi-label">Giorni Min.</div>
+                  <div className="print-kpi-value">
+                    {Math.min(...upcomingPagopas.map(p => p.daysRemaining))}
+                  </div>
+                </div>
+              </div>
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th>Numero</th>
+                    <th>Contribuente</th>
+                    <th className="text-right">Importo Rata</th>
+                    <th>Scadenza</th>
+                    <th className="text-right">Giorni</th>
+                    <th className="text-center">Rischio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {upcomingPagopas.map((p) => {
+                    const badge = p.isFirstInstallment
+                      ? { label: '🔴 PRIMA RATA', class: 'bg-red-100 text-red-800' }
+                      : p.daysRemaining <= 7
+                        ? { label: '🟡 ATTENZIONE', class: 'bg-yellow-100 text-yellow-800' }
+                        : { label: '🟢 PROMEMORIA', class: 'bg-green-100 text-green-800' };
+                    return (
+                      <tr key={p.rateationId}>
+                        <td className="font-mono text-sm">{p.numero}</td>
+                        <td>{p.contribuente || 'N/A'}</td>
+                        <td className="text-right font-semibold">
+                          {p.amountCents != null ? formatCurrency(p.amountCents / 100) : 'N/D'}
+                        </td>
+                        <td>{new Date(p.nextDueDate).toLocaleDateString('it-IT')}</td>
+                        <td className="text-right font-semibold">{p.daysRemaining}</td>
+                        <td className="text-center">
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${badge.class}`}>
+                            {badge.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
+          )}
+
           {/* Legend */}
           <section className="mt-8 border-t pt-4">
             <h3 className="text-sm font-semibold mb-2">Legenda Livelli di Rischio PagoPA</h3>
@@ -192,6 +260,9 @@ export default function PagopaAtRisk() {
               <li>• <strong>CRITICO:</strong> Skip residui ≤ 1</li>
               <li>• <strong>ALTO:</strong> Skip residui = 2</li>
               <li>• <strong>MEDIO:</strong> Skip residui ≥ 3</li>
+              <li>• <strong>PRIMA RATA:</strong> Rata n.1 non pagata e in scadenza entro 30gg (tassativa)</li>
+              <li>• <strong>ATTENZIONE:</strong> Scadenza entro 7gg</li>
+              <li>• <strong>PROMEMORIA:</strong> Scadenza entro 8-30gg</li>
             </ul>
           </section>
         </>

@@ -15,7 +15,7 @@ export default function RateazioniAtRisk() {
   const density = searchParams.get("density") || "compact";
   const logoUrl = searchParams.get("logo") || undefined;
 
-  const { f24AtRisk, pagopaAtRisk, quaterAtRisk, totalCount, totalResidual, loading, error } = useAllAtRisk();
+  const { f24AtRisk, pagopaAtRisk, quaterAtRisk, pagopaUpcoming, totalCount, totalResidual, loading, error } = useAllAtRisk();
 
   // Apply theme classes
   useEffect(() => {
@@ -326,6 +326,72 @@ export default function RateazioniAtRisk() {
             </section>
           )}
 
+          {/* PagoPA Upcoming Section */}
+          {pagopaUpcoming.length > 0 && (
+            <section className="mb-8 avoid-break">
+              <h2 className="text-lg font-semibold mb-3 border-b pb-2 text-blue-700">
+                PagoPA - Prossime Scadenze 30gg ({pagopaUpcoming.length})
+              </h2>
+
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="print-kpi">
+                  <div className="print-kpi-label">Totale Imminenti</div>
+                  <div className="print-kpi-value">{pagopaUpcoming.length}</div>
+                </div>
+                <div className="print-kpi">
+                  <div className="print-kpi-label">Di cui Prime Rate</div>
+                  <div className="print-kpi-value text-red-600">
+                    {pagopaUpcoming.filter(p => p.isFirstInstallment).length}
+                  </div>
+                </div>
+                <div className="print-kpi">
+                  <div className="print-kpi-label">Giorni Min.</div>
+                  <div className="print-kpi-value">
+                    {Math.min(...pagopaUpcoming.map(p => p.daysRemaining))}
+                  </div>
+                </div>
+              </div>
+
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th>Numero</th>
+                    <th>Contribuente</th>
+                    <th className="text-right">Importo Rata</th>
+                    <th>Scadenza</th>
+                    <th className="text-right">Giorni</th>
+                    <th className="text-center">Rischio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagopaUpcoming.map((p) => {
+                    const badge = p.isFirstInstallment
+                      ? { label: '🔴 PRIMA RATA', class: 'bg-red-100 text-red-800' }
+                      : p.daysRemaining <= 7
+                        ? { label: '🟡 ATTENZIONE', class: 'bg-yellow-100 text-yellow-800' }
+                        : { label: '🟢 PROMEMORIA', class: 'bg-green-100 text-green-800' };
+                    return (
+                      <tr key={p.rateationId}>
+                        <td className="font-mono text-sm">{p.numero}</td>
+                        <td>{p.contribuente || 'N/A'}</td>
+                        <td className="text-right font-semibold">
+                          {p.amountCents != null ? formatCurrency(p.amountCents / 100) : 'N/D'}
+                        </td>
+                        <td>{new Date(p.nextDueDate).toLocaleDateString('it-IT')}</td>
+                        <td className="text-right font-semibold">{p.daysRemaining}</td>
+                        <td className="text-center">
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${badge.class}`}>
+                            {badge.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
+          )}
+
           {/* Quater Section */}
           {quaterAtRisk.length > 0 && (
             <section className="mb-8 avoid-break">
@@ -497,6 +563,9 @@ export default function RateazioniAtRisk() {
                   <li>• 🔴 CRITICO: Skip ≤1</li>
                   <li>• 🟠 ALTO: Skip = 2</li>
                   <li>• 🟡 MEDIO: Skip ≥3</li>
+                  <li>• 🔴 PRIMA RATA: Rata n.1 tassativa</li>
+                  <li>• 🟡 ATTENZIONE: ≤7gg</li>
+                  <li>• 🟢 PROMEMORIA: 8-30gg</li>
                 </ul>
               </div>
               <div>
