@@ -11,6 +11,8 @@ export interface PagopaAtRiskItem {
   nextDueDate: string | null;
   daysRemaining: number;
   nextInstallmentAmountCents: number | null;
+  /** true when this PagoPA is at risk because seq=1 is unpaid and due within 30 days */
+  isFirstInstallmentRisk?: boolean;
 }
 
 export interface UsePagopaAtRiskResult {
