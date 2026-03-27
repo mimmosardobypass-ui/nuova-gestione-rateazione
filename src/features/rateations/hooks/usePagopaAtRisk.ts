@@ -203,6 +203,78 @@ export function usePagopaAtRisk(): UsePagopaAtRiskResult {
           return item;
         });
 
+        // --- FIRST INSTALLMENT RULE ---
+        // PagoPA where seq=1 is unpaid and due within 30 days => at risk regardless of skips
+        const existingIds = new Set(atRiskWithDueDates.map(item => item.rateationId));
+
+        // Get all active PagoPAs not already in the critical list
+        const { data: allActivePagopas, error: activeErr } = await supabase
+          .from('v_rateations_list_ui')
+          .select('id, number, taxpayer_name, status, is_pagopa')
+          .eq('is_pagopa', true)
+          .in('status', ['attiva', 'in_ritardo', 'ATTIVA', 'IN_RITARDO']);
+        if (activeErr) throw activeErr;
+        if (!mounted) return;
+
+        const nonCriticalActiveIds = (allActivePagopas || [])
+          .filter(r => !existingIds.has(String(r.id)))
+          .map(r => r.id);
+
+        if (nonCriticalActiveIds.length > 0) {
+          const in30 = new Date(todayMidnight);
+          in30.setDate(in30.getDate() + 30);
+          const in30ISO = in30.toISOString().split('T')[0];
+
+          const { data: firstInst, error: fiErr } = await supabase
+            .from('installments')
+            .select('rateation_id, due_date, amount_cents, amount, seq')
+            .in('rateation_id', nonCriticalActiveIds)
+            .eq('seq', 1)
+            .or('is_paid.eq.false,is_paid.is.null')
+            .is('canceled_at', null)
+            .gte('due_date', todayISO)
+            .lte('due_date', in30ISO);
+          if (fiErr) throw fiErr;
+          if (!mounted) return;
+
+          // Get KPIs for these
+          const fiRatIds = [...new Set((firstInst || []).map(i => i.rateation_id))];
+          let fiKpisMap = new Map<number, { unpaid: number; skip: number }>();
+          if (fiRatIds.length > 0) {
+            const { data: fiKpis } = await supabase
+              .from('v_pagopa_today_kpis')
+              .select('rateation_id, unpaid_overdue_today, skip_remaining')
+              .in('rateation_id', fiRatIds);
+            for (const k of (fiKpis || [])) {
+              fiKpisMap.set(k.rateation_id, { unpaid: k.unpaid_overdue_today ?? 0, skip: k.skip_remaining ?? 0 });
+            }
+          }
+
+          for (const inst of (firstInst || [])) {
+            if (existingIds.has(String(inst.rateation_id))) continue;
+            const rat = allActivePagopas?.find(r => r.id === inst.rateation_id);
+            if (!rat) continue;
+            const kpiData = fiKpisMap.get(inst.rateation_id);
+            const nextDue = new Date(inst.due_date);
+            nextDue.setHours(0, 0, 0, 0);
+            const daysRem = Math.max(0, Math.ceil((nextDue.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)));
+            const amtCents = inst.amount_cents ?? (inst.amount != null ? Math.round(inst.amount * 100) : null);
+
+            atRiskWithDueDates.push({
+              rateationId: String(inst.rateation_id),
+              numero: rat.number || 'N/A',
+              contribuente: rat.taxpayer_name || null,
+              unpaidOverdueCount: kpiData?.unpaid ?? 0,
+              skipRemaining: kpiData?.skip ?? 8,
+              nextDueDate: inst.due_date,
+              daysRemaining: daysRem,
+              nextInstallmentAmountCents: amtCents,
+              isFirstInstallmentRisk: true,
+            });
+            existingIds.add(String(inst.rateation_id));
+          }
+        }
+
         if (mounted) {
           setAtRiskPagopas(atRiskWithDueDates);
         }
