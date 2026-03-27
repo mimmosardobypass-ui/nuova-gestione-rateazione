@@ -14,7 +14,10 @@ export default function PagopaAtRisk() {
   const density = searchParams.get("density") || "compact";
   const logoUrl = searchParams.get("logo") || undefined;
 
-  const { atRiskPagopas, loading, error } = usePagopaAtRisk();
+  const { atRiskPagopas, loading: loadingCritical, error: errorCritical } = usePagopaAtRisk();
+  const { upcomingPagopas, loading: loadingUpcoming, error: errorUpcoming } = usePagopaUpcoming();
+  const loading = loadingCritical || loadingUpcoming;
+  const error = errorCritical || errorUpcoming;
 
   useEffect(() => {
     document.body.className = `theme-${theme} density-${density}`;
