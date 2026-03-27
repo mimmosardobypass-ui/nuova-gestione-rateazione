@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { setSEO } from "@/lib/seo";
 import { useF24AtRisk } from "@/features/rateations/hooks/useF24AtRisk";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { usePagopaUpcoming } from "@/features/rateations/hooks/usePagopaUpcoming";
 import { useQuaterAtRisk } from "@/features/rateations/hooks/useQuaterAtRisk";
 import { ConfigurableAlert } from "@/features/rateations/components/ConfigurableAlert";
 import { F24AtRiskAlert } from "@/features/rateations/components/F24AtRiskAlert";

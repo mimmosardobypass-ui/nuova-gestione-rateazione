@@ -563,6 +563,9 @@ export default function RateazioniAtRisk() {
                   <li>• 🔴 CRITICO: Skip ≤1</li>
                   <li>• 🟠 ALTO: Skip = 2</li>
                   <li>• 🟡 MEDIO: Skip ≥3</li>
+                  <li>• 🔴 PRIMA RATA: Rata n.1 tassativa</li>
+                  <li>• 🟡 ATTENZIONE: ≤7gg</li>
+                  <li>• 🟢 PROMEMORIA: 8-30gg</li>
                 </ul>
               </div>
               <div>
