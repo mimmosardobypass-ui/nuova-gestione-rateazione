@@ -390,6 +390,7 @@ export default function RateazioniAtRisk() {
                 </tbody>
               </table>
             </section>
+          )}
 
           {/* Quater Section */}
           {quaterAtRisk.length > 0 && (
