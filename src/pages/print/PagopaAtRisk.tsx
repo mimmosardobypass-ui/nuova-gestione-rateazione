@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import PrintLayout from "@/components/print/PrintLayout";
 import { usePagopaAtRisk } from "@/features/rateations/hooks/usePagopaAtRisk";
+import { usePagopaUpcoming } from "@/features/rateations/hooks/usePagopaUpcoming";
 
 const formatCurrency = (amount: number): string => {
   return amount.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
