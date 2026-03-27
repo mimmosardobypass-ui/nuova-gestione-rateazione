@@ -167,6 +167,25 @@ export default function HomePage() {
                 );
               }
             })()}
+
+            {/* PagoPA Upcoming Alert */}
+            {!loadingUpcoming && safeUpcoming.length > 0 && (
+              <div className="border border-blue-300 bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-blue-700 font-semibold text-sm">
+                    📅 {safeUpcoming.length} PagoPA con scadenze nei prossimi 30 giorni
+                  </span>
+                </div>
+                <p className="text-xs text-blue-600">
+                  {safeUpcoming.filter(p => p.isFirstInstallment).length > 0 && (
+                    <span className="font-bold text-red-600">
+                      ⚠️ {safeUpcoming.filter(p => p.isFirstInstallment).length} con prima rata tassativa! {' '}
+                    </span>
+                  )}
+                  Prossima scadenza tra {Math.min(...safeUpcoming.map(p => p.daysRemaining))} giorni
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Global At-Risk Report Selector */}
